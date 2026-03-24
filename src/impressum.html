@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Impressum und Datenschutzerklärung für die Maphop Webanwendung.">
+	<title>Impressum &amp; Datenschutzerklärung | Maphop</title>
+	<style>
+		:root {
+			color-scheme: light;
+			--page-bg: #f4f7f5;
+			--card-bg: #ffffff;
+			--border: #d7e1db;
+			--text: #16211c;
+			--muted: #5a6961;
+			--accent: #0d6b50;
+			--shadow: 0 18px 42px rgba(12, 36, 28, 0.08);
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			background:
+				radial-gradient(circle at top right, rgba(13, 107, 80, 0.1), transparent 22%),
+				linear-gradient(180deg, #f8fbf9 0%, var(--page-bg) 100%);
+			color: var(--text);
+			font-family: "Avenir Next", "Segoe UI", sans-serif;
+			line-height: 1.65;
+		}
+
+		main {
+			width: min(760px, calc(100% - 32px));
+			margin: 0 auto;
+			padding: 48px 0 56px;
+		}
+
+		.page-card {
+			background: var(--card-bg);
+			border: 1px solid var(--border);
+			border-radius: 18px;
+			box-shadow: var(--shadow);
+			padding: 28px 24px;
+		}
+
+		.page-eyebrow {
+			margin: 0 0 10px;
+			color: var(--accent);
+			font-size: 0.78rem;
+			font-weight: 700;
+			letter-spacing: 0.16em;
+			text-transform: uppercase;
+		}
+
+		h1,
+		h2,
+		h3 {
+			margin-top: 0;
+			line-height: 1.2;
+		}
+
+		h1 {
+			margin-bottom: 12px;
+			font-size: clamp(2rem, 5vw, 2.6rem);
+		}
+
+		h2 {
+			margin-bottom: 16px;
+			font-size: 1.35rem;
+		}
+
+		h3 {
+			margin: 28px 0 8px;
+			font-size: 1rem;
+		}
+
+		p {
+			margin: 0 0 14px;
+		}
+
+		.lead {
+			color: var(--muted);
+			max-width: 58ch;
+		}
+
+		.section {
+			padding-top: 24px;
+			margin-top: 24px;
+			border-top: 1px solid var(--border);
+		}
+
+		.contact-block {
+			display: grid;
+			gap: 2px;
+			margin: 14px 0 20px;
+		}
+
+		.label {
+			font-weight: 700;
+		}
+
+		a {
+			color: var(--accent);
+		}
+
+		.page-footer {
+			margin-top: 24px;
+			color: var(--muted);
+			font-size: 0.92rem;
+		}
+
+		.back-link {
+			display: inline-block;
+			margin-bottom: 24px;
+			color: var(--accent);
+			font-weight: 600;
+			text-decoration: none;
+		}
+
+		.back-link:hover,
+		.back-link:focus-visible {
+			text-decoration: underline;
+		}
+
+		@media (max-width: 640px) {
+			main {
+				width: min(100% - 20px, 760px);
+				padding: 20px 0 28px;
+			}
+
+			.page-card {
+				border-radius: 14px;
+				padding: 22px 18px;
+			}
+		}
+	</style>
+</head>
+<body>
+	<main>
+		<a class="back-link" href="./index.html">Zurück zur Karte</a>
+
+		<article class="page-card">
+			<p class="page-eyebrow">Rechtliches</p>
+			<h1>Impressum &amp; Datenschutzerklärung</h1>
+			<p class="lead">
+				Diese Seite enthält die Anbieterkennzeichnung sowie die Hinweise zur Datenverarbeitung für die private,
+				lokale Kartenanwendung Maphop.
+			</p>
+
+			<section class="section" aria-labelledby="impressum-heading">
+				<h2 id="impressum-heading">Impressum</h2>
+				<p>Angaben gemäß § 24 Mediengesetz:</p>
+
+				<div class="contact-block">
+					<span class="label">Medieninhaber und Herausgeber:</span>
+					<span>Michael Diener</span>
+					<span>[Deine vollständige Adresse hier eintragen]</span>
+					<span>Österreich</span>
+				</div>
+
+				<div class="contact-block">
+					<span class="label">Kontakt:</span>
+					<span>
+						E-Mail:
+						<a href="mailto:deine-email@example.com">deine-email@example.com</a>
+					</span>
+				</div>
+
+				<p>
+					<span class="label">Blattlinie:</span>
+					Diese Website ist eine private, nicht-kommerzielle Webanwendung zur Darstellung von Karten. Nutzer
+					können Favoriten ausschließlich lokal im Browser speichern. Es erfolgt keine serverseitige
+					Verarbeitung personenbezogener Daten.
+				</p>
+			</section>
+
+			<section class="section" aria-labelledby="privacy-heading">
+				<h2 id="privacy-heading">Datenschutzerklärung</h2>
+				<p>Diese Website verarbeitet grundsätzlich keine personenbezogenen Daten auf eigenen Servern.</p>
+
+				<h3>Lokale Datenspeicherung</h3>
+				<p>
+					Favoriten werden ausschließlich lokal im Browser des Nutzers (IndexedDB) gespeichert. Diese Daten
+					verlassen das Gerät nicht und werden nicht an Dritte übertragen.
+				</p>
+
+				<h3>Kartenanzeige (MapLibre / externe Tile-Server)</h3>
+				<p>
+					Zur Darstellung der Karte werden Kartendaten von externen Tile-Servern geladen. Dabei kann es
+					technisch erforderlich sein, dass Ihre IP-Adresse an diese Server übermittelt wird.
+				</p>
+				<p>
+					Auf diese Datenverarbeitung habe ich keinen Einfluss. Es gelten die Datenschutzbestimmungen der
+					jeweiligen Anbieter der Kartendienste.
+				</p>
+
+				<h3>Cookies und Tracking</h3>
+				<p>Diese Website verwendet keine Cookies und keine Tracking- oder Analyse-Tools.</p>
+
+				<h3>Ihre Rechte</h3>
+				<p>
+					Da keine personenbezogenen Daten serverseitig verarbeitet werden, ergeben sich in der Praxis keine
+					ausübbaren Betroffenenrechte gegenüber dieser Website. Unabhängig davon stehen Ihnen die Rechte gemäß
+					der Datenschutz-Grundverordnung (DSGVO) zu.
+				</p>
+			</section>
+
+			<p class="page-footer">Stand: März 2026</p>
+		</article>
+	</main>
+</body>
+</html>

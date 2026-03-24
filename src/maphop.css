@@ -85,7 +85,33 @@ body::before {
 
 .control-menu-header {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
+    gap: 10px;
+}
+
+.menu-title {
+    margin-right: auto;
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: left;
+    white-space: nowrap;
+    transform: translateX(6px);
+    transition:
+        max-width 180ms ease,
+        opacity 140ms ease,
+        transform 160ms ease;
+}
+
+.control-menu.is-open .menu-title {
+    max-width: 120px;
+    opacity: 1;
+    transform: translateX(0);
 }
 
 .menu-button {
@@ -202,6 +228,27 @@ body::before {
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
+}
+
+.menu-footer {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(237, 244, 239, 0.1);
+}
+
+.menu-footer-link {
+    display: inline-block;
+    padding: 0 12px 2px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    text-decoration: none;
+}
+
+.menu-footer-link:hover,
+.menu-footer-link:focus-visible {
+    color: var(--text);
+    text-decoration: underline;
 }
 
 .menu-group-favorites .favorites-list {
