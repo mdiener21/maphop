@@ -18,6 +18,9 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp ca-certificates
+
       - name: Deploy via lftp
         run: |
           lftp -c "
@@ -33,5 +36,5 @@ jobs:
             bye;
           "
         env:
-          FTP_USER: cwreey
+          FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
