@@ -14,7 +14,7 @@
     <link rel="icon" href="./images/maphop-logo-192px.png" sizes="192x192" type="image/png">
     <link rel="apple-touch-icon" href="./images/maphop-logo-192px.png">
     <title>Maphop Map</title>
-    <link rel="stylesheet" href="./mymap.css">
+    <link rel="stylesheet" href="./maphop.css">
 </head>
 <body>
     <div id="app">
@@ -53,36 +53,60 @@
                     </p>
                 </div>
 
-                <div class="menu-group menu-group-favorites">
-                    <p class="menu-group-title">Favorites</p>
-                    <button class="menu-action-button" id="saveFavoriteButton" type="button">
-                        Save Current View
-                    </button>
-                    <div class="favorites-list" id="favoritesList"></div>
-                    <p class="favorites-empty" id="favoritesEmpty">No saved locations yet.</p>
-                </div>
+                <div class="menu-scroll-region">
+                    <div class="menu-group menu-group-favorites">
+                        <button
+                            class="menu-section-toggle"
+                            id="favoritesSectionToggle"
+                            type="button"
+                            aria-expanded="true"
+                            aria-controls="favoritesSectionPanel"
+                        >
+                            <span class="menu-group-title">Favorites</span>
+                            <span class="menu-section-toggle-icon" aria-hidden="true"></span>
+                        </button>
+                        <div class="menu-section-panel" id="favoritesSectionPanel">
+                            <button class="menu-action-button" id="saveFavoriteButton" type="button">
+                                Save Current View
+                            </button>
+                            <div class="favorites-list" id="favoritesList"></div>
+                            <p class="favorites-empty" id="favoritesEmpty">No saved locations yet.</p>
+                        </div>
+                    </div>
 
-                <div class="menu-group">
-                    <p class="menu-group-title">Maps</p>
-                    <div class="map-options" role="group" aria-label="Base maps">
-                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="bergfex">
-                            Bergfex OSM
+                    <div class="menu-group">
+                        <button
+                            class="menu-section-toggle"
+                            id="mapsSectionToggle"
+                            type="button"
+                            aria-expanded="true"
+                            aria-controls="mapsSectionPanel"
+                        >
+                            <span class="menu-group-title">Maps</span>
+                            <span class="menu-section-toggle-icon" aria-hidden="true"></span>
                         </button>
-                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="osm">
-                            OpenStreetMap
-                        </button>
-                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="openfreemap">
-                            OpenFreeMap Liberty
-                        </button>
-                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="opentopo">
-                            OpenTopoMap
-                        </button>
-                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="cyclosm">
-                            CyclOSM
-                        </button>
-                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="basemapGrauWmts">
-                            basemap.at Grau WMTS
-                        </button>
+                        <div class="menu-section-panel" id="mapsSectionPanel">
+                            <div class="map-options" role="group" aria-label="Base maps">
+                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="bergfex">
+                                    Bergfex OSM
+                                </button>
+                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="osm">
+                                    OpenStreetMap
+                                </button>
+                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="openfreemap">
+                                    OpenFreeMap Liberty
+                                </button>
+                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="opentopo">
+                                    OpenTopoMap
+                                </button>
+                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="cyclosm">
+                                    CyclOSM
+                                </button>
+                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="basemapGrauWmts">
+                                    basemap.at Grau WMTS
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -91,6 +115,6 @@
         <p class="status-toast" id="status" aria-live="polite"></p>
     </div>
 
-    <script type="module" src="./mymap.js"></script>
+    <script type="module" src="./maphop.js"></script>
 </body>
 </html>

@@ -19,7 +19,10 @@ const locationToggleLabel = document.getElementById("locationToggleLabel");
 const saveFavoriteButton = document.getElementById("saveFavoriteButton");
 const favoritesList = document.getElementById("favoritesList");
 const favoritesEmpty = document.getElementById("favoritesEmpty");
+const favoritesSectionToggle = document.getElementById("favoritesSectionToggle");
+const mapsSectionToggle = document.getElementById("mapsSectionToggle");
 const layerOptionElements = Array.from(document.querySelectorAll(".layer-option"));
+const menuSectionToggleElements = [favoritesSectionToggle, mapsSectionToggle].filter(Boolean);
 
 const baseMapConfigs = {
     bergfex: {
@@ -289,6 +292,28 @@ function registerTrackingActivity() {
 function setLayerMenuOpen(isOpen) {
     menuShell.classList.toggle("is-open", isOpen);
     layerMenuButton.setAttribute("aria-expanded", String(isOpen));
+}
+
+function setMenuSectionExpanded(toggleElement, isExpanded) {
+    const panelId = toggleElement?.getAttribute("aria-controls");
+    if (!panelId) {
+        return;
+    }
+
+    const panelElement = document.getElementById(panelId);
+    if (!panelElement) {
+        return;
+    }
+
+    toggleElement.setAttribute("aria-expanded", String(isExpanded));
+    panelElement.hidden = !isExpanded;
+}
+
+function initializeMenuSections() {
+    menuSectionToggleElements.forEach((toggleElement) => {
+        const isExpanded = toggleElement.getAttribute("aria-expanded") !== "false";
+        setMenuSectionExpanded(toggleElement, isExpanded);
+    });
 }
 
 function updateLayerOptionState(activeKey) {
@@ -813,6 +838,13 @@ layerMenu.addEventListener("click", (event) => {
     event.stopPropagation();
 });
 
+menuSectionToggleElements.forEach((toggleElement) => {
+    toggleElement.addEventListener("click", () => {
+        const isExpanded = toggleElement.getAttribute("aria-expanded") !== "true";
+        setMenuSectionExpanded(toggleElement, isExpanded);
+    });
+});
+
 layerOptionElements.forEach((element) => {
     element.addEventListener("click", () => {
         setBaseLayer(element.dataset.layerKey);
@@ -846,6 +878,7 @@ document.addEventListener("click", () => {
 });
 
 registerScopedServiceWorker();
+initializeMenuSections();
 
 map.on("load", () => {
     ensureLocationOverlay();
