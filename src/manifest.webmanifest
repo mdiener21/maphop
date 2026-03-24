@@ -1,36 +1,54 @@
 {
   "id": "/mymap/",
-  "name": "Personal Map",
-  "short_name": "My Map",
+  "name": "Maphop",
+  "short_name": "Maphop",
   "description": "Personal mobile map with optional live location and saved favorites.",
   "lang": "en-US",
-  "start_url": "/mymap/",
-  "scope": "/mymap/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0d1b20",
   "theme_color": "#0d1b20",
   "icons": [
     {
-      "src": "/img/md-logo-blue-violet-192px.png",
+      "src": "./images/maphop-logo-72px.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./images/maphop-logo-128px.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./images/maphop-logo-144px.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./images/maphop-logo-192px.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/img/md-logo-blue-violet-192px.png",
+      "src": "./images/maphop-logo-192px.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/img/md-logo-blue-violet-512px.png",
+      "src": "./images/maphop-logo-512px.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/img/md-logo-blue-violet-512px.png",
+      "src": "./images/maphop-logo-512px.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
