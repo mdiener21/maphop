@@ -31,7 +31,7 @@ jobs:
             set ftp:ssl-allow true;
             set ftp:ssl-force true;
             set ftp:ssl-protect-data yes;
-            open -u ${FTP_USER},${FTP_PASSWORD} -p 21 maphop.com;
+            open -u ${FTP_USER},${FTP_PASSWORD} -p 21 maphop.eu;
             mirror --reverse --delete --verbose ./dist/ ./public_html/;
             bye;
           "
