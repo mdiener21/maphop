@@ -25,6 +25,10 @@ Supporting files:
 - `temp.js` — legacy/imported reference code, not part of the app flow. Avoid editing unless explicitly asked.
 - `manifest.webmanifest` — PWA manifest scoped to `/mymap/`.
 
+## Workflow
+
+- **Always update `CHANGELOG.md`** after making changes. Add entries under `[Unreleased]` using Keep a Changelog categories (Added, Changed, Fixed, Removed).
+
 ## Key Conventions
 
 - **Code style**: ES modules, `const` by default, camelCase, 4-space indentation, small helper functions.
