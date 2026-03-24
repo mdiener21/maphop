@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"
+    >
+    <meta name="description" content="Personal mobile map with optional live location and saved favorites.">
+    <meta name="theme-color" content="#0d1b20">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="/img/md-logo-blue-violet-192px.png" sizes="192x192" type="image/png">
+    <link rel="apple-touch-icon" href="/img/md-logo-blue-violet-192px.png">
+    <title>Personal Map</title>
+    <link rel="stylesheet" href="./mymap.css">
+</head>
+<body>
+    <div id="app">
+        <div id="map" aria-label="Personal map"></div>
+
+        <section class="control-menu" id="menuShell">
+            <div class="control-menu-header">
+                <button
+                    class="menu-button"
+                    id="layerMenuButton"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="layerMenu"
+                    aria-label="Open map controls"
+                >
+                    <span class="menu-button-lines" aria-hidden="true">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
+                </button>
+            </div>
+
+            <div class="menu-content menu-divider" id="layerMenu" role="menu">
+                <div class="menu-group">
+                    <p class="menu-group-title">Location</p>
+                    <button class="menu-toggle-row" id="locateButton" type="button" data-state="idle">
+                        <span class="menu-toggle-copy">
+                            <strong>Show My Location</strong>
+                            <span id="locationToggleLabel">Off</span>
+                        </span>
+                        <span class="menu-toggle-pill" aria-hidden="true"></span>
+                    </button>
+                    <p class="menu-note">
+                        Remote map providers can infer your nearby area from the tiles your device requests.
+                    </p>
+                </div>
+
+                <div class="menu-group">
+                    <p class="menu-group-title">Favorites</p>
+                    <button class="menu-action-button" id="saveFavoriteButton" type="button">
+                        Save Current View
+                    </button>
+                    <div class="favorites-list" id="favoritesList"></div>
+                    <p class="favorites-empty" id="favoritesEmpty">No saved locations yet.</p>
+                </div>
+
+                <div class="menu-group">
+                    <p class="menu-group-title">Maps</p>
+                    <div class="map-options" role="group" aria-label="Base maps">
+                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="bergfex">
+                            Bergfex OSM
+                        </button>
+                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="osm">
+                            OpenStreetMap
+                        </button>
+                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="openfreemap">
+                            OpenFreeMap Liberty
+                        </button>
+                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="opentopo">
+                            OpenTopoMap
+                        </button>
+                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="cyclosm">
+                            CyclOSM
+                        </button>
+                        <button class="layer-option" type="button" role="menuitemradio" data-layer-key="basemapGrauWmts">
+                            basemap.at Grau WMTS
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <p class="status-toast" id="status" aria-live="polite"></p>
+    </div>
+
+    <script type="module" src="./mymap.js"></script>
+</body>
+</html>
