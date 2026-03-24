@@ -37,10 +37,6 @@
         "endpoint":"http://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}"
       },
       {
-        "name":"World Ocean Base",
-        "endpoint":"http://services.arcgisonline.com/arcgis/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}"
-      },
-      {
         "name":"DeLorme World Base Map",
         "endpoint":"http://services.arcgisonline.com/arcgis/rest/services/Specialty/DeLorme_World_Base_Map/MapServer/tile/{z}/{y}/{x}"
       },
@@ -85,10 +81,6 @@
       {
         "name":"Light Gray Reference",
         "endpoint":"http://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
-      },
-      {
-        "name":"World Ocean Reference",
-        "endpoint":"http://services.arcgisonline.com/arcgis/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}"
       },
       {
         "name":"World Boundaries & Places",
