@@ -19,3 +19,4 @@
 - Added an Impressum/Datenschutz link to the bottom of the menu and converted `src/impressum.html` into a styled standalone legal page
 - Added a `Maphop` title in the menu header that appears to the left of the hamburger button only while the menu is open
 - Left-aligned the `Maphop` header title within the open menu
+- Updated the Vite build config to emit both the main app page and `src/impressum.html`
