@@ -1,8 +1,10 @@
 # Changelog
 
-## [Unreleased]
+## [1.0.1] - 2026-03-24
 
 ### Added
+- Esri Satellite imagery as a new base map option
+- Version label in the menu footer, dynamically read from package.json
 - Vite build system with dev server, production build, and preview commands
 - GitHub Actions workflow for automated FTP deployment via lftp
 - `.gitignore` for node_modules, dist, IDE files, and env files

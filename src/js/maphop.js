@@ -1,4 +1,5 @@
 import maplibregl from "maplibre-gl";
+import { version } from "../../package.json";
 
 const bergfexTilesUrl = "https://tiles.bergfex.at/styles/bergfex-osm/512/{z}/{x}/{y}.png";
 const favoriteDbName = "personal-map-db";
@@ -21,8 +22,11 @@ const favoritesList = document.getElementById("favoritesList");
 const favoritesEmpty = document.getElementById("favoritesEmpty");
 const favoritesSectionToggle = document.getElementById("favoritesSectionToggle");
 const mapsSectionToggle = document.getElementById("mapsSectionToggle");
+const appVersionElement = document.getElementById("appVersion");
 const layerOptionElements = Array.from(document.querySelectorAll(".layer-option"));
 const menuSectionToggleElements = [favoritesSectionToggle, mapsSectionToggle].filter(Boolean);
+
+appVersionElement.textContent = `version ${version}`;
 
 const baseMapConfigs = {
     bergfex: {
@@ -111,6 +115,30 @@ const baseMapConfigs = {
                     tiles: expandSubdomains("https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"),
                     tileSize: 256,
                     maxzoom: 20
+                }
+            },
+            layers: [
+                {
+                    id: "basemap",
+                    type: "raster",
+                    source: "basemap",
+                    paint: {
+                        "raster-resampling": "nearest"
+                    }
+                }
+            ]
+        }
+    },
+    esriSatellite: {
+        label: "Esri Satellite",
+        style: {
+            version: 8,
+            sources: {
+                basemap: {
+                    type: "raster",
+                    tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.jpg"],
+                    tileSize: 256,
+                    maxzoom: 19
                 }
             },
             layers: [

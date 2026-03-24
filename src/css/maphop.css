@@ -251,6 +251,14 @@ body::before {
     text-decoration: underline;
 }
 
+.menu-footer-version {
+    display: block;
+    padding: 4px 12px 0;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    opacity: 0.6;
+}
+
 .menu-group-favorites .favorites-list {
     overflow: visible;
     max-height: none;
