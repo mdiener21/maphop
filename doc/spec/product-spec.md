@@ -1,6 +1,6 @@
 # Product Specification: Maphop
 
-**Version:** 1.0
+**Version:** 1.1
 **Last Updated:** 2026-03-28
 **Author:** Product Management
 **Status:** Draft
@@ -84,18 +84,21 @@ src/
 ├── css/
 │   ├── app-page.css        Shared layout chrome for secondary pages
 │   ├── impressum.css       Legal page styling
-│   ├── maphop.css          Live map styling and control menu UI
+│   ├── maphop.css          Live map styling, control menu UI, and install banner
 │   └── settings.css        Settings page styling
 ├── js/
 │   ├── favorite-store.js   IndexedDB access for favorites
 │   ├── favorite-transfer.js JSON import/export validation and transfer helpers
 │   ├── impressum.js        Legal page interactions
-│   ├── location-tracker.js Geolocation state and map overlay rendering
-│   ├── maphop.js           Map page state, base maps, favorites UI, service worker registration
+│   ├── location-tracker.js Geolocation state, geo-math helpers, and map overlay rendering
+│   ├── maphop.js           Map page state, base maps, favorites UI, PWA install prompt, SW registration
 │   ├── page-shell.js       Shared page title and version-label wiring
 │   └── settings.js         Settings page behavior
+├── public/
+│   ├── sw.js               Service worker — network-first cache strategy for app shell
+│   └── _headers            Static hosting security headers (Netlify / compatible hosts)
 ├── images/                 App icons (72–512px, maskable variants)
-└── manifest.webmanifest    PWA manifest (standalone display, portrait)
+└── manifest.webmanifest    PWA manifest (standalone display, portrait, scope /)
 ```
 
 ### Design Principles
@@ -191,8 +194,9 @@ Opt-in location tracking with three visual layers on a single GeoJSON source (`u
 
 **Behavior:**
 - First activation auto-fits map to the accuracy radius with padding.
+- After the initial position lock the map **continuously pans** to keep the user centered (`easeTo`, 500ms duration) on every GPS update.
 - Heading cone appears only when the device is moving (>0.7 m/s).
-- Heading is derived from GPS `heading` property or calculated from successive fixes.
+- Heading is derived from GPS `heading` property or calculated from successive fixes (minimum 5 m displacement).
 - Tracking **automatically stops after 15 minutes** of user inactivity (no pointer, touch, wheel, or keyboard events). A toast notifies the user.
 - Tracking stops and the overlay is hidden when the page goes to the background (`visibilitychange`) or is unloaded (`pagehide`).
 
@@ -265,14 +269,22 @@ A dedicated settings page keeps backup actions and future configuration out of t
 | Scope | `/` |
 | Icons | 72, 128, 144, 192 (maskable), 512 (maskable) px |
 
-**Behavior:**
-- Service worker registers on page load in production (HTTPS only).
-- Scoped to `/` deployment path.
-- App is installable on mobile home screens and desktop.
+**Service worker:**
+- Registers at `/sw.js` with scope `/` in production (HTTPS + secure context only).
+- Strategy: **network-first** for same-origin requests; cross-origin tile requests bypass the cache entirely.
+- Old cache versions are deleted on `activate`; new SW takes control immediately via `skipWaiting` + `clients.claim`.
+
+**Install prompt:**
+- **Android/Chrome**: `beforeinstallprompt` is captured and prevented from firing automatically. A glass-panel install banner is shown at the bottom of the screen with an *Install* button and a *Dismiss* (✕) button.
+- **iOS Safari**: A "Tap Share → Add to Home Screen" hint banner is shown when the app is not already in standalone mode. Dismissing snoozes the hint for **7 days** via a `localStorage` timestamp; it reappears automatically after the snooze expires.
+- Both banners are hidden after the `appinstalled` event fires.
+- Neither banner is shown when the app is already running in standalone mode.
 
 **Acceptance criteria:**
 - Lighthouse PWA audit passes core checks (manifest, service worker, HTTPS, icons).
 - App launches in standalone mode when installed.
+- Install banner appears on first eligible Android/Chrome visit; dismissing it does not permanently suppress it.
+- iOS hint appears on first eligible Safari visit and re-appears after 7 days if the user has not installed.
 
 ---
 
@@ -321,6 +333,27 @@ Open menu → Maps section
   → OR: Style fails within 12s → reverts to previous map → error toast
 ```
 
+### Flow 6: PWA Install
+
+**Android / Chrome:**
+```
+First visit (HTTPS, not already installed)
+  → beforeinstallprompt fires → Install banner appears at bottom
+  → User taps "Install" → native install dialog shown
+  → User confirms → app installed to home screen, banner hides
+  → OR: User taps ✕ → banner hides (reappears on next visit)
+```
+
+**iOS Safari:**
+```
+First visit in Safari (not standalone)
+  → "Tap Share → Add to Home Screen" hint appears
+  → User taps ✕ → hint hides, 7-day snooze set in localStorage
+  → After 7 days → hint appears again
+  → User follows hint → adds to home screen manually
+  → Next launch from home screen → app opens in standalone mode, no hint shown
+```
+
 ### Flow 5: Favorites Backup
 
 ```
@@ -365,6 +398,8 @@ Open Settings
 | Section toggle | Full-width header | Chevron rotates 180° on expand |
 | Settings card | Responsive grid card | Groups backup actions, roadmap placeholders, and privacy copy |
 | Status toast | 280px, bottom-center | Auto-hides after 2.8s, slide-up animation |
+| Install banner (Android) | max 440px, bottom-center | Glass panel; Install + Dismiss buttons; driven by `beforeinstallprompt` |
+| Install hint (iOS) | max 440px, bottom-center | Glass panel; Share instruction + Dismiss; 7-day snooze |
 
 ### Responsive Breakpoints
 
@@ -395,6 +430,16 @@ Open Settings
 | Favorite navigation animation | 650ms |
 | Toast display duration | 2.8 seconds |
 | Location idle timeout | 15 minutes |
+
+### Security
+
+| Mechanism | Implementation |
+|-----------|---------------|
+| Content Security Policy | `<meta http-equiv="Content-Security-Policy">` on all three pages. `index.html` allowlists all 7 tile providers in `connect-src` and `img-src`; MapLibre blob workers covered by `worker-src blob: child-src blob:`. Secondary pages use a tighter policy with no external origins. |
+| Referrer Policy | `<meta name="referrer" content="no-referrer">` on all pages — tile providers receive no `Referer` header. |
+| HTTP security headers | `_headers` file (Netlify / compatible hosts): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy: geolocation=(self)`, `X-XSS-Protection: 0`. |
+| Input validation | Favorites import: 64 KB file size cap, JSON parse guard, coordinate range check, 250-record limit, 80-char name limit, duplicate skipping. |
+| DOM safety | User data rendered exclusively via `textContent`; no `innerHTML` with dynamic content. |
 
 ### Accessibility
 
@@ -434,7 +479,7 @@ Open Settings
 - Require user accounts or authentication.
 - Add analytics, tracking, or telemetry.
 - Auto-prompt for geolocation on page load.
-- Store user data outside the browser (no cookies, no localStorage for sensitive data, no server sync).
+- Store user-generated or location data outside the browser (no cookies, no server sync). Non-sensitive UI state (e.g. the iOS install hint snooze timestamp) may use `localStorage`.
 
 ---
 

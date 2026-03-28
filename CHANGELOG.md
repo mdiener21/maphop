@@ -2,37 +2,34 @@
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-03-28
+
 ### Added
 - JSON export and import actions for favorites with a dedicated transfer module
 - A dedicated settings page for favorites backup and future map source configuration
 - Location follow mode: map automatically pans to keep the user centered after the initial position fix
 - Heading cone now renders as a 6-band gradient, deep opaque blue at the location dot fading to near-transparent pale blue at the tip
-- Service worker (`sw.js`) enabling offline use and satisfying PWA installability requirements
-- Android/Chrome install banner driven by `beforeinstallprompt` with dismiss support
-- iOS Safari install hint ("Tap Share → Add to Home Screen") shown once per session when not already in standalone mode
-- Content Security Policy meta tag on all three pages, explicitly allowlisting each tile provider
+- Service worker (`sw.js`) with network-first cache strategy enabling offline use and satisfying PWA installability requirements
+- Android/Chrome install banner driven by `beforeinstallprompt` with Install and Dismiss buttons
+- iOS Safari install hint ("Tap Share → Add to Home Screen") with 7-day localStorage snooze so users can install at a later time
+- Content Security Policy meta tag on all three pages, explicitly allowlisting each tile provider in `connect-src` and `img-src`
 - `Referrer-Policy: no-referrer` on all pages to prevent tile providers seeing the page URL
-- `_headers` file for static hosting with `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Permissions-Policy`, and `X-XSS-Protection: 0`
-
-### Fixed
-- Service worker was registered at the wrong path (`/mymap/sw.js`) for the current root deployment; corrected to `/sw.js`
-- Manifest `id` field was `/mymap/` but app scope is `/`; corrected to `/` for consistent PWA identity
+- `_headers` file for static hosting with `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy`, and `X-XSS-Protection: 0`
 
 ### Changed
-- Reviewed and refreshed the product spec to match the current modular architecture, settings page, and seven built-in map providers
-- Added repository guidance that `doc/spec/product-spec.md` must be updated alongside `CHANGELOG.md` for shipped product and architecture changes
-- Extracted all geolocation tracking, geo-math helpers, and map overlay management into a dedicated `location-tracker.js` module (`LocationTracker` class) to improve readability and modularity
-
-### Changed
-- Split favorites transfer logic out of the main map module to keep the app architecture smaller and easier to maintain
-- Moved favorites import and export controls out of the live map menu and into the new settings page
-- Shared favorites IndexedDB access through a dedicated storage module used by both the map page and settings page
-- Unified settings and legal pages behind a shared app-style header, footer, navigation pattern, and shared version display
+- Extracted all geolocation tracking, geo-math helpers, and map overlay management into a dedicated `location-tracker.js` module (`LocationTracker` class)
+- Split favorites transfer logic out of the main map module into `favorite-transfer.js`
+- Moved favorites import and export controls out of the live map menu and into the settings page
+- Shared favorites IndexedDB access through `favorite-store.js` used by both the map page and settings page
+- Unified settings and legal pages behind a shared app-style header, footer, and navigation pattern
+- Refreshed product spec (`doc/spec/product-spec.md`) to cover new modules, PWA install flows, security model, and follow-mode tracking
 
 ### Fixed
-- Hardened favorites import with strict JSON validation, a 64 KB file size cap, and duplicate skipping during IndexedDB import
-- Removed plain-text email exposure from the legal page and switched contact addresses to a reveal-on-click pattern
-- Changed the legal-page email reveal to show an obfuscated code-style contact string instead of the exact address
+- Service worker was registered at the wrong path (`/mymap/sw.js`); corrected to `/sw.js` matching the root deployment base
+- Manifest `id` field was `/mymap/` but app scope is `/`; corrected for consistent PWA identity
+- `[hidden]` attribute overridden by `display: flex` on install banners; added `[hidden] { display: none !important }` reset
+- Hardened favorites import with strict JSON validation, 64 KB file size cap, and duplicate skipping
+- Removed plain-text email exposure from the legal page; replaced with reveal-on-click obfuscated display
 
 ## [1.0.1] - 2026-03-24
 
