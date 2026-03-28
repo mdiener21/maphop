@@ -15,3 +15,12 @@ dist/
 # Ignore IDE files
 .idea/
 .vscode/
+
+# Ignore test results
+coverage/
+test-results/
+playwright-report/
+.playwright/
+.playwright-cli/
+
+.claude/skills/

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+- Vitest unit test suite (`npm test`) covering `favorite-transfer.js`, `favorite-store.js`, and `LocationTracker` — 46 tests
+- Playwright e2e test suite (`npm run test:e2e`) covering map page, settings page, impressum page, and inter-page navigation — 12 tests using Firefox
+- `vitest.config.js` and `playwright.config.js` at project root
+- `npm run test:watch` and `npm run test:coverage` scripts
+- Product spec updated (v1.2): testing tools added to Tech Stack, `tests/` directory added to Architecture file structure, new Testing subsection in Non-Functional Requirements covering both suites with design rationale, two test-pass criteria added to Success Criteria
+
 ## [1.0.2] - 2026-03-28
 
 ### Added

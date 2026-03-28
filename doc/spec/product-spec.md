@@ -1,6 +1,6 @@
 # Product Specification: Maphop
 
-**Version:** 1.1
+**Version:** 1.2
 **Last Updated:** 2026-03-28
 **Author:** Product Management
 **Status:** Draft
@@ -61,6 +61,10 @@ Existing map applications require accounts, collect location data server-side, a
 | Storage | IndexedDB | Browser API | Favorites persistence (`personal-map-db`) |
 | Offline | Service Worker | Browser API | App shell caching, offline support |
 | Geolocation | Geolocation API | Browser API | Opt-in position tracking |
+| Unit Test Runner | Vitest | ^4.1.2 | Fast ES-module unit tests with jsdom environment |
+| DOM Environment | jsdom | ^29.0.1 | Browser-like DOM for unit tests |
+| IndexedDB Stub | fake-indexeddb | ^6.2.5 | In-memory IndexedDB implementation for unit tests |
+| E2E Test Runner | Playwright | ^1.58.2 | Cross-browser end-to-end tests (Firefox) |
 
 ### Commands
 
@@ -69,6 +73,10 @@ Existing map applications require accounts, collect location data server-side, a
 | `npm run dev` | Start Vite dev server |
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Preview production build locally |
+| `npm test` | Run all unit tests once |
+| `npm run test:watch` | Run unit tests in watch mode |
+| `npm run test:e2e` | Run Playwright e2e tests (starts dev server automatically) |
+| `npm run test:coverage` | Run unit tests with V8 coverage report |
 
 ---
 
@@ -77,6 +85,14 @@ Existing map applications require accounts, collect location data server-side, a
 ### File Structure
 
 ```
+tests/
+├── unit/
+│   ├── favorite-transfer.test.js   Validation logic, file handling, import/export status messages
+│   ├── favorite-store.test.js      IndexedDB CRUD, deduplication, sort order, export shape
+│   └── location-tracker.test.js    Tracker lifecycle, idle timeout, geolocation error messages
+└── e2e/
+    └── app.spec.js                 Page titles, DOM structure, menu interaction, navigation
+
 src/
 ├── index.html              Live map page shell and mobile control menu
 ├── settings.html           Settings page for favorites backup and future map source controls
@@ -448,6 +464,44 @@ Open Settings
 - Status toast uses `aria-live="polite"` for screen reader announcements.
 - Collapsible sections use proper `aria-expanded` state management.
 
+### Testing
+
+The project ships with two test suites sharing a common goal: verify correctness of pure logic in isolation, and confirm the real browser experience works end-to-end.
+
+**Configuration files:**
+
+| File | Purpose |
+|------|---------|
+| `vitest.config.js` | Unit test config — jsdom environment, resolves from project root (not `src/`) |
+| `playwright.config.js` | E2E config — Firefox, `webServer` auto-starts `npm run dev` on port 5173 |
+
+**Unit tests (Vitest + jsdom)** — `npm test`
+
+| File | Count | What is covered |
+|------|------:|-----------------|
+| `favorite-transfer.test.js` | 18 | File type/size validation; JSON payload parsing; coordinate range checks; name length; import result status messages; export empty-state; import-button wiring |
+| `favorite-store.test.js` | 16 | `saveFavorite`, `readFavorites`, `deleteFavoriteById`, `importFavorites`, `getFavoritesForExport`; newest-first sort; case-insensitive dedup; within-batch dedup; export field shape |
+| `location-tracker.test.js` | 12 | `isActive` initial state; `start()`/`stop()` lifecycle; geolocation API calls; 15-minute idle timeout; `registerActivity()` timer reset; all four geolocation error codes |
+| **Total** | **46** | |
+
+Key unit test design decisions:
+- `vi.resetModules()` + `new IDBFactory()` per test resets the module-level `favoritesDbPromise` singleton in `favorite-store.js`, giving each test an isolated store.
+- `vi.mock('maplibre-gl')` stubs `LngLatBounds` so `location-tracker.js` loads cleanly in jsdom without a WebGL context.
+- `vi.useFakeTimers()` drives the 15-minute idle timeout synchronously.
+- Replacing `global.navigator` with a plain object (no `geolocation` property) makes `"geolocation" in navigator` return `false` for the unsupported-browser test.
+
+**E2E tests (Playwright + Firefox)** — `npm run test:e2e`
+
+| Group | Count | What is covered |
+|-------|------:|-----------------|
+| Map page | 6 | Title, `#map` attachment, `#layerMenuButton` visibility, `aria-expanded` toggle, layer button presence, all 7 `data-layer-key` values |
+| Settings page | 3 | Title, `#exportFavoritesButton`, `#importFavoritesButton` |
+| Impressum page | 1 | Title |
+| Navigation | 2 | Settings link and Impressum link from the open menu |
+| **Total** | **12** | |
+
+Chromium is not used because the `chrome-headless-shell` binary on this WSL2 host is missing `libnspr4.so`. Firefox is installed and fully functional. Switch `projects` in `playwright.config.js` to `Desktop Chrome` when running on a system with Chromium system libs available.
+
 ### Offline Support
 
 - Service worker caches app shell for offline launch.
@@ -498,6 +552,8 @@ Open Settings
 | Privacy preserved | Zero outbound requests except tile fetches; no cookies or analytics |
 | Mobile usable | All interactions work on touch devices with safe area support |
 | Accessibility baseline | No critical ARIA violations; all interactive elements are keyboard-reachable |
+| Unit test suite passes | `npm test` exits 0 with all 46 tests green |
+| E2E test suite passes | `npm run test:e2e` exits 0 with all 12 tests green against the dev server |
 
 ---
 
