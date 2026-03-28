@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- Comprehensive README with user introduction, feature table, how-to-use guide, screenshot placeholder, and developer build/deploy instructions.
+
 ## [1.1.0] - 2026-03-28
 
 ### Added
