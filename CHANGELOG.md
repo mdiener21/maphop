@@ -6,6 +6,7 @@
 - JSON export and import actions for favorites with a dedicated transfer module
 - A dedicated settings page for favorites backup and future map source configuration
 - Location follow mode: map automatically pans to keep the user centered after the initial position fix
+- Heading cone now renders as a 6-band gradient, deep opaque blue at the location dot fading to near-transparent pale blue at the tip
 
 ### Changed
 - Extracted all geolocation tracking, geo-math helpers, and map overlay management into a dedicated `location-tracker.js` module (`LocationTracker` class) to improve readability and modularity

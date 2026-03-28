@@ -72,20 +72,46 @@ function createCirclePolygon(center, radiusMeters, steps = 48) {
     return coordinates;
 }
 
-function createHeadingCone(center, headingDegrees, accuracyMeters) {
+function createHeadingConeBands(center, headingDegrees, accuracyMeters) {
     const spreadDegrees = 22;
     const coneLength = Math.max(accuracyMeters * 0.9, 55);
     const arcPoints = 18;
-    const coordinates = [center];
+    const numBands = 6;
+    const bands = [];
 
-    for (let index = 0; index <= arcPoints; index += 1) {
-        const ratio = index / arcPoints;
-        const bearing = headingDegrees - spreadDegrees + (spreadDegrees * 2 * ratio);
-        coordinates.push(destinationPoint(center, bearing, coneLength));
+    for (let band = 0; band < numBands; band++) {
+        const innerRadius = (band / numBands) * coneLength;
+        const outerRadius = ((band + 1) / numBands) * coneLength;
+        const coordinates = [];
+
+        if (band === 0) {
+            // Innermost band: fan from center point to first arc
+            coordinates.push(center);
+            for (let i = 0; i <= arcPoints; i++) {
+                const ratio = i / arcPoints;
+                const bearing = headingDegrees - spreadDegrees + spreadDegrees * 2 * ratio;
+                coordinates.push(destinationPoint(center, bearing, outerRadius));
+            }
+            coordinates.push(center);
+        } else {
+            // Ring sector: walk inner arc forward, outer arc backward, close
+            for (let i = 0; i <= arcPoints; i++) {
+                const ratio = i / arcPoints;
+                const bearing = headingDegrees - spreadDegrees + spreadDegrees * 2 * ratio;
+                coordinates.push(destinationPoint(center, bearing, innerRadius));
+            }
+            for (let i = arcPoints; i >= 0; i--) {
+                const ratio = i / arcPoints;
+                const bearing = headingDegrees - spreadDegrees + spreadDegrees * 2 * ratio;
+                coordinates.push(destinationPoint(center, bearing, outerRadius));
+            }
+            coordinates.push(coordinates[0]);
+        }
+
+        bands.push({ coordinates, bandIndex: band });
     }
 
-    coordinates.push(center);
-    return coordinates;
+    return bands;
 }
 
 function createEmptyLocationFeatureCollection() {
@@ -183,7 +209,15 @@ export class LocationTracker {
                 source: locationSourceId,
                 filter: ["==", ["get", "kind"], "heading"],
                 paint: {
-                    "fill-color": "rgba(72, 125, 255, 0.18)"
+                    "fill-color": [
+                        "match", ["get", "bandIndex"],
+                        0, "rgba(55, 105, 255, 0.72)",
+                        1, "rgba(72, 125, 255, 0.55)",
+                        2, "rgba(95, 150, 255, 0.38)",
+                        3, "rgba(125, 175, 255, 0.24)",
+                        4, "rgba(160, 200, 255, 0.13)",
+                        /* band 5 and fallback */ "rgba(200, 225, 255, 0.05)"
+                    ]
                 }
             });
         }
@@ -263,11 +297,13 @@ export class LocationTracker {
         ];
 
         if (heading !== null && isMoving) {
-            features.push({
-                type: "Feature",
-                properties: { kind: "heading" },
-                geometry: { type: "Polygon", coordinates: [createHeadingCone(lngLat, heading, accuracy)] }
-            });
+            for (const { coordinates, bandIndex } of createHeadingConeBands(lngLat, heading, accuracy)) {
+                features.push({
+                    type: "Feature",
+                    properties: { kind: "heading", bandIndex },
+                    geometry: { type: "Polygon", coordinates: [coordinates] }
+                });
+            }
         }
 
         this._currentFeatureCollection = { type: "FeatureCollection", features };
