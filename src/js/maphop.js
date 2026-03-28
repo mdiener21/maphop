@@ -25,6 +25,11 @@ const mapsSectionToggle = document.getElementById("mapsSectionToggle");
 const appVersionElement = document.getElementById("appVersion");
 const layerOptionElements = Array.from(document.querySelectorAll(".layer-option"));
 const menuSectionToggleElements = [favoritesSectionToggle, mapsSectionToggle].filter(Boolean);
+const installBanner = document.getElementById("installBanner");
+const installButton = document.getElementById("installButton");
+const installDismiss = document.getElementById("installDismiss");
+const iosBanner = document.getElementById("iosBanner");
+const iosDismiss = document.getElementById("iosDismiss");
 
 appVersionElement.textContent = `version ${version}`;
 
@@ -192,6 +197,7 @@ map.touchZoomRotate.disableRotation();
 
 let activeBaseLayerKey = "bergfex";
 let statusTimeoutId = null;
+let deferredInstallPrompt = null;
 
 const tracker = new LocationTracker(map, {
     onStatus: setStatus,
@@ -211,18 +217,55 @@ function setStatus(message) {
     }, 2800);
 }
 
-function registerScopedServiceWorker() {
+function registerServiceWorker() {
     if (!import.meta.env.PROD || !window.isSecureContext || !("serviceWorker" in navigator)) {
         return;
     }
 
     window.addEventListener("load", () => {
         navigator.serviceWorker
-            .register("/mymap/sw.js", { scope: "/mymap/" })
+            .register("/sw.js", { scope: "/" })
             .catch((error) => {
-                console.error("Unable to register the /mymap service worker.", error);
+                console.error("Unable to register service worker.", error);
             });
     }, { once: true });
+}
+
+const IOS_SNOOZE_KEY = "ios-hint-snoozed-until";
+const SNOOZE_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function isIosHintSnoozed() {
+    try {
+        const until = Number(localStorage.getItem(IOS_SNOOZE_KEY));
+        return Number.isFinite(until) && Date.now() < until;
+    } catch {
+        return false;
+    }
+}
+
+function snoozeIosHint() {
+    try {
+        localStorage.setItem(IOS_SNOOZE_KEY, String(Date.now() + SNOOZE_DURATION_MS));
+    } catch {
+        // localStorage unavailable (private browsing quota etc.) — silently continue
+    }
+}
+
+function initInstallPrompt() {
+    // iOS Safari: no beforeinstallprompt — detect and show a manual hint instead
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isInStandalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        navigator.standalone === true;
+
+    if (isIos && !isInStandalone && !isIosHintSnoozed()) {
+        iosBanner.hidden = false;
+    }
+
+    iosDismiss?.addEventListener("click", () => {
+        iosBanner.hidden = true;
+        snoozeIosHint();
+    });
 }
 
 function setTrackingState(active) {
@@ -529,7 +572,34 @@ document.addEventListener("click", () => {
     setLayerMenuOpen(false);
 });
 
-registerScopedServiceWorker();
+// Android/Chrome: capture the install prompt and show the banner
+window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    installBanner.hidden = false;
+});
+
+installButton?.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+        return;
+    }
+    installBanner.hidden = true;
+    await deferredInstallPrompt.prompt();
+    deferredInstallPrompt = null;
+});
+
+installDismiss?.addEventListener("click", () => {
+    installBanner.hidden = true;
+});
+
+window.addEventListener("appinstalled", () => {
+    installBanner.hidden = true;
+    iosBanner.hidden = true;
+    deferredInstallPrompt = null;
+});
+
+registerServiceWorker();
+initInstallPrompt();
 initializeMenuSections();
 
 map.on("load", () => {

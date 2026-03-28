@@ -7,6 +7,16 @@
 - A dedicated settings page for favorites backup and future map source configuration
 - Location follow mode: map automatically pans to keep the user centered after the initial position fix
 - Heading cone now renders as a 6-band gradient, deep opaque blue at the location dot fading to near-transparent pale blue at the tip
+- Service worker (`sw.js`) enabling offline use and satisfying PWA installability requirements
+- Android/Chrome install banner driven by `beforeinstallprompt` with dismiss support
+- iOS Safari install hint ("Tap Share → Add to Home Screen") shown once per session when not already in standalone mode
+- Content Security Policy meta tag on all three pages, explicitly allowlisting each tile provider
+- `Referrer-Policy: no-referrer` on all pages to prevent tile providers seeing the page URL
+- `_headers` file for static hosting with `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Permissions-Policy`, and `X-XSS-Protection: 0`
+
+### Fixed
+- Service worker was registered at the wrong path (`/mymap/sw.js`) for the current root deployment; corrected to `/sw.js`
+- Manifest `id` field was `/mymap/` but app scope is `/`; corrected to `/` for consistent PWA identity
 
 ### Changed
 - Reviewed and refreshed the product spec to match the current modular architecture, settings page, and seven built-in map providers

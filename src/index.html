@@ -8,6 +8,34 @@
     >
     <meta name="description" content="Personal mobile map with optional live location and saved favorites.">
     <meta name="theme-color" content="#0d1b20">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'none';
+        script-src 'self' blob:;
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: blob:
+            https://tiles.bergfex.at
+            https://*.tile.openstreetmap.org
+            https://*.tile.opentopomap.org
+            https://*.tile-cyclosm.openstreetmap.fr
+            https://server.arcgisonline.com
+            https://mapsneu.wien.gv.at
+            https://tiles.openfreemap.org;
+        connect-src 'self' blob:
+            https://tiles.bergfex.at
+            https://*.tile.openstreetmap.org
+            https://*.tile.opentopomap.org
+            https://*.tile-cyclosm.openstreetmap.fr
+            https://server.arcgisonline.com
+            https://mapsneu.wien.gv.at
+            https://tiles.openfreemap.org;
+        worker-src 'self' blob:;
+        child-src blob:;
+        font-src 'self' data:;
+        manifest-src 'self';
+        object-src 'none';
+        base-uri 'self';
+    ">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" href="./images/maphop-logo-72px.png" sizes="72x72" type="image/png">
@@ -124,6 +152,17 @@
         </section>
 
         <p class="status-toast" id="status" aria-live="polite"></p>
+
+        <div class="install-banner" id="installBanner" hidden role="status" aria-live="polite">
+            <span class="install-banner-text">Install Maphop to your home screen for offline access</span>
+            <button class="install-banner-btn" id="installButton" type="button">Install</button>
+            <button class="install-banner-close" id="installDismiss" type="button" aria-label="Dismiss install prompt">&#x2715;</button>
+        </div>
+
+        <div class="install-banner install-banner-ios" id="iosBanner" hidden role="status" aria-live="polite">
+            <span class="install-banner-text">Tap <strong>Share</strong> then <strong>Add to Home Screen</strong> to install Maphop</span>
+            <button class="install-banner-close" id="iosDismiss" type="button" aria-label="Dismiss install hint">&#x2715;</button>
+        </div>
     </div>
 
     <script type="module" src="./js/maphop.js"></script>
