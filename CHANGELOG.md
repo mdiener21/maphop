@@ -5,6 +5,10 @@
 ### Added
 - JSON export and import actions for favorites with a dedicated transfer module
 - A dedicated settings page for favorites backup and future map source configuration
+- Location follow mode: map automatically pans to keep the user centered after the initial position fix
+
+### Changed
+- Extracted all geolocation tracking, geo-math helpers, and map overlay management into a dedicated `location-tracker.js` module (`LocationTracker` class) to improve readability and modularity
 
 ### Changed
 - Split favorites transfer logic out of the main map module to keep the app architecture smaller and easier to maintain

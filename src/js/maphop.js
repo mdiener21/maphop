@@ -6,14 +6,10 @@ import {
     readFavorites,
     saveFavorite
 } from "./favorite-store.js";
+import { LocationTracker } from "./location-tracker.js";
 
 const bergfexTilesUrl = "https://tiles.bergfex.at/styles/bergfex-osm/512/{z}/{x}/{y}.png";
-const trackingIdleTimeoutMs = 15 * 60 * 1000;
 const baseStyleLoadTimeoutMs = 12000;
-const locationSourceId = "user-location";
-const locationAccuracyLayerId = "user-location-accuracy";
-const locationHeadingLayerId = "user-location-heading";
-const locationPointLayerId = "user-location-point";
 
 const statusElement = document.getElementById("status");
 const menuShell = document.getElementById("menuShell");
@@ -194,79 +190,16 @@ const map = new maplibregl.Map({
 map.dragRotate.disable();
 map.touchZoomRotate.disableRotation();
 
-let watchId = null;
-let hasCenteredOnPosition = false;
-let previousFix = null;
 let activeBaseLayerKey = "bergfex";
 let statusTimeoutId = null;
-let trackingIdleTimeoutId = null;
-let currentLocationFeatureCollection = createEmptyLocationFeatureCollection();
+
+const tracker = new LocationTracker(map, {
+    onStatus: setStatus,
+    onTrackingStateChange: setTrackingState
+});
 
 function expandSubdomains(urlTemplate) {
     return ["a", "b", "c"].map((subdomain) => urlTemplate.replace("{s}", subdomain));
-}
-
-function createEmptyLocationFeatureCollection() {
-    return {
-        type: "FeatureCollection",
-        features: []
-    };
-}
-
-function ensureLocationOverlay() {
-    if (!map.getSource(locationSourceId)) {
-        map.addSource(locationSourceId, {
-            type: "geojson",
-            data: currentLocationFeatureCollection
-        });
-    }
-
-    if (!map.getLayer(locationAccuracyLayerId)) {
-        map.addLayer({
-            id: locationAccuracyLayerId,
-            type: "fill",
-            source: locationSourceId,
-            filter: ["==", ["get", "kind"], "accuracy"],
-            paint: {
-                "fill-color": "rgba(111, 242, 189, 0.17)",
-                "fill-outline-color": "rgba(111, 242, 189, 0.9)"
-            }
-        });
-    }
-
-    if (!map.getLayer(locationHeadingLayerId)) {
-        map.addLayer({
-            id: locationHeadingLayerId,
-            type: "fill",
-            source: locationSourceId,
-            filter: ["==", ["get", "kind"], "heading"],
-            paint: {
-                "fill-color": "rgba(72, 125, 255, 0.18)"
-            }
-        });
-    }
-
-    if (!map.getLayer(locationPointLayerId)) {
-        map.addLayer({
-            id: locationPointLayerId,
-            type: "circle",
-            source: locationSourceId,
-            filter: ["==", ["get", "kind"], "point"],
-            paint: {
-                "circle-radius": 10,
-                "circle-color": "rgba(23, 192, 139, 0.96)",
-                "circle-stroke-color": "#ecfffa",
-                "circle-stroke-width": 3
-            }
-        });
-    }
-}
-
-function syncLocationOverlay() {
-    const source = map.getSource(locationSourceId);
-    if (source) {
-        source.setData(currentLocationFeatureCollection);
-    }
 }
 
 function setStatus(message) {
@@ -295,29 +228,6 @@ function registerScopedServiceWorker() {
 function setTrackingState(active) {
     locateButton.dataset.state = active ? "active" : "idle";
     locationToggleLabel.textContent = active ? "On" : "Off";
-}
-
-function clearTrackingIdleTimeout() {
-    window.clearTimeout(trackingIdleTimeoutId);
-    trackingIdleTimeoutId = null;
-}
-
-function scheduleTrackingIdleTimeout() {
-    clearTrackingIdleTimeout();
-    if (watchId === null) {
-        return;
-    }
-
-    trackingIdleTimeoutId = window.setTimeout(() => {
-        clearLocation();
-        stopTracking("Location tracking stopped after 15 minutes of inactivity.");
-    }, trackingIdleTimeoutMs);
-}
-
-function registerTrackingActivity() {
-    if (watchId !== null) {
-        scheduleTrackingIdleTimeout();
-    }
 }
 
 function setLayerMenuOpen(isOpen) {
@@ -483,133 +393,6 @@ async function deleteFavorite(id, name) {
     }
 }
 
-function clearLocation() {
-    currentLocationFeatureCollection = createEmptyLocationFeatureCollection();
-    previousFix = null;
-    syncLocationOverlay();
-}
-
-function stopTracking(message) {
-    if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-    }
-
-    clearTrackingIdleTimeout();
-    setTrackingState(false);
-
-    if (message) {
-        setStatus(message);
-    }
-}
-
-function normalizeHeading(headingDegrees) {
-    return (headingDegrees % 360 + 360) % 360;
-}
-
-function bearingBetween(previousCoords, currentCoords) {
-    const [previousLng, previousLat] = previousCoords;
-    const [currentLng, currentLat] = currentCoords;
-    const previousLatRad = previousLat * Math.PI / 180;
-    const currentLatRad = currentLat * Math.PI / 180;
-    const deltaLngRad = (currentLng - previousLng) * Math.PI / 180;
-    const y = Math.sin(deltaLngRad) * Math.cos(currentLatRad);
-    const x =
-        Math.cos(previousLatRad) * Math.sin(currentLatRad) -
-        Math.sin(previousLatRad) * Math.cos(currentLatRad) * Math.cos(deltaLngRad);
-    return normalizeHeading(Math.atan2(y, x) * 180 / Math.PI);
-}
-
-function distanceBetween(previousCoords, currentCoords) {
-    const earthRadius = 6371008.8;
-    const [previousLng, previousLat] = previousCoords;
-    const [currentLng, currentLat] = currentCoords;
-    const previousLatRad = previousLat * Math.PI / 180;
-    const currentLatRad = currentLat * Math.PI / 180;
-    const deltaLatRad = (currentLat - previousLat) * Math.PI / 180;
-    const deltaLngRad = (currentLng - previousLng) * Math.PI / 180;
-
-    const a =
-        Math.sin(deltaLatRad / 2) * Math.sin(deltaLatRad / 2) +
-        Math.cos(previousLatRad) * Math.cos(currentLatRad) *
-            Math.sin(deltaLngRad / 2) * Math.sin(deltaLngRad / 2);
-    return 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function calculateHeadingFromFixes(currentCoords) {
-    if (!previousFix) {
-        return null;
-    }
-
-    const distance = distanceBetween(previousFix.lngLat, currentCoords);
-    if (distance < 5) {
-        return null;
-    }
-
-    return bearingBetween(previousFix.lngLat, currentCoords);
-}
-
-function destinationPoint(center, bearingDegrees, distanceMeters) {
-    const earthRadius = 6371008.8;
-    const [lng, lat] = center;
-    const lngRad = lng * Math.PI / 180;
-    const latRad = lat * Math.PI / 180;
-    const bearingRad = bearingDegrees * Math.PI / 180;
-    const angularDistance = distanceMeters / earthRadius;
-
-    const destinationLatRad = Math.asin(
-        Math.sin(latRad) * Math.cos(angularDistance) +
-            Math.cos(latRad) * Math.sin(angularDistance) * Math.cos(bearingRad)
-    );
-    const destinationLngRad =
-        lngRad +
-        Math.atan2(
-            Math.sin(bearingRad) * Math.sin(angularDistance) * Math.cos(latRad),
-            Math.cos(angularDistance) - Math.sin(latRad) * Math.sin(destinationLatRad)
-        );
-
-    return [
-        ((destinationLngRad * 180 / Math.PI + 540) % 360) - 180,
-        destinationLatRad * 180 / Math.PI
-    ];
-}
-
-function createCirclePolygon(center, radiusMeters, steps = 48) {
-    const coordinates = [];
-    for (let index = 0; index <= steps; index += 1) {
-        coordinates.push(destinationPoint(center, index * (360 / steps), radiusMeters));
-    }
-    return coordinates;
-}
-
-function createHeadingCone(center, headingDegrees, accuracyMeters) {
-    const spreadDegrees = 22;
-    const coneLength = Math.max(accuracyMeters * 0.9, 55);
-    const arcPoints = 18;
-    const coordinates = [center];
-
-    for (let index = 0; index <= arcPoints; index += 1) {
-        const ratio = index / arcPoints;
-        const bearing = headingDegrees - spreadDegrees + (spreadDegrees * 2 * ratio);
-        coordinates.push(destinationPoint(center, bearing, coneLength));
-    }
-
-    coordinates.push(center);
-    return coordinates;
-}
-
-function fitToAccuracyPolygon(coordinates) {
-    const bounds = coordinates.reduce((lngLatBounds, coordinate) => {
-        return lngLatBounds.extend(coordinate);
-    }, new maplibregl.LngLatBounds(coordinates[0], coordinates[0]));
-
-    map.fitBounds(bounds, {
-        padding: { top: 90, right: 24, bottom: 90, left: 24 },
-        duration: 700,
-        maxZoom: 17
-    });
-}
-
 function applyBaseStyle(style) {
     return new Promise((resolve, reject) => {
         let settled = false;
@@ -656,78 +439,6 @@ function applyBaseStyle(style) {
     });
 }
 
-function updateLocation(position) {
-    const lngLat = [position.coords.longitude, position.coords.latitude];
-    const accuracy = Math.max(position.coords.accuracy || 0, 8);
-    const reportedHeading = Number.isFinite(position.coords.heading)
-        ? normalizeHeading(position.coords.heading)
-        : null;
-    const derivedHeading = calculateHeadingFromFixes(lngLat);
-    const speed = Number.isFinite(position.coords.speed) ? position.coords.speed : null;
-    const heading = reportedHeading ?? derivedHeading;
-    const isMoving = (speed !== null && speed > 0.7) || derivedHeading !== null;
-    const accuracyPolygon = createCirclePolygon(lngLat, accuracy);
-
-    const features = [
-        {
-            type: "Feature",
-            properties: { kind: "accuracy" },
-            geometry: {
-                type: "Polygon",
-                coordinates: [accuracyPolygon]
-            }
-        },
-        {
-            type: "Feature",
-            properties: { kind: "point" },
-            geometry: {
-                type: "Point",
-                coordinates: lngLat
-            }
-        }
-    ];
-
-    if (heading !== null && isMoving) {
-        features.push({
-            type: "Feature",
-            properties: { kind: "heading" },
-            geometry: {
-                type: "Polygon",
-                coordinates: [createHeadingCone(lngLat, heading, accuracy)]
-            }
-        });
-    }
-
-    currentLocationFeatureCollection = {
-        type: "FeatureCollection",
-        features
-    };
-    syncLocationOverlay();
-
-    if (!hasCenteredOnPosition) {
-        fitToAccuracyPolygon(accuracyPolygon);
-        hasCenteredOnPosition = true;
-        setStatus("Location shown on map.");
-    }
-
-    previousFix = {
-        lngLat,
-        timestamp: position.timestamp
-    };
-}
-
-function handleLocationError(error) {
-    clearLocation();
-
-    const messageByCode = {
-        1: "Location access was denied. Enable permission in your browser settings and try again.",
-        2: "Your position is currently unavailable. Move to an area with better GPS or network reception.",
-        3: "The location request timed out. Try again when the device has a stronger signal."
-    };
-
-    stopTracking(messageByCode[error.code] || "Unable to determine your location.");
-}
-
 async function setBaseLayer(key) {
     if (!baseMapConfigs[key] || key === activeBaseLayerKey) {
         setLayerMenuOpen(false);
@@ -739,8 +450,7 @@ async function setBaseLayer(key) {
 
     try {
         await applyBaseStyle(baseMapConfigs[key].style);
-        ensureLocationOverlay();
-        syncLocationOverlay();
+        tracker.ensureOverlayAfterStyleLoad();
         activeBaseLayerKey = key;
         updateLayerOptionState(key);
         setLayerMenuOpen(false);
@@ -748,8 +458,7 @@ async function setBaseLayer(key) {
     } catch (error) {
         try {
             await applyBaseStyle(baseMapConfigs[previousBaseLayerKey].style);
-            ensureLocationOverlay();
-            syncLocationOverlay();
+            tracker.ensureOverlayAfterStyleLoad();
         } catch (restoreError) {
             console.error("Unable to restore the previous base map.", restoreError);
         }
@@ -763,27 +472,13 @@ async function setBaseLayer(key) {
 }
 
 locateButton.addEventListener("click", () => {
-    if (!("geolocation" in navigator)) {
-        setStatus("This browser does not support geolocation.");
+    if (tracker.isActive) {
+        tracker.clearLocation();
+        tracker.stop("Location hidden.");
         return;
     }
 
-    if (watchId !== null) {
-        clearLocation();
-        stopTracking("Location hidden.");
-        return;
-    }
-
-    hasCenteredOnPosition = false;
-    setTrackingState(true);
-    setStatus("Requesting your current position...");
-    scheduleTrackingIdleTimeout();
-
-    watchId = navigator.geolocation.watchPosition(updateLocation, handleLocationError, {
-        enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 15000
-    });
+    tracker.start();
 });
 
 layerMenuButton.addEventListener("click", (event) => {
@@ -813,20 +508,20 @@ saveFavoriteButton.addEventListener("click", () => {
 });
 
 ["pointerdown", "touchstart", "wheel", "keydown"].forEach((eventName) => {
-    document.addEventListener(eventName, registerTrackingActivity, { passive: true });
+    document.addEventListener(eventName, () => tracker.registerActivity(), { passive: true });
 });
 
 document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden" && watchId !== null) {
-        clearLocation();
-        stopTracking();
+    if (document.visibilityState === "hidden" && tracker.isActive) {
+        tracker.clearLocation();
+        tracker.stop();
     }
 });
 
 window.addEventListener("pagehide", () => {
-    if (watchId !== null) {
-        clearLocation();
-        stopTracking();
+    if (tracker.isActive) {
+        tracker.clearLocation();
+        tracker.stop();
     }
 });
 
@@ -838,7 +533,7 @@ registerScopedServiceWorker();
 initializeMenuSections();
 
 map.on("load", () => {
-    ensureLocationOverlay();
+    tracker.ensureOverlayAfterStyleLoad();
     updateLayerOptionState(activeBaseLayerKey);
     loadFavorites();
 });
