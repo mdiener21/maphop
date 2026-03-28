@@ -632,7 +632,6 @@ body::before {
 .terrain-toggle-row {
     margin-top: 6px;
     border-top: 1px solid rgba(237, 244, 239, 0.08);
-    border-radius: 0 0 5px 5px;
     padding-top: 14px;
 }
 

@@ -1,6 +1,6 @@
 # Product Specification: Maphop
 
-**Version:** 1.3
+**Version:** 1.4
 **Last Updated:** 2026-03-28
 **Author:** Product Management
 **Status:** Draft
@@ -198,7 +198,9 @@ Each config entry carries an `attribution` HTML string with links to the provide
 
 ### 4.3 Geolocation Tracking
 
-Opt-in location tracking with three visual layers on a single GeoJSON source (`user-location`):
+Opt-in location tracking accessed via the **Location section** of the control menu. The Location section is a collapsible accordion (default: **closed**) with the same expand/collapse behavior as the Favorites and Maps sections. It contains the location toggle, the privacy note, and the 3D Terrain toggle (§4.8).
+
+Three visual layers are rendered on a single GeoJSON source (`user-location`):
 
 | Layer | Type | Visual |
 |-------|------|--------|
@@ -347,7 +349,7 @@ Toggle in the Maps menu section that enables MapLibre native terrain exaggeratio
 
 | Property | Value |
 |----------|-------|
-| Menu location | Maps section panel, below base map radio buttons |
+| Menu location | Location section panel, below the tile-provider privacy note |
 | DEM source ID | `terrain-source` |
 | DEM tile provider | Mapterhorn — `https://tiles.mapterhorn.com/tilejson.json` |
 | DEM encoding | `terrarium` |
@@ -377,25 +379,27 @@ Toggle in the Maps menu section that enables MapLibre native terrain exaggeratio
 
 ### 4.9 Compass & Map Orientation
 
-A floating compass button that indicates when the map has been rotated from north and provides a one-tap reset.
+A floating compass button that indicates when the map has been rotated or tilted away from the default 2D north view and provides a one-tap reset to flat north.
 
 | Property | Value |
 |----------|-------|
 | Button position | `bottom-left`, stacked above the Re-center button |
-| Visibility threshold | `Math.abs(bearing) >= 0.5°` |
-| Reset animation | `easeTo({ bearing: 0 })`, 400ms |
+| Visibility condition | `Math.abs(bearing) >= 0.5°` **OR** `pitch >= 0.5°` |
+| Reset animation | `easeTo({ bearing: 0, pitch: 0 })`, 400ms |
 
 **Behavior:**
-- The compass button is **hidden when bearing is within 0.5° of north**.
-- When the map is rotated (via right-click drag on desktop or two-finger twist on touch), the button appears and its SVG needle **counter-rotates** by `−bearing` degrees so the bright north tip always points to geographic north on screen.
-- Tapping the button resets bearing to 0° with a 400ms animation and hides the button again.
-- The button listens to the MapLibre `rotate` event to update in real time.
+- The compass button is **hidden only when both bearing and pitch are within 0.5° of zero** (flat north view).
+- When the map is rotated (right-click drag on desktop, two-finger twist on touch) **or tilted** (right-click drag on desktop, two-finger vertical gesture on touch), the button appears.
+- The SVG needle **counter-rotates** by `−bearing` degrees so the bright north tip always points to geographic north on screen.
+- Tapping the button resets **both bearing and pitch to 0°** in a single 400ms `easeTo` animation, returning to a flat 2D north-up view, and hides the button.
+- The button listens to both the MapLibre `rotate` and `pitch` events via a shared `updateCompassButton()` helper.
 
 **Acceptance criteria:**
-- Compass button is hidden on load (bearing = 0).
-- Button appears within one render frame of a rotation gesture.
+- Compass button is hidden on load (bearing = 0, pitch = 0).
+- Button appears when map is rotated away from north.
+- Button appears when map is tilted (pitch > 0), even with no rotation.
 - Needle visually points to north at all rotation angles.
-- Tapping resets the map to north and hides the button.
+- Tapping resets both bearing and pitch to 0° and hides the button.
 
 ---
 
@@ -450,7 +454,7 @@ Location tracking is active, GPS fix received
 ### Flow 5: 3D Terrain
 
 ```
-Open menu → Maps section → toggle "3D Terrain" ON
+Open menu → Location section → toggle "3D Terrain" ON
   → Map pitches to 45° (600ms)
   → Hillshade overlay appears on base map
   → Terrain exaggeration active
@@ -539,10 +543,10 @@ Open Settings
 | Menu button | 48×48px circle, top-right | Hamburger icon, toggles control panel |
 | Control panel | 260px (mobile) / 280px (desktop), top-right | Glass panel, max-height transition (180ms) |
 | Location toggle | Full-width row | Animated pill with gradient active state |
-| Terrain toggle | Full-width row, bottom of Maps section | Same animated pill; separated by top border from map list |
+| Terrain toggle | Full-width row, Location section (below privacy note) | Same animated pill; separated by top border |
 | Favorite item | Full-width card | Name + coordinates, inline delete button |
 | Layer option | Full-width button | Radio-style selection, accent highlight |
-| Section toggle | Full-width header | Chevron rotates 180° on expand |
+| Section toggle | Full-width header | Chevron rotates 180° on expand; used by Location (default closed), Favorites, and Maps sections |
 | Settings card | Responsive grid card | Groups backup actions, roadmap placeholders, and privacy copy |
 | Status toast | 280px, bottom-center | Auto-hides after 2.8s, slide-up animation |
 | Attribution widget | Bottom-right `(8px, 8px)` | `©` button + collapsible glass panel; closes on outside click |
@@ -689,7 +693,7 @@ Chromium is not used because the `chrome-headless-shell` binary on this WSL2 hos
 | Re-center works | Button appears on pan-while-tracking; tap re-centers and resumes follow mode |
 | 3D Terrain toggles correctly | Terrain exaggeration, hillshade, and 45° pitch activate and deactivate cleanly; survive base map switch |
 | Attribution is accurate | © panel shows correct provider credit for every base map; terrain suffix appears/disappears in sync |
-| Compass resets bearing | Button appears on rotation; needle tracks north; tap returns to bearing 0° |
+| Compass resets orientation | Button appears on rotation or tilt; needle tracks north; tap returns to bearing 0° and pitch 0° |
 | Unit test suite passes | `npm test` exits 0 with all 46 tests green |
 | E2E test suite passes | `npm run test:e2e` exits 0 with all 12 tests green against the dev server |
 

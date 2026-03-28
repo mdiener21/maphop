@@ -71,17 +71,35 @@
 
             <div class="menu-content menu-divider" id="layerMenu" role="menu">
                 <div class="menu-group">
-                    <p class="menu-group-title">Location</p>
-                    <button class="menu-toggle-row" id="locateButton" type="button" data-state="idle">
-                        <span class="menu-toggle-copy">
-                            <strong>Show My Location</strong>
-                            <span id="locationToggleLabel">Off</span>
-                        </span>
-                        <span class="menu-toggle-pill" aria-hidden="true"></span>
+                    <button
+                        class="menu-section-toggle"
+                        id="locationSectionToggle"
+                        type="button"
+                        aria-expanded="false"
+                        aria-controls="locationSectionPanel"
+                    >
+                        <span class="menu-group-title">Location</span>
+                        <span class="menu-section-toggle-icon" aria-hidden="true"></span>
                     </button>
-                    <p class="menu-note">
-                        Remote map providers can infer your nearby area from the tiles your device requests.
-                    </p>
+                    <div class="menu-section-panel" id="locationSectionPanel">
+                        <button class="menu-toggle-row" id="locateButton" type="button" data-state="idle">
+                            <span class="menu-toggle-copy">
+                                <strong>Show My Location</strong>
+                                <span id="locationToggleLabel">Off</span>
+                            </span>
+                            <span class="menu-toggle-pill" aria-hidden="true"></span>
+                        </button>
+                        <p class="menu-note">
+                            Remote map providers can infer your nearby area from the tiles your device requests.
+                        </p>
+                        <button class="menu-toggle-row terrain-toggle-row" id="terrainButton" type="button" data-state="idle">
+                            <span class="menu-toggle-copy">
+                                <strong>3D Terrain</strong>
+                                <span id="terrainToggleLabel">Off</span>
+                            </span>
+                            <span class="menu-toggle-pill" aria-hidden="true"></span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="menu-scroll-region">
@@ -140,13 +158,6 @@
                                     basemap.at Grau WMTS
                                 </button>
                             </div>
-                            <button class="menu-toggle-row terrain-toggle-row" id="terrainButton" type="button" data-state="idle">
-                                <span class="menu-toggle-copy">
-                                    <strong>3D Terrain</strong>
-                                    <span id="terrainToggleLabel">Off</span>
-                                </span>
-                                <span class="menu-toggle-pill" aria-hidden="true"></span>
-                            </button>
                         </div>
                     </div>
                 </div>

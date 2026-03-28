@@ -4,6 +4,7 @@
 
 ### Added
 - Compass button now also appears when the map is tilted (pitch > 0); clicking it resets both bearing and pitch to zero (full 2D north view) in a single animated transition.
+- Product spec updated (v1.4): §4.3 notes Location section is a collapsible accordion defaulting to closed; §4.8 menu location updated to Location section; §4.9 Compass expanded to cover pitch visibility and pitch reset; §5 Flow 5 updated; §6 terrain toggle position and section toggle description updated; §9 compass criterion updated.
 - Compass button: appears bottom-left when the map is rotated away from north; needle rotates to indicate north direction; tap resets bearing to north with animation. `maxPitch: 85` allows full 3D tilt via right-click drag (desktop) or two-finger gesture (touch).
 - Re-center button: appears when the user pans away from their location while tracking is active; tapping it flies the map back to the current position and hides the button. The map no longer auto-follows after a manual pan until re-center is pressed.
 - Product spec updated (v1.3): added §4.4 Map Attribution Widget, §4.8 3D Terrain, §4.9 Compass & Map Orientation; updated §4.1 (maxPitch 85, rotation re-enabled), §4.2 (attribution per config), §4.3 (follow mode / re-center button), §2 Tech Stack (PMTiles), §6 Component Inventory, §7 Security (CSP), §9 Success Criteria; added Flows 4–8; Future Considerations updated.
