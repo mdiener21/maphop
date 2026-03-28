@@ -1,6 +1,6 @@
 # Product Specification: Maphop
 
-**Version:** 1.2
+**Version:** 1.3
 **Last Updated:** 2026-03-28
 **Author:** Product Management
 **Status:** Draft
@@ -55,7 +55,8 @@ Existing map applications require accounts, collect location data server-side, a
 
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
-| Map Renderer | MapLibre GL JS | ^5.21.0 | Vector/raster map display, geolocation overlay |
+| Map Renderer | MapLibre GL JS | ^5.21.0 | Vector/raster map display, geolocation overlay, terrain exaggeration |
+| Terrain Tiles | PMTiles | ^4.3.0 | Protocol handler for Mapterhorn terrain tile archive; registered as `pmtiles://` protocol before map init |
 | Build Tool | Vite | ^8.0.2 | Dev server, production bundling, HMR |
 | Runtime | Vanilla ES Modules | ES2020+ | No framework — modular browser app |
 | Storage | IndexedDB | Browser API | Favorites persistence (`personal-map-db`) |
@@ -154,12 +155,16 @@ The core map view fills the entire viewport using MapLibre GL JS.
 |----------|-------|
 | Default center | 14.268°E, 46.59026°N (Central Europe) |
 | Default zoom | 15 |
-| Rotation | Disabled (drag + touch) |
-| Attribution | Custom (no built-in control) |
+| Max pitch | 85° |
+| Rotation | Enabled — right-click drag (desktop) or two-finger twist (touch) |
+| Pitch | Enabled — right-click drag (desktop) or two-finger vertical gesture (touch) |
+| Attribution | Custom widget (no built-in MapLibre control) |
+| Native controls | All MapLibre control containers hidden via CSS |
 
 **Acceptance criteria:**
 - Map renders immediately on page load with the default base layer (Bergfex OSM).
 - Pan and pinch-zoom work on touch and desktop.
+- Right-click drag (desktop) and two-finger gestures (touch) tilt and rotate the map.
 - Map fills 100% of viewport with no scroll overflow.
 
 ### 4.2 Base Map Selection
@@ -176,16 +181,20 @@ Seven map providers are available through a radio-button menu:
 | `esriSatellite` | Esri Satellite | 256px | 19 | `server.arcgisonline.com` |
 | `basemapGrauWmts` | basemap.at Grau WMTS | 256px | 20 | `mapsneu.wien.gv.at` |
 
+Each config entry carries an `attribution` HTML string with links to the provider's copyright page, used by the attribution widget (§4.7).
+
 **Behavior:**
 - Switching base maps triggers a style load with a **12-second timeout**.
 - On failure, the app **reverts to the previous base layer** and shows an error toast.
-- The geolocation overlay is **re-applied after every base map switch**.
+- After every style load: terrain source is re-added → hillshade layer re-added (if terrain active) → geolocation overlay re-applied (this order ensures the location dot renders above the hillshade).
 - The menu button is **disabled during style loading** to prevent rapid switching.
+- Attribution panel text updates to reflect the newly active base map.
 
 **Acceptance criteria:**
 - Selecting a map option loads the new style within 12 seconds or falls back.
 - Location overlay persists across map switches without losing the current GPS fix.
 - Active map is visually highlighted in the menu.
+- Attribution text matches the active base map after every switch.
 
 ### 4.3 Geolocation Tracking
 
@@ -210,7 +219,11 @@ Opt-in location tracking with three visual layers on a single GeoJSON source (`u
 
 **Behavior:**
 - First activation auto-fits map to the accuracy radius with padding.
-- After the initial position lock the map **continuously pans** to keep the user centered (`easeTo`, 500ms duration) on every GPS update.
+- After the initial position lock the tracker enters **follow mode**: the map pans to keep the user centered (`easeTo`, 500ms) on every GPS update.
+- If the user manually drags the map while tracking is active and a GPS fix exists, **follow mode is suspended** and a **Re-center button** appears (bottom-left).
+- While follow mode is suspended, GPS position updates continue but the map does **not** auto-pan.
+- Tapping **Re-center** flies the map back to the last known GPS position (500ms `easeTo`), re-enters follow mode, and hides the button.
+- Stopping tracking hides the Re-center button and resets follow mode for the next session.
 - Heading cone appears only when the device is moving (>0.7 m/s).
 - Heading is derived from GPS `heading` property or calculated from successive fixes (minimum 5 m displacement).
 - Tracking **automatically stops after 15 minutes** of user inactivity (no pointer, touch, wheel, or keyboard events). A toast notifies the user.
@@ -225,9 +238,35 @@ Opt-in location tracking with three visual layers on a single GeoJSON source (`u
 - Location toggle requires explicit user action; no auto-prompting on load.
 - Accuracy circle, heading cone, and point render correctly on the map.
 - Idle timeout fires after 15 minutes and cleans up all location state.
+- Re-center button appears only after a GPS fix has been received and the user has panned.
+- Re-center button is hidden when tracking is off.
 - Location data never leaves the device.
 
-### 4.4 Favorites (Saved Locations)
+### 4.4 Map Attribution Widget
+
+A small `©` button fixed at the bottom-right corner of the map that opens a panel listing the active data sources.
+
+| Property | Value |
+|----------|-------|
+| Button position | `bottom: 8px; right: 8px` |
+| Panel position | Appears above the button |
+| Panel max-width | `min(300px, 100vw − 24px)` |
+| Attribution rendering | `innerHTML` — safe because all strings are hardcoded in source |
+
+**Behavior:**
+- The panel is **hidden by default**; clicking the `©` button toggles it open/closed.
+- Clicking anywhere outside the panel (global `click` handler) closes it.
+- Attribution text is set from the active base map's `attribution` field in `baseMapConfigs`.
+- When 3D Terrain is active, the text is appended with `· Hillshade © basemap.at · Terrain © Mapterhorn`.
+- Attribution updates automatically on every base map switch and on every terrain toggle.
+
+**Acceptance criteria:**
+- `©` button is visible at all times on the map page.
+- Panel opens and closes correctly without interfering with other map interactions.
+- Text matches the active base map after switching.
+- Terrain attribution suffix appears exactly when terrain is on and disappears when it is off.
+
+### 4.5 Favorites (Saved Locations)
 
 Local-only bookmarking system using IndexedDB.
 
@@ -250,7 +289,7 @@ Local-only bookmarking system using IndexedDB.
 - Saving, navigating, and deleting all produce status toast feedback.
 - No network requests are made for any favorites operation.
 
-### 4.5 Settings & Favorites Transfer
+### 4.6 Settings & Favorites Transfer
 
 A dedicated settings page keeps backup actions and future configuration out of the live map menu.
 
@@ -274,7 +313,7 @@ A dedicated settings page keeps backup actions and future configuration out of t
 - Import rejects invalid, oversized, or malformed files with user-facing status text.
 - Successful imports refresh the visible favorites count and do not duplicate existing saved locations.
 
-### 4.6 Progressive Web App
+### 4.7 Progressive Web App
 
 | Property | Value |
 |----------|-------|
@@ -301,6 +340,62 @@ A dedicated settings page keeps backup actions and future configuration out of t
 - App launches in standalone mode when installed.
 - Install banner appears on first eligible Android/Chrome visit; dismissing it does not permanently suppress it.
 - iOS hint appears on first eligible Safari visit and re-appears after 7 days if the user has not installed.
+
+### 4.8 3D Terrain
+
+Toggle in the Maps menu section that enables MapLibre native terrain exaggeration over the active base map.
+
+| Property | Value |
+|----------|-------|
+| Menu location | Maps section panel, below base map radio buttons |
+| DEM source ID | `terrain-source` |
+| DEM tile provider | Mapterhorn — `https://tiles.mapterhorn.com/tilejson.json` |
+| DEM encoding | `terrarium` |
+| DEM protocol | PMTiles (`pmtiles://` registered before map init) |
+| Terrain exaggeration | `1` (1:1 real elevation) |
+| Hillshade source ID | `hillshade-source` |
+| Hillshade tile provider | basemap.at — `mapsneu.wien.gv.at/basemap/bmapgelaende/grau/google3857/{z}/{y}/{x}.jpeg` |
+| Hillshade tile size | 256px |
+| Hillshade max zoom | 18 |
+| Hillshade blend opacity | `0.4` |
+| Pitch on enable | 45° (600ms `easeTo`) |
+| Pitch on disable | 0° (600ms `easeTo`) |
+
+**Behavior:**
+- Enabling terrain: adds DEM source → adds hillshade raster source and layer → calls `map.setTerrain()` → animates pitch to 45°.
+- Disabling terrain: calls `map.setTerrain(null)` → removes hillshade layer and source → animates pitch to 0°.
+- The DEM terrain source is **always kept alive** in the map style (not removed on disable) so it is available for future toggles.
+- After every base map style switch, `ensureTerrainAfterStyleLoad()` re-adds the terrain source unconditionally and re-applies the full terrain stack if terrain was active.
+- Layer order on style switch: terrain hillshade layer is added **before** the geolocation overlay layers so the location dot always renders on top.
+- Attribution panel appends `· Hillshade © basemap.at · Terrain © Mapterhorn` while terrain is active.
+
+**Acceptance criteria:**
+- Toggling terrain on renders visible 3D elevation and a hillshade overlay within tile load time.
+- Map pitch animates to 45° on enable and 0° on disable.
+- Terrain and hillshade survive base map style switches without manual re-toggle.
+- Terrain attribution appears in the attribution panel while active and disappears on disable.
+
+### 4.9 Compass & Map Orientation
+
+A floating compass button that indicates when the map has been rotated from north and provides a one-tap reset.
+
+| Property | Value |
+|----------|-------|
+| Button position | `bottom-left`, stacked above the Re-center button |
+| Visibility threshold | `Math.abs(bearing) >= 0.5°` |
+| Reset animation | `easeTo({ bearing: 0 })`, 400ms |
+
+**Behavior:**
+- The compass button is **hidden when bearing is within 0.5° of north**.
+- When the map is rotated (via right-click drag on desktop or two-finger twist on touch), the button appears and its SVG needle **counter-rotates** by `−bearing` degrees so the bright north tip always points to geographic north on screen.
+- Tapping the button resets bearing to 0° with a 400ms animation and hides the button again.
+- The button listens to the MapLibre `rotate` event to update in real time.
+
+**Acceptance criteria:**
+- Compass button is hidden on load (bearing = 0).
+- Button appears within one render frame of a rotation gesture.
+- Needle visually points to north at all rotation angles.
+- Tapping resets the map to north and hides the button.
 
 ---
 
@@ -339,17 +434,52 @@ Pan map to point of interest
   → Tap saved favorite → map eases to coordinates, menu closes
 ```
 
-### Flow 4: Base Map Switch
+### Flow 4: Re-center After Manual Pan
+
+```
+Location tracking is active, GPS fix received
+  → User drags map away from current position
+  → Re-center button appears (bottom-left)
+  → Map stops auto-following GPS updates
+  → User taps Re-center
+  → Map flies back to last GPS position (500ms easeTo)
+  → Follow mode resumes — map tracks GPS again
+  → Re-center button disappears
+```
+
+### Flow 5: 3D Terrain
+
+```
+Open menu → Maps section → toggle "3D Terrain" ON
+  → Map pitches to 45° (600ms)
+  → Hillshade overlay appears on base map
+  → Terrain exaggeration active
+  → User right-click drags (desktop) or two-finger gestures (touch) to change pitch/rotation
+  → Compass button appears if map is rotated
+  → Toggle "3D Terrain" OFF → pitch returns to 0°, hillshade removed
+```
+
+### Flow 6: Base Map Switch
 
 ```
 Open menu → Maps section
   → Tap "OpenTopoMap"
   → Menu button disabled during load
-  → Style loads → location overlay re-applied → toast confirms
+  → Style loads → terrain source restored → hillshade re-applied (if active) → location overlay re-applied → toast confirms
   → OR: Style fails within 12s → reverts to previous map → error toast
 ```
 
-### Flow 6: PWA Install
+### Flow 7: Compass Reset
+
+```
+Map rotated (right-click drag or two-finger twist)
+  → Compass button appears bottom-left, needle points to north
+  → User taps compass
+  → Map rotates back to north (400ms easeTo)
+  → Compass button hides
+```
+
+### Flow 8: PWA Install
 
 **Android / Chrome:**
 ```
@@ -370,7 +500,7 @@ First visit in Safari (not standalone)
   → Next launch from home screen → app opens in standalone mode, no hint shown
 ```
 
-### Flow 5: Favorites Backup
+### Flow 9: Favorites Backup
 
 ```
 Open Settings
@@ -404,16 +534,20 @@ Open Settings
 
 ### Component Inventory
 
-| Component | Size | Key Behavior |
-|-----------|------|-------------|
-| Menu button | 48x48px circle | Hamburger icon, toggles control panel |
-| Control panel | 260px (mobile) / 280px (desktop) | Glass panel, max-height transition (180ms) |
+| Component | Size / Position | Key Behavior |
+|-----------|----------------|-------------|
+| Menu button | 48×48px circle, top-right | Hamburger icon, toggles control panel |
+| Control panel | 260px (mobile) / 280px (desktop), top-right | Glass panel, max-height transition (180ms) |
 | Location toggle | Full-width row | Animated pill with gradient active state |
+| Terrain toggle | Full-width row, bottom of Maps section | Same animated pill; separated by top border from map list |
 | Favorite item | Full-width card | Name + coordinates, inline delete button |
 | Layer option | Full-width button | Radio-style selection, accent highlight |
 | Section toggle | Full-width header | Chevron rotates 180° on expand |
 | Settings card | Responsive grid card | Groups backup actions, roadmap placeholders, and privacy copy |
 | Status toast | 280px, bottom-center | Auto-hides after 2.8s, slide-up animation |
+| Attribution widget | Bottom-right `(8px, 8px)` | `©` button + collapsible glass panel; closes on outside click |
+| Compass button | 36×36px circle, `bottom-left ~70px` | Hidden when bearing ≈ 0°; SVG needle counter-rotates; tap resets to north |
+| Re-center button | Pill, `bottom-left 18px` | Hidden unless tracking active and user has panned; tap re-centers + resumes follow |
 | Install banner (Android) | max 440px, bottom-center | Glass panel; Install + Dismiss buttons; driven by `beforeinstallprompt` |
 | Install hint (iOS) | max 440px, bottom-center | Glass panel; Share instruction + Dismiss; 7-day snooze |
 
@@ -440,7 +574,7 @@ Open Settings
 
 | Metric | Target |
 |--------|--------|
-| Runtime dependencies | 1 (MapLibre GL JS) |
+| Runtime dependencies | 2 (MapLibre GL JS, PMTiles) |
 | Initial JS payload | Small modular bundles split by page |
 | Base map switch timeout | 12 seconds max |
 | Favorite navigation animation | 650ms |
@@ -451,7 +585,7 @@ Open Settings
 
 | Mechanism | Implementation |
 |-----------|---------------|
-| Content Security Policy | `<meta http-equiv="Content-Security-Policy">` on all three pages. `index.html` allowlists all 7 tile providers in `connect-src` and `img-src`; MapLibre blob workers covered by `worker-src blob: child-src blob:`. Secondary pages use a tighter policy with no external origins. |
+| Content Security Policy | `<meta http-equiv="Content-Security-Policy">` on all three pages. `index.html` allowlists all 7 base map tile providers plus `tiles.mapterhorn.com` (terrain DEM) in `connect-src` and `img-src`; MapLibre blob workers covered by `worker-src blob: child-src blob:`. Secondary pages use a tighter policy with no external origins. |
 | Referrer Policy | `<meta name="referrer" content="no-referrer">` on all pages — tile providers receive no `Referer` header. |
 | HTTP security headers | `_headers` file (Netlify / compatible hosts): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy: geolocation=(self)`, `X-XSS-Protection: 0`. |
 | Input validation | Favorites import: 64 KB file size cap, JSON parse guard, coordinate range check, 250-record limit, 80-char name limit, duplicate skipping. |
@@ -552,6 +686,10 @@ Chromium is not used because the `chrome-headless-shell` binary on this WSL2 hos
 | Privacy preserved | Zero outbound requests except tile fetches; no cookies or analytics |
 | Mobile usable | All interactions work on touch devices with safe area support |
 | Accessibility baseline | No critical ARIA violations; all interactive elements are keyboard-reachable |
+| Re-center works | Button appears on pan-while-tracking; tap re-centers and resumes follow mode |
+| 3D Terrain toggles correctly | Terrain exaggeration, hillshade, and 45° pitch activate and deactivate cleanly; survive base map switch |
+| Attribution is accurate | © panel shows correct provider credit for every base map; terrain suffix appears/disappears in sync |
+| Compass resets bearing | Button appears on rotation; needle tracks north; tap returns to bearing 0° |
 | Unit test suite passes | `npm test` exits 0 with all 46 tests green |
 | E2E test suite passes | `npm run test:e2e` exits 0 with all 12 tests green against the dev server |
 
@@ -567,5 +705,6 @@ These are **not committed work items** — they represent known gaps and potenti
 - **Search/geocoding** — address lookup with a privacy-respecting provider (e.g., Nominatim).
 - **Distance measurement** — tap-to-measure between two points on the map.
 - **Dark/light theme toggle** — the current dark theme is hardcoded; some users may prefer light.
-- **Altitude/elevation profile** — integrate elevation data for outdoor use cases.
+- **Altitude/elevation profile** — surface per-point elevation values from the Mapterhorn DEM for route analysis or tap-to-query elevation.
+- **Terrain exaggeration slider** — let users tune the exaggeration factor (currently fixed at 1×) for dramatic or subtle 3D effect.
 - **Multi-language support** — UI strings are currently English-only.

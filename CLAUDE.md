@@ -32,6 +32,7 @@ Supporting files:
 
 ## Workflow
 
+- **Always plan by writing up the product-spec updates `doc/spec/product-spec.md` first and show to the user to accept before implementing.
 - **Always update `CHANGELOG.md`** after making changes. Add entries under `[Unreleased]` using Keep a Changelog categories (Added, Changed, Fixed, Removed).
 - **Update `doc/spec/product-spec.md` whenever shipped behavior, architecture, user flows, or constraints change.** Keep the product spec and changelog in sync for those changes.
 

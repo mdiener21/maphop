@@ -5,6 +5,7 @@
 ### Added
 - Compass button: appears bottom-left when the map is rotated away from north; needle rotates to indicate north direction; tap resets bearing to north with animation. `maxPitch: 85` allows full 3D tilt via right-click drag (desktop) or two-finger gesture (touch).
 - Re-center button: appears when the user pans away from their location while tracking is active; tapping it flies the map back to the current position and hides the button. The map no longer auto-follows after a manual pan until re-center is pressed.
+- Product spec updated (v1.3): added §4.4 Map Attribution Widget, §4.8 3D Terrain, §4.9 Compass & Map Orientation; updated §4.1 (maxPitch 85, rotation re-enabled), §4.2 (attribution per config), §4.3 (follow mode / re-center button), §2 Tech Stack (PMTiles), §6 Component Inventory, §7 Security (CSP), §9 Success Criteria; added Flows 4–8; Future Considerations updated.
 - Map attribution widget: small © button bottom-right opens a panel showing the active base map's attribution with links; updates automatically when switching base maps or toggling terrain; closes on outside click.
 - 3D Terrain toggle in the Maps menu section: enables MapLibre native terrain exaggeration (DEM from Mapterhorn via `tiles.mapterhorn.com`, terrarium encoding, PMTiles protocol) with a pre-rendered hillshade overlay from `basemap.at` (`bmapgelaende/grau`), tilts the map to 45° pitch when enabled, and returns to flat view when disabled. Terrain survives base-map style switches.
 
