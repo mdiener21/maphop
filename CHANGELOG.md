@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-28
+
 ### Added
 - Last-used base map is persisted to `localStorage` (`maphop-base-layer`) and restored on page reload; falls back to Bergfex OSM if the saved key is missing or invalid.
 - Product spec updated (v1.5): §4.2 adds persistence table, updated behavior and acceptance criteria; §8 localStorage note now lists both keys; §9 adds base map persistence success criterion.
