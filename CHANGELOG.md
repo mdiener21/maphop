@@ -10,9 +10,12 @@
 - Split favorites transfer logic out of the main map module to keep the app architecture smaller and easier to maintain
 - Moved favorites import and export controls out of the live map menu and into the new settings page
 - Shared favorites IndexedDB access through a dedicated storage module used by both the map page and settings page
+- Unified settings and legal pages behind a shared app-style header, footer, navigation pattern, and shared version display
 
 ### Fixed
 - Hardened favorites import with strict JSON validation, a 64 KB file size cap, and duplicate skipping during IndexedDB import
+- Removed plain-text email exposure from the legal page and switched contact addresses to a reveal-on-click pattern
+- Changed the legal-page email reveal to show an obfuscated code-style contact string instead of the exact address
 
 ## [1.0.1] - 2026-03-24
 

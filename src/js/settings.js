@@ -1,4 +1,3 @@
-import { version } from "../../package.json";
 import { setupFavoriteTransfer } from "./favorite-transfer.js";
 import {
     getFavoritesForExport,
@@ -6,6 +5,7 @@ import {
     isFavoritesStorageAvailable,
     readFavorites
 } from "./favorite-store.js";
+import { initializePageShell } from "./page-shell.js";
 
 const exportFavoritesButton = document.getElementById("exportFavoritesButton");
 const importFavoritesButton = document.getElementById("importFavoritesButton");
@@ -34,7 +34,7 @@ async function refreshFavoritesCount() {
     }
 }
 
-document.title = `Settings | Maphop ${version}`;
+initializePageShell("Settings");
 
 setupFavoriteTransfer({
     exportButton: exportFavoritesButton,

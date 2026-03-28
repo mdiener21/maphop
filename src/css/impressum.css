@@ -1,46 +1,23 @@
-:root {
-    color-scheme: light;
-    --page-bg: #f4f7f5;
-    --card-bg: #ffffff;
-    --border: #d7e1db;
-    --text: #16211c;
-    --muted: #5a6961;
-    --accent: #0d6b50;
-    --shadow: 0 18px 42px rgba(12, 36, 28, 0.08);
-}
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    min-height: 100vh;
-    background:
-        radial-gradient(circle at top right, rgba(13, 107, 80, 0.1), transparent 22%),
-        linear-gradient(180deg, #f8fbf9 0%, var(--page-bg) 100%);
-    color: var(--text);
-    font-family: "Avenir Next", "Segoe UI", sans-serif;
+.impressum-main {
+    padding: 2px 0 0;
     line-height: 1.65;
 }
 
-main {
-    width: min(760px, calc(100% - 32px));
-    margin: 0 auto;
-    padding: 48px 0 56px;
+.page-card {
+    border: 1px solid var(--app-border);
+    border-radius: 22px;
+    background: rgba(14, 25, 29, 0.9);
+    box-shadow: var(--app-shadow);
+    padding: 28px 24px;
 }
 
-.page-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    box-shadow: var(--shadow);
-    padding: 28px 24px;
+.legal-hero {
+    margin-bottom: 18px;
 }
 
 .page-eyebrow {
     margin: 0 0 10px;
-    color: var(--accent);
+    color: var(--app-accent);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.16em;
@@ -74,14 +51,14 @@ p {
 }
 
 .lead {
-    color: var(--muted);
+    color: var(--app-text-muted);
     max-width: 58ch;
 }
 
 .section {
     padding-top: 24px;
     margin-top: 24px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid rgba(237, 244, 239, 0.08);
 }
 
 .contact-block {
@@ -90,39 +67,53 @@ p {
     margin: 14px 0 20px;
 }
 
+.email-reveal-button {
+    appearance: none;
+    border: 1px solid rgba(111, 242, 189, 0.2);
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: rgba(111, 242, 189, 0.12);
+    color: var(--app-text);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.email-reveal-button:hover,
+.email-reveal-button:focus-visible {
+    background: rgba(111, 242, 189, 0.18);
+}
+
+.email-reveal-value {
+    display: inline-block;
+    margin-left: 8px;
+    color: var(--app-text);
+    border: 1px solid rgba(237, 244, 239, 0.08);
+    border-radius: 10px;
+    padding: 6px 10px;
+    background: rgba(237, 244, 239, 0.05);
+    font-family: "SFMono-Regular", "Cascadia Code", "Fira Code", "Consolas", monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 .label {
     font-weight: 700;
 }
 
 a {
-    color: var(--accent);
+    color: var(--app-accent);
 }
 
 .page-footer {
     margin-top: 24px;
-    color: var(--muted);
+    color: var(--app-text-muted);
     font-size: 0.92rem;
 }
 
-.back-link {
-    display: inline-block;
-    margin-bottom: 24px;
-    color: var(--accent);
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.back-link:hover,
-.back-link:focus-visible {
-    text-decoration: underline;
-}
-
 @media (max-width: 640px) {
-    main {
-        width: min(100% - 20px, 760px);
-        padding: 20px 0 28px;
-    }
-
     .page-card {
         border-radius: 14px;
         padding: 22px 18px;

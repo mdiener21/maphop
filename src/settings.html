@@ -6,81 +6,108 @@
     <meta name="description" content="Maphop settings for favorites data and future map source controls.">
     <meta name="theme-color" content="#0d1b20">
     <title>Settings | Maphop</title>
+    <link rel="stylesheet" href="./css/app-page.css">
     <link rel="stylesheet" href="./css/settings.css">
 </head>
 <body>
-    <main class="settings-shell">
-        <a class="back-link" href="./index.html">Back to map</a>
+    <div class="app-page">
+        <header class="app-topbar">
+            <a class="app-brand" href="./index.html">
+                <span class="app-brand-mark" aria-hidden="true"></span>
+                <span>Maphop</span>
+            </a>
+            <div class="app-topbar-center">
+                <nav class="app-nav" aria-label="App pages">
+                    <a class="app-nav-link" href="./index.html">Map</a>
+                    <a class="app-nav-link is-active" href="./settings.html" aria-current="page">Settings</a>
+                    <a class="app-nav-link" href="./impressum.html">Legal</a>
+                </nav>
+            </div>
+            <span class="app-version-pill" data-app-version></span>
+        </header>
 
-        <section class="settings-hero" aria-labelledby="settings-title">
-            <p class="settings-eyebrow">Settings</p>
-            <h1 id="settings-title">Manage local app data and future map configuration</h1>
-            <p class="settings-lead">
-                This page keeps data tools and longer-lived configuration out of the map view. Favorites stay local in
-                your browser, and this layout is ready for future settings such as custom tile servers.
-            </p>
-        </section>
-
-        <div class="settings-grid">
-            <section class="settings-card" aria-labelledby="favorites-data-heading">
-                <p class="card-kicker">Data</p>
-                <h2 id="favorites-data-heading">Favorites backup</h2>
-                <p class="card-copy">
-                    Export your saved favorites as JSON or import a previously exported file. Imports are validated and
-                    stay capped to a small file size for speed and safety.
+        <main class="app-main settings-shell">
+            <section class="settings-hero" aria-labelledby="settings-title">
+                <p class="settings-eyebrow">Settings</p>
+                <h1 id="settings-title">Manage local app data and future map configuration</h1>
+                <p class="settings-lead">
+                    This page keeps data tools and longer-lived configuration out of the map view. Favorites stay local in
+                    your browser, and this layout is ready for future settings such as custom tile servers.
                 </p>
-                <div class="settings-actions" role="group" aria-label="Favorites backup actions">
-                    <button class="primary-button" id="exportFavoritesButton" type="button">Export favorites JSON</button>
-                    <button class="secondary-button" id="importFavoritesButton" type="button">Import favorites JSON</button>
-                </div>
-                <input id="importFavoritesInput" type="file" accept=".json,application/json" hidden>
-                <dl class="settings-stats">
-                    <div>
-                        <dt>Saved favorites</dt>
-                        <dd id="favoritesCount">-</dd>
-                    </div>
-                    <div>
-                        <dt>Storage</dt>
-                        <dd>Local IndexedDB only</dd>
-                    </div>
-                </dl>
             </section>
 
-            <section class="settings-card" aria-labelledby="map-sources-heading">
-                <p class="card-kicker">Roadmap</p>
-                <h2 id="map-sources-heading">Map sources</h2>
-                <p class="card-copy">
-                    This section is reserved for upcoming map source management. The structure is in place for adding,
-                    removing, and validating custom tile server definitions later.
-                </p>
-                <div class="placeholder-stack" aria-label="Planned settings modules">
-                    <div class="placeholder-row">
-                        <strong>Custom tile servers</strong>
-                        <span>Planned</span>
+            <div class="settings-grid">
+                <section class="settings-card" aria-labelledby="favorites-data-heading">
+                    <p class="card-kicker">Data</p>
+                    <h2 id="favorites-data-heading">Favorites backup</h2>
+                    <p class="card-copy">
+                        Export your saved favorites as JSON or import a previously exported file. Imports are validated and
+                        stay capped to a small file size for speed and safety.
+                    </p>
+                    <div class="settings-actions" role="group" aria-label="Favorites backup actions">
+                        <button class="primary-button" id="exportFavoritesButton" type="button">Export favorites JSON</button>
+                        <button class="secondary-button" id="importFavoritesButton" type="button">Import favorites JSON</button>
                     </div>
-                    <div class="placeholder-row">
-                        <strong>Provider validation rules</strong>
-                        <span>Planned</span>
-                    </div>
-                    <div class="placeholder-row">
-                        <strong>Usage and attribution controls</strong>
-                        <span>Planned</span>
-                    </div>
-                </div>
-            </section>
+                    <input id="importFavoritesInput" type="file" accept=".json,application/json" hidden>
+                    <dl class="settings-stats">
+                        <div>
+                            <dt>Saved favorites</dt>
+                            <dd id="favoritesCount">-</dd>
+                        </div>
+                        <div>
+                            <dt>Storage</dt>
+                            <dd>Local IndexedDB only</dd>
+                        </div>
+                    </dl>
+                </section>
 
-            <section class="settings-card settings-card-wide" aria-labelledby="privacy-heading">
-                <p class="card-kicker">Privacy</p>
-                <h2 id="privacy-heading">Local-first settings design</h2>
-                <p class="card-copy">
-                    Settings are intentionally separated from the live map controls so we can grow configuration without
-                    slowing down the main map interaction. Data import stays explicit and file-based, while future map
-                    source settings can be isolated behind their own validation rules.
-                </p>
-                <p class="card-note" id="settingsStatus" aria-live="polite">Settings ready.</p>
-            </section>
-        </div>
-    </main>
+                <section class="settings-card" aria-labelledby="map-sources-heading">
+                    <p class="card-kicker">Roadmap</p>
+                    <h2 id="map-sources-heading">Map sources</h2>
+                    <p class="card-copy">
+                        This section is reserved for upcoming map source management. The structure is in place for adding,
+                        removing, and validating custom tile server definitions later.
+                    </p>
+                    <div class="placeholder-stack" aria-label="Planned settings modules">
+                        <div class="placeholder-row">
+                            <strong>Custom tile servers</strong>
+                            <span>Planned</span>
+                        </div>
+                        <div class="placeholder-row">
+                            <strong>Provider validation rules</strong>
+                            <span>Planned</span>
+                        </div>
+                        <div class="placeholder-row">
+                            <strong>Usage and attribution controls</strong>
+                            <span>Planned</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="settings-card settings-card-wide" aria-labelledby="privacy-heading">
+                    <p class="card-kicker">Privacy</p>
+                    <h2 id="privacy-heading">Local-first settings design</h2>
+                    <p class="card-copy">
+                        Settings are intentionally separated from the live map controls so we can grow configuration without
+                        slowing down the main map interaction. Data import stays explicit and file-based, while future map
+                        source settings can be isolated behind their own validation rules.
+                    </p>
+                    <p class="card-note" id="settingsStatus" aria-live="polite">Settings ready.</p>
+                </section>
+            </div>
+        </main>
+
+        <footer class="app-footer">
+            <p class="app-footer-copy">Local-first map tools, separate from live navigation controls.</p>
+            <div class="app-footer-links">
+                <a class="app-footer-link" href="./index.html">Map</a>
+                <a class="app-footer-link" href="./settings.html">Settings</a>
+                <a class="app-footer-link" href="./impressum.html">Legal</a>
+                <a class="app-footer-link" href="https://github.com/mdiener21/maphop" target="_blank" rel="noopener">GitHub</a>
+            </div>
+            <span class="app-footer-version" data-app-version></span>
+        </footer>
+    </div>
 
     <script type="module" src="./js/settings.js"></script>
 </body>

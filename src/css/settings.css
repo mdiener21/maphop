@@ -1,48 +1,5 @@
-:root {
-    color-scheme: dark;
-    --bg: #0d1b20;
-    --bg-soft: #10252c;
-    --card: rgba(11, 18, 21, 0.8);
-    --card-border: rgba(227, 237, 233, 0.14);
-    --text: #edf4ef;
-    --text-muted: rgba(237, 244, 239, 0.72);
-    --accent: #6ff2bd;
-    --accent-strong: #17c08b;
-    --shadow: 0 24px 58px rgba(0, 0, 0, 0.3);
-}
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    min-height: 100vh;
-    background:
-        radial-gradient(circle at top right, rgba(111, 242, 189, 0.16), transparent 24%),
-        radial-gradient(circle at left center, rgba(33, 84, 103, 0.24), transparent 30%),
-        linear-gradient(180deg, #071317 0%, var(--bg) 100%);
-    color: var(--text);
-    font-family: "Avenir Next", "Segoe UI Variable", "Segoe UI", sans-serif;
-}
-
 .settings-shell {
-    width: min(980px, calc(100% - 32px));
-    margin: 0 auto;
-    padding: 28px 0 40px;
-}
-
-.back-link {
-    display: inline-block;
-    margin-bottom: 26px;
-    color: var(--accent);
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.back-link:hover,
-.back-link:focus-visible {
-    text-decoration: underline;
+    padding: 2px 0 0;
 }
 
 .settings-hero {
@@ -52,7 +9,7 @@ body {
 .settings-eyebrow,
 .card-kicker {
     margin: 0 0 8px;
-    color: var(--accent);
+    color: var(--app-accent);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.16em;
@@ -74,7 +31,7 @@ body {
 .settings-lead,
 .card-copy,
 .card-note {
-    color: var(--text-muted);
+    color: var(--app-text-muted);
     line-height: 1.6;
 }
 
@@ -90,10 +47,10 @@ body {
 }
 
 .settings-card {
-    border: 1px solid var(--card-border);
+    border: 1px solid var(--app-border);
     border-radius: 22px;
-    background: var(--card);
-    box-shadow: var(--shadow);
+    background: var(--app-surface);
+    box-shadow: var(--app-shadow);
     backdrop-filter: blur(18px) saturate(130%);
     -webkit-backdrop-filter: blur(18px) saturate(130%);
     padding: 22px;
@@ -116,7 +73,7 @@ body {
     border: 0;
     border-radius: 14px;
     padding: 14px 16px;
-    color: var(--text);
+    color: var(--app-text);
     font: inherit;
     font-size: 0.95rem;
     font-weight: 700;
@@ -148,7 +105,7 @@ body {
 
 .settings-stats dt {
     margin: 0 0 6px;
-    color: var(--text-muted);
+    color: var(--app-text-muted);
     font-size: 0.78rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -178,7 +135,7 @@ body {
 }
 
 .placeholder-row span {
-    color: var(--text-muted);
+    color: var(--app-text-muted);
     font-size: 0.82rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -189,11 +146,6 @@ body {
 }
 
 @media (max-width: 760px) {
-    .settings-shell {
-        width: min(100% - 20px, 980px);
-        padding: 20px 0 28px;
-    }
-
     .settings-grid {
         grid-template-columns: 1fr;
     }

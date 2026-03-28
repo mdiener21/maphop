@@ -5,80 +5,118 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="description" content="Impressum und Datenschutzerklärung für die Maphop Webanwendung.">
 	<title>Impressum &amp; Datenschutzerklärung | Maphop</title>
+	<link rel="stylesheet" href="./css/app-page.css">
 	<link rel="stylesheet" href="./css/impressum.css">
 </head>
 <body>
-	<main>
-		<a class="back-link" href="./index.html">Zurück zur Karte</a>
+	<div class="app-page">
+		<header class="app-topbar">
+			<a class="app-brand" href="./index.html">
+				<span class="app-brand-mark" aria-hidden="true"></span>
+				<span>Maphop</span>
+			</a>
+			<div class="app-topbar-center">
+				<nav class="app-nav" aria-label="App pages">
+					<a class="app-nav-link" href="./index.html">Map</a>
+					<a class="app-nav-link" href="./settings.html">Settings</a>
+					<a class="app-nav-link is-active" href="./impressum.html" aria-current="page">Legal</a>
+				</nav>
+			</div>
+			<span class="app-version-pill" data-app-version></span>
+		</header>
 
-		<article class="page-card">
-			<p class="page-eyebrow">Rechtliches</p>
-			<h1>Impressum &amp; Datenschutzerklärung</h1>
-			<p class="lead">
-				Diese Seite enthält die Anbieterkennzeichnung sowie die Hinweise zur Datenverarbeitung für die private,
-				lokale Kartenanwendung Maphop.
-			</p>
-
-			<section class="section" aria-labelledby="impressum-heading">
-				<h2 id="impressum-heading">Impressum</h2>
-				<p>Angaben gemäß § 24 Mediengesetz:</p>
-
-				<div class="contact-block">
-					<span class="label">Medieninhaber und Herausgeber:</span>
-					<span>Michael Diener</span>
-					<span>[Deine vollständige Adresse hier eintragen]</span>
-					<span>Österreich</span>
-				</div>
-
-				<div class="contact-block">
-					<span class="label">Kontakt:</span>
-					<span>
-						E-Mail:
-						<a href="mailto:deine-email@example.com">deine-email@example.com</a>
-					</span>
-				</div>
-
-				<p>
-					<span class="label">Blattlinie:</span>
-					Diese Website ist eine private, nicht-kommerzielle Webanwendung zur Darstellung von Karten. Nutzer
-					können Favoriten ausschließlich lokal im Browser speichern. Es erfolgt keine serverseitige
-					Verarbeitung personenbezogener Daten.
+		<main class="app-main impressum-main">
+			<section class="legal-hero">
+				<p class="page-eyebrow">Rechtliches</p>
+				<h1>Impressum &amp; Datenschutzerklärung</h1>
+				<p class="lead">
+					Diese Seite enthält die Anbieterkennzeichnung sowie die Hinweise zur Datenverarbeitung für die private,
+					lokale Kartenanwendung Maphop.
 				</p>
 			</section>
 
-			<section class="section" aria-labelledby="privacy-heading">
-				<h2 id="privacy-heading">Datenschutzerklärung</h2>
-				<p>Diese Website verarbeitet grundsätzlich keine personenbezogenen Daten auf eigenen Servern.</p>
+			<article class="page-card">
+				<section class="section" aria-labelledby="impressum-heading">
+					<h2 id="impressum-heading">Impressum</h2>
+					<p>Angaben gemäß § 24 Mediengesetz:</p>
 
-				<h3>Lokale Datenspeicherung</h3>
-				<p>
-					Favoriten werden ausschließlich lokal im Browser des Nutzers (IndexedDB) gespeichert. Diese Daten
-					verlassen das Gerät nicht und werden nicht an Dritte übertragen.
-				</p>
+					<div class="contact-block">
+						<span class="label">Medieninhaber und Herausgeber:</span>
+						<span>Michael Diener</span>
+						<span>
+							<button class="email-reveal-button" type="button" data-email-target="publisherEmail">
+								E-Mail anzeigen
+							</button>
+							<span class="email-reveal-value" id="publisherEmail" hidden></span>
+						</span>
+						<span>Österreich</span>
+					</div>
 
-				<h3>Kartenanzeige (MapLibre / externe Tile-Server)</h3>
-				<p>
-					Zur Darstellung der Karte werden Kartendaten von externen Tile-Servern geladen. Dabei kann es
-					technisch erforderlich sein, dass Ihre IP-Adresse an diese Server übermittelt wird.
-				</p>
-				<p>
-					Auf diese Datenverarbeitung habe ich keinen Einfluss. Es gelten die Datenschutzbestimmungen der
-					jeweiligen Anbieter der Kartendienste.
-				</p>
+					<div class="contact-block">
+						<span class="label">Kontakt:</span>
+						<span>
+							E-Mail:
+							<button class="email-reveal-button" type="button" data-email-target="contactEmail">
+								E-Mail anzeigen
+							</button>
+							<span class="email-reveal-value" id="contactEmail" hidden></span>
+						</span>
+					</div>
 
-				<h3>Cookies und Tracking</h3>
-				<p>Diese Website verwendet keine Cookies und keine Tracking- oder Analyse-Tools.</p>
+					<p>
+						<span class="label">Blattlinie:</span>
+						Diese Website ist eine private, nicht-kommerzielle Webanwendung zur Darstellung von Karten. Nutzer
+						können Favoriten ausschließlich lokal im Browser speichern. Es erfolgt keine serverseitige
+						Verarbeitung personenbezogener Daten.
+					</p>
+				</section>
 
-				<h3>Ihre Rechte</h3>
-				<p>
-					Da keine personenbezogenen Daten serverseitig verarbeitet werden, ergeben sich in der Praxis keine
-					ausübbaren Betroffenenrechte gegenüber dieser Website. Unabhängig davon stehen Ihnen die Rechte gemäß
-					der Datenschutz-Grundverordnung (DSGVO) zu.
-				</p>
-			</section>
+				<section class="section" aria-labelledby="privacy-heading">
+					<h2 id="privacy-heading">Datenschutzerklärung</h2>
+					<p>Diese Website verarbeitet grundsätzlich keine personenbezogenen Daten auf eigenen Servern.</p>
 
-			<p class="page-footer">Stand: März 2026</p>
-		</article>
-	</main>
+					<h3>Lokale Datenspeicherung</h3>
+					<p>
+						Favoriten werden ausschließlich lokal im Browser des Nutzers (IndexedDB) gespeichert. Diese Daten
+						verlassen das Gerät nicht und werden nicht an Dritte übertragen.
+					</p>
+
+					<h3>Kartenanzeige (MapLibre / externe Tile-Server)</h3>
+					<p>
+						Zur Darstellung der Karte werden Kartendaten von externen Tile-Servern geladen. Dabei kann es
+						technisch erforderlich sein, dass Ihre IP-Adresse an diese Server übermittelt wird.
+					</p>
+					<p>
+						Auf diese Datenverarbeitung habe ich keinen Einfluss. Es gelten die Datenschutzbestimmungen der
+						jeweiligen Anbieter der Kartendienste.
+					</p>
+
+					<h3>Cookies und Tracking</h3>
+					<p>Diese Website verwendet keine Cookies und keine Tracking- oder Analyse-Tools.</p>
+
+					<h3>Ihre Rechte</h3>
+					<p>
+						Da keine personenbezogenen Daten serverseitig verarbeitet werden, ergeben sich in der Praxis keine
+						ausübbaren Betroffenenrechte gegenüber dieser Website. Unabhängig davon stehen Ihnen die Rechte gemäß
+						der Datenschutz-Grundverordnung (DSGVO) zu.
+					</p>
+				</section>
+
+				<p class="page-footer">Stand: März 2026</p>
+			</article>
+		</main>
+
+		<footer class="app-footer">
+			<p class="app-footer-copy">Local-first app pages for settings, legal details, and future controls.</p>
+			<div class="app-footer-links">
+				<a class="app-footer-link" href="./index.html">Map</a>
+				<a class="app-footer-link" href="./settings.html">Settings</a>
+				<a class="app-footer-link" href="./impressum.html">Legal</a>
+				<a class="app-footer-link" href="https://github.com/mdiener21/maphop" target="_blank" rel="noopener">GitHub</a>
+			</div>
+			<span class="app-footer-version" data-app-version></span>
+		</footer>
+	</div>
+	<script type="module" src="./js/impressum.js"></script>
 </body>
 </html>
