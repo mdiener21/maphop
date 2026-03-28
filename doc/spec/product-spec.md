@@ -1,9 +1,11 @@
 # Product Specification: Maphop
 
 **Version:** 1.0
-**Last Updated:** 2026-03-24
+**Last Updated:** 2026-03-28
 **Author:** Product Management
 **Status:** Draft
+
+**Maintenance Rule:** Update this spec whenever `CHANGELOG.md` is updated for shipped behavior, architecture, UX, user flow, or constraint changes.
 
 ---
 
@@ -45,7 +47,7 @@ Existing map applications require accounts, collect location data server-side, a
 1. **Zero setup** — open the URL, start using the map immediately.
 2. **All data stays on-device** — favorites in IndexedDB, no server round-trips.
 3. **Works offline** — service worker caches the app shell; cached tiles remain available.
-4. **Multiple map styles** — switch between 6 tile providers for different use cases.
+4. **Multiple map styles** — switch between 7 tile providers for different use cases.
 
 ---
 
@@ -55,7 +57,7 @@ Existing map applications require accounts, collect location data server-side, a
 |-------|-----------|---------|---------|
 | Map Renderer | MapLibre GL JS | ^5.21.0 | Vector/raster map display, geolocation overlay |
 | Build Tool | Vite | ^8.0.2 | Dev server, production bundling, HMR |
-| Runtime | Vanilla ES Modules | ES2020+ | No framework — single-file architecture |
+| Runtime | Vanilla ES Modules | ES2020+ | No framework — modular browser app |
 | Storage | IndexedDB | Browser API | Favorites persistence (`personal-map-db`) |
 | Offline | Service Worker | Browser API | App shell caching, offline support |
 | Geolocation | Geolocation API | Browser API | Opt-in position tracking |
@@ -76,19 +78,32 @@ Existing map applications require accounts, collect location data server-side, a
 
 ```
 src/
-├── index.html              App shell, semantic markup, menu structure
-├── mymap.js                All state and behavior (single ES module)
-├── mymap.css               Mobile-first styles, CSS custom properties
-├── manifest.webmanifest    PWA manifest (standalone display, portrait)
-└── images/                 App icons (72–512px, maskable variants)
+├── index.html              Live map page shell and mobile control menu
+├── settings.html           Settings page for favorites backup and future map source controls
+├── impressum.html          Legal/privacy page
+├── css/
+│   ├── app-page.css        Shared layout chrome for secondary pages
+│   ├── impressum.css       Legal page styling
+│   ├── maphop.css          Live map styling and control menu UI
+│   └── settings.css        Settings page styling
+├── js/
+│   ├── favorite-store.js   IndexedDB access for favorites
+│   ├── favorite-transfer.js JSON import/export validation and transfer helpers
+│   ├── impressum.js        Legal page interactions
+│   ├── location-tracker.js Geolocation state and map overlay rendering
+│   ├── maphop.js           Map page state, base maps, favorites UI, service worker registration
+│   ├── page-shell.js       Shared page title and version-label wiring
+│   └── settings.js         Settings page behavior
+├── images/                 App icons (72–512px, maskable variants)
+└── manifest.webmanifest    PWA manifest (standalone display, portrait)
 ```
 
 ### Design Principles
 
-1. **Single-module simplicity** — all logic lives in `mymap.js`. No routing, no state management library, no component framework.
+1. **Small-module simplicity** — map, location, favorites, transfer, and page-shell behavior are split into focused ES modules with no framework or client-side router.
 2. **Local-first data** — IndexedDB for persistence, no network dependency for user data.
-3. **Progressive enhancement** — the map works without geolocation, without favorites, without service worker. Each capability layers on independently.
-4. **Graceful degradation** — base map switching falls back on timeout; geolocation fails with user-friendly messages; offline mode serves cached assets.
+3. **Progressive enhancement** — the map works without geolocation, without favorites, and without service worker. Each capability layers on independently.
+4. **Graceful degradation** — base map switching falls back on timeout; geolocation fails with user-friendly messages; import validation rejects bad files early; offline mode serves cached assets.
 
 ### Data Flow
 
@@ -97,11 +112,15 @@ User Interaction
     │
     ├─► Map Events ──► MapLibre GL JS ──► Tile Provider (network)
     │
-    ├─► Location Toggle ──► Geolocation API ──► GeoJSON Overlay (on-map)
+  ├─► Location Toggle ──► Geolocation API ──► LocationTracker ──► GeoJSON Overlay (on-map)
     │
-    ├─► Save Favorite ──► IndexedDB (local) ──► Favorites List (DOM)
+  ├─► Save Favorite / Delete Favorite ──► favorite-store.js ──► IndexedDB (local) ──► Favorites List (DOM)
     │
     └─► Base Map Switch ──► setBaseLayer() ──► Style Load (with 12s timeout + fallback)
+
+Settings Page
+  │
+  └─► Export / Import Favorites ──► favorite-transfer.js ──► favorite-store.js ──► IndexedDB (local)
 ```
 
 ---
@@ -126,16 +145,17 @@ The core map view fills the entire viewport using MapLibre GL JS.
 
 ### 4.2 Base Map Selection
 
-Six tile providers available through a radio-button menu:
+Seven map providers are available through a radio-button menu:
 
 | Key | Name | Tile Size | Max Zoom | Source |
 |-----|------|-----------|----------|--------|
 | `bergfex` | Bergfex OSM | 512px | 20 | `tiles.bergfex.at` |
 | `osm` | OpenStreetMap | 256px | 19 | `tile.openstreetmap.org` |
-| `liberty` | OpenFreeMap Liberty | Style JSON | — | `tiles.openfreemap.org` |
-| `topo` | OpenTopoMap | 256px | 17 | `tile.opentopomap.org` |
+| `openfreemap` | OpenFreeMap Liberty | Style JSON | — | `tiles.openfreemap.org` |
+| `opentopo` | OpenTopoMap | 256px | 17 | `tile.opentopomap.org` |
 | `cyclosm` | CyclOSM | 256px | 20 | `tile-cyclosm.openstreetmap.fr` |
-| `basemapat` | basemap.at Grau | 256px | 20 | `mapsneu.wien.gv.at` |
+| `esriSatellite` | Esri Satellite | 256px | 19 | `server.arcgisonline.com` |
+| `basemapGrauWmts` | basemap.at Grau WMTS | 256px | 20 | `mapsneu.wien.gv.at` |
 
 **Behavior:**
 - Switching base maps triggers a style load with a **12-second timeout**.
@@ -155,7 +175,7 @@ Opt-in location tracking with three visual layers on a single GeoJSON source (`u
 | Layer | Type | Visual |
 |-------|------|--------|
 | `user-location-accuracy` | Fill | Semi-transparent green circle showing GPS accuracy radius |
-| `user-location-heading` | Fill | 22° cone showing direction of travel |
+| `user-location-heading` | Fill | 22° cone rendered as a 6-band blue gradient showing direction of travel |
 | `user-location-point` | Circle | 10px bright green dot with white border |
 
 **Configuration:**
@@ -210,19 +230,44 @@ Local-only bookmarking system using IndexedDB.
 - Saving, navigating, and deleting all produce status toast feedback.
 - No network requests are made for any favorites operation.
 
-### 4.5 Progressive Web App
+### 4.5 Settings & Favorites Transfer
+
+A dedicated settings page keeps backup actions and future configuration out of the live map menu.
+
+| Property | Value |
+|----------|-------|
+| Page | `settings.html` |
+| Export format | `maphop-favorites` JSON payload |
+| Export version | `1` |
+| Max import file size | 64 KB |
+| Max imported favorites per file | 250 |
+| Max favorite name length | 80 characters |
+
+**Behavior:**
+- The settings page shows the current favorites count and confirms operations through a status line.
+- Export writes a timestamped `maphop-favorites-YYYY-MM-DD.json` file.
+- Import accepts `.json` files only, validates structure and coordinate ranges, and skips duplicate favorites already in IndexedDB.
+- Shared page-shell code keeps the page title and visible app version consistent across pages.
+
+**Acceptance criteria:**
+- Export produces a valid JSON backup when favorites exist and reports an empty-state message otherwise.
+- Import rejects invalid, oversized, or malformed files with user-facing status text.
+- Successful imports refresh the visible favorites count and do not duplicate existing saved locations.
+
+### 4.6 Progressive Web App
 
 | Property | Value |
 |----------|-------|
 | Display mode | Standalone |
 | Orientation | Portrait-primary |
 | Theme color | `#0d1b20` |
+| Start URL | `/` |
 | Scope | `/` |
 | Icons | 72, 128, 144, 192 (maskable), 512 (maskable) px |
 
 **Behavior:**
 - Service worker registers on page load in production (HTTPS only).
-- Scoped to `/mymap/` deployment path.
+- Scoped to `/` deployment path.
 - App is installable on mobile home screens and desktop.
 
 **Acceptance criteria:**
@@ -276,6 +321,16 @@ Open menu → Maps section
   → OR: Style fails within 12s → reverts to previous map → error toast
 ```
 
+### Flow 5: Favorites Backup
+
+```
+Open Settings
+  → Review favorites count
+  → Tap "Export favorites JSON" → download starts immediately
+  → OR: Tap "Import favorites JSON" → choose file
+  → File validates → unique favorites are imported → count refreshes → status confirms result
+```
+
 ---
 
 ## 6. UI & Design System
@@ -308,6 +363,7 @@ Open menu → Maps section
 | Favorite item | Full-width card | Name + coordinates, inline delete button |
 | Layer option | Full-width button | Radio-style selection, accent highlight |
 | Section toggle | Full-width header | Chevron rotates 180° on expand |
+| Settings card | Responsive grid card | Groups backup actions, roadmap placeholders, and privacy copy |
 | Status toast | 280px, bottom-center | Auto-hides after 2.8s, slide-up animation |
 
 ### Responsive Breakpoints
@@ -334,7 +390,7 @@ Open menu → Maps section
 | Metric | Target |
 |--------|--------|
 | Runtime dependencies | 1 (MapLibre GL JS) |
-| Initial JS payload | Single bundled module |
+| Initial JS payload | Small modular bundles split by page |
 | Base map switch timeout | 12 seconds max |
 | Favorite navigation animation | 650ms |
 | Toast display duration | 2.8 seconds |
@@ -363,8 +419,8 @@ Open menu → Maps section
 - All user data (favorites, location) stays on-device.
 - Base map switch failures revert to the previous working layer.
 - Geolocation tracking stops on background/unload.
-- CHANGELOG.md is updated with every change.
-- PWA deployment is scoped to `/mymap/`.
+- `CHANGELOG.md` and this spec are updated together for shipped product, architecture, UX, and constraint changes.
+- PWA deployment assumptions stay aligned across Vite config, manifest, and runtime registration.
 
 ### Ask First
 
@@ -387,10 +443,11 @@ Open menu → Maps section
 | Criterion | Measurement |
 |-----------|-------------|
 | Map loads successfully | Default base layer renders within 3 seconds on broadband |
-| Base map switching works | All 6 providers load or gracefully fall back |
+| Base map switching works | All 7 providers load or gracefully fall back |
 | Location tracking is functional | Accuracy circle, heading cone, and point render on activation |
 | Idle timeout fires | Tracking stops after 15 minutes of inactivity |
 | Favorites CRUD complete | Save, list, navigate-to, and delete all work with toast feedback |
+| Favorites backup works | Export succeeds for saved data; imports validate input and skip duplicates |
 | Offline launch | App shell loads without network after first visit |
 | PWA installable | Passes Lighthouse PWA installability checks |
 | Privacy preserved | Zero outbound requests except tile fetches; no cookies or analytics |
@@ -405,8 +462,7 @@ These are **not committed work items** — they represent known gaps and potenti
 
 - **Route/track recording** — leverage the existing geolocation infrastructure to record and display GPS tracks.
 - **Favorite categories/tags** — organize saved locations beyond a flat chronological list.
-- **Import/export favorites** — GeoJSON or GPX export for backup and sharing (still local-first: user-initiated file download, no server).
-- **Custom tile provider configuration** — let users add their own tile URLs beyond the built-in 6.
+- **Custom tile provider configuration** — let users add their own tile URLs beyond the built-in 7.
 - **Search/geocoding** — address lookup with a privacy-respecting provider (e.g., Nominatim).
 - **Distance measurement** — tap-to-measure between two points on the map.
 - **Dark/light theme toggle** — the current dark theme is hardcoded; some users may prefer light.

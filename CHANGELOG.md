@@ -9,6 +9,8 @@
 - Heading cone now renders as a 6-band gradient, deep opaque blue at the location dot fading to near-transparent pale blue at the tip
 
 ### Changed
+- Reviewed and refreshed the product spec to match the current modular architecture, settings page, and seven built-in map providers
+- Added repository guidance that `doc/spec/product-spec.md` must be updated alongside `CHANGELOG.md` for shipped product and architecture changes
 - Extracted all geolocation tracking, geo-math helpers, and map overlay management into a dedicated `location-tracker.js` module (`LocationTracker` class) to improve readability and modularity
 
 ### Changed
