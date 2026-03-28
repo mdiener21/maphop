@@ -682,19 +682,23 @@ reCenterButton.addEventListener("click", () => {
     reCenterButton.hidden = true;
 });
 
-compassButton.addEventListener("click", () => {
-    map.easeTo({ bearing: 0, duration: 400 });
-});
-
-map.on("rotate", () => {
+function updateCompassButton() {
     const bearing = map.getBearing();
-    if (Math.abs(bearing) < 0.5) {
+    const pitch = map.getPitch();
+    if (Math.abs(bearing) < 0.5 && pitch < 0.5) {
         compassButton.hidden = true;
     } else {
         compassButton.hidden = false;
         compassNeedle.style.transform = `rotate(${-bearing}deg)`;
     }
+}
+
+compassButton.addEventListener("click", () => {
+    map.easeTo({ bearing: 0, pitch: 0, duration: 400 });
 });
+
+map.on("rotate", updateCompassButton);
+map.on("pitch", updateCompassButton);
 
 map.on("dragstart", () => {
     if (tracker.isActive && tracker.lastLngLat && tracker.following) {
