@@ -3,7 +3,7 @@ import { Protocol as PmtilesProtocol } from "pmtiles";
 import { version } from "../../package.json";
 import { LocationTracker } from "./location-tracker.js";
 import { createAttributionController } from "./map/attribution-controller.js";
-import { createBaseLayerController } from "./map/base-layer-controller.js";
+import { createBaseLayerController, loadBaseLayerPreference } from "./map/base-layer-controller.js";
 import { baseMapConfigs } from "./map/base-map-registry.js";
 import { getMapPageDom } from "./map/dom.js";
 import { createFavoritesPanel } from "./map/favorites-panel.js";
@@ -13,7 +13,7 @@ import { registerScopedServiceWorker } from "./map/service-worker.js";
 import { createStatusToast } from "./map/status-toast.js";
 import { createTerrainController } from "./map/terrain-controller.js";
 
-const defaultBaseLayerKey = "bergfex";
+const fallbackBaseLayerKey = "bergfex";
 const defaultCenter = [14.268, 46.59026];
 const defaultZoom = 15;
 
@@ -26,8 +26,11 @@ if (dom.appVersionElement) {
 const pmtilesProtocol = new PmtilesProtocol();
 maplibregl.addProtocol("pmtiles", pmtilesProtocol.tile);
 
+const initialBaseLayerKey =
+    loadBaseLayerPreference(Object.keys(baseMapConfigs)) ?? fallbackBaseLayerKey;
+
 const map = new maplibregl.Map({
-    style: baseMapConfigs[defaultBaseLayerKey].style,
+    style: baseMapConfigs[initialBaseLayerKey].style,
     center: defaultCenter,
     zoom: defaultZoom,
     container: "map",
@@ -89,7 +92,7 @@ const baseLayerController = createBaseLayerController({
     baseMapConfigs,
     layerMenuButton: dom.layerMenuButton,
     layerOptionElements: dom.layerOptionElements,
-    initialActiveKey: defaultBaseLayerKey,
+    initialActiveKey: initialBaseLayerKey,
     onStatus: setStatus,
     onStyleReady: () => {
         terrainController.ensureAfterStyleLoad();

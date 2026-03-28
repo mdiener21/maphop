@@ -1,4 +1,22 @@
 const baseStyleLoadTimeoutMs = 12000;
+const LAST_BASE_LAYER_KEY = "maphop-base-layer";
+
+export function saveBaseLayerPreference(key) {
+    try {
+        localStorage.setItem(LAST_BASE_LAYER_KEY, key);
+    } catch {
+        // localStorage unavailable (e.g. private browsing quota) — silently continue
+    }
+}
+
+export function loadBaseLayerPreference(validKeys) {
+    try {
+        const saved = localStorage.getItem(LAST_BASE_LAYER_KEY);
+        return (saved && validKeys.includes(saved)) ? saved : null;
+    } catch {
+        return null;
+    }
+}
 
 function applyBaseStyle(map, style) {
     return new Promise((resolve, reject) => {
@@ -80,6 +98,7 @@ export function createBaseLayerController({
             await applyBaseStyle(map, baseMapConfigs[key].style);
             onStyleReady();
             activeBaseLayerKey = key;
+            saveBaseLayerPreference(key);
             updateLayerOptionState(key);
             onActiveLayerChanged(activeBaseLayerKey);
             onMenuClose();

@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ### Added
+- Last-used base map is persisted to `localStorage` (`maphop-base-layer`) and restored on page reload; falls back to Bergfex OSM if the saved key is missing or invalid.
+- Product spec updated (v1.5): §4.2 adds persistence table, updated behavior and acceptance criteria; §8 localStorage note now lists both keys; §9 adds base map persistence success criterion.
 - Architecture code map: `doc/architecture/code-map.md` now provides a low-context index of entrypoints, controller ownership, and test locations for faster human and AI navigation.
 - Compass button now also appears when the map is tilted (pitch > 0); clicking it resets both bearing and pitch to zero (full 2D north view) in a single animated transition.
 - Product spec updated (v1.4): §4.3 notes Location section is a collapsible accordion defaulting to closed; §4.8 menu location updated to Location section; §4.9 Compass expanded to cover pitch visibility and pitch reset; §5 Flow 5 updated; §6 terrain toggle position and section toggle description updated; §9 compass criterion updated.

@@ -1,7 +1,7 @@
 # Product Specification: Maphop
 
-**Version:** 1.4
-**Last Updated:** 2026-03-28
+**Version:** 1.5
+**Last Updated:** 2026-03-28 13:40:32
 **Author:** Product Management
 **Status:** Draft
 
@@ -223,18 +223,30 @@ Seven map providers are available through a radio-button menu:
 
 Each config entry carries structured attribution metadata (provider label plus href pairs) used by the attribution widget (§4.7).
 
+**Persistence:**
+
+| Property | Value |
+|----------|-------|
+| Storage key | `maphop-base-layer` (`localStorage`) |
+| Saved on | Successful style load after user switches base map |
+| Restored on | Page load — used as the initial map style, no second load needed |
+| Fallback | `bergfex` if key is absent, unrecognised, or `localStorage` is unavailable |
+
 **Behavior:**
 - Switching base maps triggers a style load with a **12-second timeout**.
 - On failure, the app **reverts to the previous base layer** and shows an error toast.
 - After every style load: terrain source is re-added → hillshade layer re-added (if terrain active) → geolocation overlay re-applied (this order ensures the location dot renders above the hillshade).
 - The menu button is **disabled during style loading** to prevent rapid switching.
 - Attribution panel text updates to reflect the newly active base map.
+- On a successful switch, the active key is written to `localStorage` so the same provider is loaded directly on the next page visit.
 
 **Acceptance criteria:**
 - Selecting a map option loads the new style within 12 seconds or falls back.
 - Location overlay persists across map switches without losing the current GPS fix.
 - Active map is visually highlighted in the menu.
 - Attribution text matches the active base map after every switch.
+- Reloading the page restores the last-selected base map without a second style load.
+- If `localStorage` is unavailable (e.g. private browsing), the app falls back to Bergfex OSM without error.
 
 ### 4.3 Geolocation Tracking
 
@@ -717,7 +729,7 @@ Chromium is not used because the `chrome-headless-shell` binary on this WSL2 hos
 - Require user accounts or authentication.
 - Add analytics, tracking, or telemetry.
 - Auto-prompt for geolocation on page load.
-- Store user-generated or location data outside the browser (no cookies, no server sync). Non-sensitive UI state (e.g. the iOS install hint snooze timestamp) may use `localStorage`.
+- Store user-generated or location data outside the browser (no cookies, no server sync). Non-sensitive UI state may use `localStorage` (current uses: iOS install hint snooze timestamp `ios-hint-snoozed-until`, last-selected base map `maphop-base-layer`).
 
 ---
 
@@ -727,6 +739,7 @@ Chromium is not used because the `chrome-headless-shell` binary on this WSL2 hos
 |-----------|-------------|
 | Map loads successfully | Default base layer renders within 3 seconds on broadband |
 | Base map switching works | All 7 providers load or gracefully fall back |
+| Base map preference persists | Last-used base map is restored on reload; falls back to Bergfex OSM when storage is unavailable |
 | Location tracking is functional | Accuracy circle, heading cone, and point render on activation |
 | Idle timeout fires | Tracking stops after 15 minutes of inactivity |
 | Favorites CRUD complete | Save, list, navigate-to, and delete all work with toast feedback |
