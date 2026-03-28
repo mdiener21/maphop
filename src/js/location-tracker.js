@@ -126,6 +126,8 @@ export class LocationTracker {
 
         this._watchId = null;
         this._hasCenteredOnPosition = false;
+        this._following = true;
+        this._lastLngLat = null;
         this._previousFix = null;
         this._trackingIdleTimeoutId = null;
         this._currentFeatureCollection = createEmptyLocationFeatureCollection();
@@ -135,6 +137,26 @@ export class LocationTracker {
         return this._watchId !== null;
     }
 
+    get lastLngLat() {
+        return this._lastLngLat;
+    }
+
+    get following() {
+        return this._following;
+    }
+
+    set following(value) {
+        this._following = value;
+    }
+
+    recenterOnLocation() {
+        if (!this._lastLngLat) {
+            return;
+        }
+        this._map.easeTo({ center: this._lastLngLat, duration: 500 });
+        this._following = true;
+    }
+
     start() {
         if (!("geolocation" in navigator)) {
             this._onStatus("This browser does not support geolocation.");
@@ -142,6 +164,8 @@ export class LocationTracker {
         }
 
         this._hasCenteredOnPosition = false;
+        this._following = true;
+        this._lastLngLat = null;
         this._onTrackingStateChange(true);
         this._onStatus("Requesting your current position...");
         this._scheduleIdleTimeout();
@@ -308,6 +332,7 @@ export class LocationTracker {
 
         this._currentFeatureCollection = { type: "FeatureCollection", features };
         this._syncOverlay();
+        this._lastLngLat = lngLat;
 
         if (!this._hasCenteredOnPosition) {
             const bounds = accuracyPolygon.reduce((lngLatBounds, coordinate) => {
@@ -321,8 +346,9 @@ export class LocationTracker {
             });
 
             this._hasCenteredOnPosition = true;
+            this._following = true;
             this._onStatus("Location shown on map.");
-        } else {
+        } else if (this._following) {
             this._map.easeTo({ center: lngLat, duration: 500 });
         }
 

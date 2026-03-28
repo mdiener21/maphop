@@ -1,4 +1,5 @@
 import maplibregl from "maplibre-gl";
+import { Protocol as PmtilesProtocol } from "pmtiles";
 import { version } from "../../package.json";
 import {
     deleteFavoriteById,
@@ -30,12 +31,21 @@ const installButton = document.getElementById("installButton");
 const installDismiss = document.getElementById("installDismiss");
 const iosBanner = document.getElementById("iosBanner");
 const iosDismiss = document.getElementById("iosDismiss");
+const reCenterButton = document.getElementById("reCenterButton");
+const compassButton = document.getElementById("compassButton");
+const compassNeedle = document.getElementById("compassNeedle");
+const terrainButton = document.getElementById("terrainButton");
+const terrainToggleLabel = document.getElementById("terrainToggleLabel");
+const attributionButton = document.getElementById("attributionButton");
+const attributionPanel = document.getElementById("attributionPanel");
+const attributionText = document.getElementById("attributionText");
 
 appVersionElement.textContent = `version ${version}`;
 
 const baseMapConfigs = {
     bergfex: {
         label: "Bergfex OSM",
+        attribution: '&copy; <a href="https://www.bergfex.at" target="_blank" rel="noopener">Bergfex</a> &middot; &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
         style: {
             version: 8,
             sources: {
@@ -60,6 +70,7 @@ const baseMapConfigs = {
     },
     osm: {
         label: "OpenStreetMap",
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
         style: {
             version: 8,
             sources: {
@@ -84,10 +95,12 @@ const baseMapConfigs = {
     },
     openfreemap: {
         label: "OpenFreeMap Liberty",
+        attribution: '&copy; <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> &middot; &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
         style: "https://tiles.openfreemap.org/styles/liberty"
     },
     opentopo: {
         label: "OpenTopoMap",
+        attribution: '&copy; <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> &middot; &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
         style: {
             version: 8,
             sources: {
@@ -112,6 +125,7 @@ const baseMapConfigs = {
     },
     cyclosm: {
         label: "CyclOSM",
+        attribution: '&copy; <a href="https://www.cyclosm.org" target="_blank" rel="noopener">CyclOSM</a> &middot; &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
         style: {
             version: 8,
             sources: {
@@ -136,6 +150,7 @@ const baseMapConfigs = {
     },
     esriSatellite: {
         label: "Esri Satellite",
+        attribution: '&copy; <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>, Maxar, Earthstar Geographics &middot; &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
         style: {
             version: 8,
             sources: {
@@ -160,6 +175,7 @@ const baseMapConfigs = {
     },
     basemapGrauWmts: {
         label: "basemap.at Grau WMTS",
+        attribution: '&copy; <a href="https://basemap.at" target="_blank" rel="noopener">basemap.at</a> &middot; &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
         style: {
             version: 8,
             sources: {
@@ -184,20 +200,28 @@ const baseMapConfigs = {
     }
 };
 
+const pmtilesProtocol = new PmtilesProtocol();
+maplibregl.addProtocol("pmtiles", pmtilesProtocol.tile);
+
 const map = new maplibregl.Map({
     style: baseMapConfigs.bergfex.style,
     center: [14.268, 46.59026],
     zoom: 15,
     container: "map",
-    attributionControl: false
+    attributionControl: false,
+    maxPitch: 85
 });
-
-map.dragRotate.disable();
-map.touchZoomRotate.disableRotation();
 
 let activeBaseLayerKey = "bergfex";
 let statusTimeoutId = null;
 let deferredInstallPrompt = null;
+let terrainActive = false;
+
+const terrainSourceId = "terrain-source";
+const hillshadeSourceId = "hillshade-source";
+const hillshadeLayerId = "terrain-hillshade";
+const terrainTileJsonUrl = "https://tiles.mapterhorn.com/tilejson.json";
+const hillshadeTilesUrl = "https://mapsneu.wien.gv.at/basemap/bmapgelaende/grau/google3857/{z}/{y}/{x}.jpeg";
 
 const tracker = new LocationTracker(map, {
     onStatus: setStatus,
@@ -271,6 +295,98 @@ function initInstallPrompt() {
 function setTrackingState(active) {
     locateButton.dataset.state = active ? "active" : "idle";
     locationToggleLabel.textContent = active ? "On" : "Off";
+    if (!active) {
+        reCenterButton.hidden = true;
+    }
+}
+
+function setTerrainState(active) {
+    terrainButton.dataset.state = active ? "active" : "idle";
+    terrainToggleLabel.textContent = active ? "On" : "Off";
+}
+
+function updateAttribution() {
+    let html = baseMapConfigs[activeBaseLayerKey].attribution;
+    if (terrainActive) {
+        html += ' &middot; Hillshade &copy; <a href="https://basemap.at" target="_blank" rel="noopener">basemap.at</a> &middot; Terrain &copy; <a href="https://mapterhorn.com" target="_blank" rel="noopener">Mapterhorn</a>';
+    }
+    attributionText.innerHTML = html;
+}
+
+function setAttributionOpen(isOpen) {
+    attributionPanel.hidden = !isOpen;
+    attributionButton.setAttribute("aria-expanded", String(isOpen));
+}
+
+function applyTerrain() {
+    if (!map.getSource(terrainSourceId)) {
+        map.addSource(terrainSourceId, {
+            type: "raster-dem",
+            url: terrainTileJsonUrl,
+            encoding: "terrarium"
+        });
+    }
+
+    if (!map.getSource(hillshadeSourceId)) {
+        map.addSource(hillshadeSourceId, {
+            type: "raster",
+            tiles: [hillshadeTilesUrl],
+            tileSize: 256,
+            maxzoom: 18
+        });
+    }
+
+    if (!map.getLayer(hillshadeLayerId)) {
+        map.addLayer({
+            id: hillshadeLayerId,
+            type: "raster",
+            source: hillshadeSourceId,
+            paint: { "raster-opacity": 0.4 }
+        });
+    }
+
+    map.setTerrain({ source: terrainSourceId, exaggeration: 1 });
+}
+
+function enableTerrain() {
+    terrainActive = true;
+    applyTerrain();
+    map.easeTo({ pitch: 45, duration: 600 });
+    setTerrainState(true);
+    updateAttribution();
+    setStatus("3D Terrain on.");
+}
+
+function disableTerrain() {
+    map.setTerrain(null);
+
+    if (map.getLayer(hillshadeLayerId)) {
+        map.removeLayer(hillshadeLayerId);
+    }
+    if (map.getSource(hillshadeSourceId)) {
+        map.removeSource(hillshadeSourceId);
+    }
+    // terrain source stays — TerrainControl needs it to remain in the style
+
+    map.easeTo({ pitch: 0, duration: 600 });
+    terrainActive = false;
+    setTerrainState(false);
+    updateAttribution();
+    setStatus("3D Terrain off.");
+}
+
+function ensureTerrainAfterStyleLoad() {
+    // Always restore terrain source so TerrainControl can function
+    if (!map.getSource(terrainSourceId)) {
+        map.addSource(terrainSourceId, {
+            type: "raster-dem",
+            url: terrainTileJsonUrl,
+            encoding: "terrarium"
+        });
+    }
+    if (terrainActive) {
+        applyTerrain();
+    }
 }
 
 function setLayerMenuOpen(isOpen) {
@@ -493,14 +609,17 @@ async function setBaseLayer(key) {
 
     try {
         await applyBaseStyle(baseMapConfigs[key].style);
+        ensureTerrainAfterStyleLoad();
         tracker.ensureOverlayAfterStyleLoad();
         activeBaseLayerKey = key;
         updateLayerOptionState(key);
+        updateAttribution();
         setLayerMenuOpen(false);
         setStatus("Base map switched to " + baseMapConfigs[key].label + ".");
     } catch (error) {
         try {
             await applyBaseStyle(baseMapConfigs[previousBaseLayerKey].style);
+            ensureTerrainAfterStyleLoad();
             tracker.ensureOverlayAfterStyleLoad();
         } catch (restoreError) {
             console.error("Unable to restore the previous base map.", restoreError);
@@ -513,6 +632,14 @@ async function setBaseLayer(key) {
         layerMenuButton.disabled = false;
     }
 }
+
+terrainButton.addEventListener("click", () => {
+    if (terrainActive) {
+        disableTerrain();
+    } else {
+        enableTerrain();
+    }
+});
 
 locateButton.addEventListener("click", () => {
     if (tracker.isActive) {
@@ -550,6 +677,32 @@ saveFavoriteButton.addEventListener("click", () => {
     saveCurrentViewAsFavorite();
 });
 
+reCenterButton.addEventListener("click", () => {
+    tracker.recenterOnLocation();
+    reCenterButton.hidden = true;
+});
+
+compassButton.addEventListener("click", () => {
+    map.easeTo({ bearing: 0, duration: 400 });
+});
+
+map.on("rotate", () => {
+    const bearing = map.getBearing();
+    if (Math.abs(bearing) < 0.5) {
+        compassButton.hidden = true;
+    } else {
+        compassButton.hidden = false;
+        compassNeedle.style.transform = `rotate(${-bearing}deg)`;
+    }
+});
+
+map.on("dragstart", () => {
+    if (tracker.isActive && tracker.lastLngLat && tracker.following) {
+        tracker.following = false;
+        reCenterButton.hidden = false;
+    }
+});
+
 ["pointerdown", "touchstart", "wheel", "keydown"].forEach((eventName) => {
     document.addEventListener(eventName, () => tracker.registerActivity(), { passive: true });
 });
@@ -568,8 +721,14 @@ window.addEventListener("pagehide", () => {
     }
 });
 
+attributionButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setAttributionOpen(attributionPanel.hidden);
+});
+
 document.addEventListener("click", () => {
     setLayerMenuOpen(false);
+    setAttributionOpen(false);
 });
 
 // Android/Chrome: capture the install prompt and show the banner
@@ -603,7 +762,9 @@ initInstallPrompt();
 initializeMenuSections();
 
 map.on("load", () => {
+    ensureTerrainAfterStyleLoad();
     tracker.ensureOverlayAfterStyleLoad();
     updateLayerOptionState(activeBaseLayerKey);
+    updateAttribution();
     loadFavorites();
 });

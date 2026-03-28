@@ -20,7 +20,8 @@
             https://*.tile-cyclosm.openstreetmap.fr
             https://server.arcgisonline.com
             https://mapsneu.wien.gv.at
-            https://tiles.openfreemap.org;
+            https://tiles.openfreemap.org
+            https://tiles.mapterhorn.com;
         connect-src 'self' blob:
             https://tiles.bergfex.at
             https://*.tile.openstreetmap.org
@@ -28,7 +29,8 @@
             https://*.tile-cyclosm.openstreetmap.fr
             https://server.arcgisonline.com
             https://mapsneu.wien.gv.at
-            https://tiles.openfreemap.org;
+            https://tiles.openfreemap.org
+            https://tiles.mapterhorn.com;
         worker-src 'self' blob:;
         child-src blob:;
         font-src 'self' data:;
@@ -138,6 +140,13 @@
                                     basemap.at Grau WMTS
                                 </button>
                             </div>
+                            <button class="menu-toggle-row terrain-toggle-row" id="terrainButton" type="button" data-state="idle">
+                                <span class="menu-toggle-copy">
+                                    <strong>3D Terrain</strong>
+                                    <span id="terrainToggleLabel">Off</span>
+                                </span>
+                                <span class="menu-toggle-pill" aria-hidden="true"></span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -152,6 +161,33 @@
         </section>
 
         <p class="status-toast" id="status" aria-live="polite"></p>
+
+        <div class="attribution-widget" id="attributionWidget">
+            <div class="attribution-panel" id="attributionPanel" hidden>
+                <p class="attribution-text" id="attributionText"></p>
+            </div>
+            <button class="attribution-button" id="attributionButton" type="button" aria-label="Map attribution" aria-expanded="false" aria-controls="attributionPanel">
+                &copy;
+            </button>
+        </div>
+
+        <button class="compass-button" id="compassButton" type="button" aria-label="Reset map to north" hidden>
+            <svg id="compassNeedle" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                <polygon points="12,3 14.5,12 12,10.5 9.5,12" fill="currentColor"/>
+                <polygon points="12,21 9.5,12 12,13.5 14.5,12" fill="currentColor" opacity="0.28"/>
+            </svg>
+        </button>
+
+        <button class="recenter-button" id="reCenterButton" type="button" aria-label="Re-center on my location" hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"></circle>
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+            </svg>
+            Re-center
+        </button>
 
         <div class="install-banner" id="installBanner" hidden role="status" aria-live="polite">
             <span class="install-banner-text">Install Maphop to your home screen for offline access</span>
