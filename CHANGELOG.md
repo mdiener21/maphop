@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- JSON export and import actions for favorites with a dedicated transfer module
+- A dedicated settings page for favorites backup and future map source configuration
+
+### Changed
+- Split favorites transfer logic out of the main map module to keep the app architecture smaller and easier to maintain
+- Moved favorites import and export controls out of the live map menu and into the new settings page
+- Shared favorites IndexedDB access through a dedicated storage module used by both the map page and settings page
+
+### Fixed
+- Hardened favorites import with strict JSON validation, a 64 KB file size cap, and duplicate skipping during IndexedDB import
+
 ## [1.0.1] - 2026-03-24
 
 ### Added

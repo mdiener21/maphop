@@ -1,9 +1,13 @@
 import maplibregl from "maplibre-gl";
 import { version } from "../../package.json";
+import {
+    deleteFavoriteById,
+    isFavoritesStorageAvailable,
+    readFavorites,
+    saveFavorite
+} from "./favorite-store.js";
 
 const bergfexTilesUrl = "https://tiles.bergfex.at/styles/bergfex-osm/512/{z}/{x}/{y}.png";
-const favoriteDbName = "personal-map-db";
-const favoriteStoreName = "favoriteLocations";
 const trackingIdleTimeoutMs = 15 * 60 * 1000;
 const baseStyleLoadTimeoutMs = 12000;
 const locationSourceId = "user-location";
@@ -196,7 +200,6 @@ let previousFix = null;
 let activeBaseLayerKey = "bergfex";
 let statusTimeoutId = null;
 let trackingIdleTimeoutId = null;
-let favoritesDbPromise = null;
 let currentLocationFeatureCollection = createEmptyLocationFeatureCollection();
 
 function expandSubdomains(urlTemplate) {
@@ -408,70 +411,14 @@ function renderFavorites(favorites) {
     });
 }
 
-function getFavoritesDb() {
-    if (favoritesDbPromise) {
-        return favoritesDbPromise;
-    }
-
-    favoritesDbPromise = new Promise((resolve, reject) => {
-        const request = window.indexedDB.open(favoriteDbName, 1);
-
-        request.onupgradeneeded = () => {
-            const database = request.result;
-            if (!database.objectStoreNames.contains(favoriteStoreName)) {
-                const store = database.createObjectStore(favoriteStoreName, {
-                    keyPath: "id",
-                    autoIncrement: true
-                });
-                store.createIndex("createdAt", "createdAt");
-            }
-        };
-
-        request.onsuccess = () => {
-            const database = request.result;
-            database.onclose = () => {
-                favoritesDbPromise = null;
-            };
-            database.onversionchange = () => {
-                database.close();
-                favoritesDbPromise = null;
-            };
-            resolve(database);
-        };
-
-        request.onerror = () => {
-            favoritesDbPromise = null;
-            reject(request.error);
-        };
-
-        request.onblocked = () => {
-            favoritesDbPromise = null;
-            reject(new Error("IndexedDB open request was blocked."));
-        };
-    });
-
-    return favoritesDbPromise;
-}
-
 async function loadFavorites() {
-    if (!("indexedDB" in window)) {
+    if (!isFavoritesStorageAvailable()) {
         favoritesEmpty.textContent = "IndexedDB is not available in this browser.";
         return;
     }
 
     try {
-        const database = await getFavoritesDb();
-        const favorites = await new Promise((resolve, reject) => {
-            const transaction = database.transaction(favoriteStoreName, "readonly");
-            const store = transaction.objectStore(favoriteStoreName);
-            const request = store.getAll();
-
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-
-        favorites.sort((left, right) => right.createdAt - left.createdAt);
-        renderFavorites(favorites);
+        renderFavorites(await readFavorites());
     } catch (error) {
         favoritesEmpty.hidden = false;
         favoritesEmpty.textContent = "Unable to load saved locations.";
@@ -480,7 +427,7 @@ async function loadFavorites() {
 }
 
 async function saveCurrentViewAsFavorite() {
-    if (!("indexedDB" in window)) {
+    if (!isFavoritesStorageAvailable()) {
         setStatus("IndexedDB is not available in this browser.");
         return;
     }
@@ -504,20 +451,11 @@ async function saveCurrentViewAsFavorite() {
     }
 
     try {
-        const database = await getFavoritesDb();
-        await new Promise((resolve, reject) => {
-            const transaction = database.transaction(favoriteStoreName, "readwrite");
-            const store = transaction.objectStore(favoriteStoreName);
-
-            transaction.oncomplete = () => resolve();
-            transaction.onerror = () => reject(transaction.error);
-
-            store.add({
-                name: trimmedName,
-                longitude: center.lng,
-                latitude: center.lat,
-                createdAt: Date.now()
-            });
+        await saveFavorite({
+            name: trimmedName,
+            longitude: center.lng,
+            latitude: center.lat,
+            createdAt: Date.now()
         });
 
         await loadFavorites();
@@ -529,22 +467,13 @@ async function saveCurrentViewAsFavorite() {
 }
 
 async function deleteFavorite(id, name) {
-    if (!("indexedDB" in window)) {
+    if (!isFavoritesStorageAvailable()) {
         setStatus("IndexedDB is not available in this browser.");
         return;
     }
 
     try {
-        const database = await getFavoritesDb();
-        await new Promise((resolve, reject) => {
-            const transaction = database.transaction(favoriteStoreName, "readwrite");
-            const store = transaction.objectStore(favoriteStoreName);
-
-            transaction.oncomplete = () => resolve();
-            transaction.onerror = () => reject(transaction.error);
-
-            store.delete(id);
-        });
+        await deleteFavoriteById(id);
 
         await loadFavorites();
         setStatus("Deleted " + name + ".");

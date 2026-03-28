@@ -236,6 +236,25 @@ body::before {
     border-top: 1px solid rgba(237, 244, 239, 0.1);
 }
 
+.menu-footer-button {
+    display: block;
+    width: 100%;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: rgba(111, 242, 189, 0.14);
+    color: var(--text);
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.4;
+    text-decoration: none;
+}
+
+.menu-footer-button:hover,
+.menu-footer-button:focus-visible {
+    background: rgba(111, 242, 189, 0.22);
+}
+
 .menu-footer-link {
     display: inline-block;
     padding: 0 12px 2px;
