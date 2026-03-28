@@ -93,6 +93,8 @@ git push origin v1.0.2
 
 ## 7. Create the GitHub release
 
+Install `gh` if not present: https://cli.github.com/ — then authenticate once with `gh auth login`.
+
 Use the `gh` CLI. The `--latest` flag marks this as the latest release.
 
 ```bash
