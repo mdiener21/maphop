@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480" viewBox="0 0 800 480">
+  <!-- App background -->
+  <rect width="800" height="480" fill="#0d1b20"/>
+
+  <!-- Simulated map tiles (grid) -->
+  <rect x="0" y="0" width="800" height="480" fill="#1a2e35"/>
+  <line x1="0" y1="120" x2="800" y2="120" stroke="#223840" stroke-width="1"/>
+  <line x1="0" y1="240" x2="800" y2="240" stroke="#223840" stroke-width="1"/>
+  <line x1="0" y1="360" x2="800" y2="360" stroke="#223840" stroke-width="1"/>
+  <line x1="200" y1="0" x2="200" y2="480" stroke="#223840" stroke-width="1"/>
+  <line x1="400" y1="0" x2="400" y2="480" stroke="#223840" stroke-width="1"/>
+  <line x1="600" y1="0" x2="600" y2="480" stroke="#223840" stroke-width="1"/>
+
+  <!-- Simulated roads -->
+  <path d="M 50 200 Q 200 180 350 220 T 750 190" stroke="#2d4a55" stroke-width="3" fill="none"/>
+  <path d="M 100 300 Q 250 280 400 320 T 780 290" stroke="#2d4a55" stroke-width="2" fill="none"/>
+  <path d="M 300 50 L 320 430" stroke="#2d4a55" stroke-width="2"/>
+  <path d="M 550 50 L 530 430" stroke="#2d4a55" stroke-width="2"/>
+
+  <!-- Hamburger menu button (top-right) -->
+  <rect x="740" y="16" width="44" height="44" rx="8" fill="#1e3540" stroke="#2d4a55" stroke-width="1"/>
+  <line x1="752" y1="30" x2="772" y2="30" stroke="#8ab4c0" stroke-width="2" stroke-linecap="round"/>
+  <line x1="752" y1="38" x2="772" y2="38" stroke="#8ab4c0" stroke-width="2" stroke-linecap="round"/>
+  <line x1="752" y1="46" x2="772" y2="46" stroke="#8ab4c0" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Location dot (user position) -->
+  <circle cx="400" cy="240" r="24" fill="#3a86ff" fill-opacity="0.2"/>
+  <circle cx="400" cy="240" r="10" fill="#3a86ff" fill-opacity="0.4"/>
+  <circle cx="400" cy="240" r="5" fill="#3a86ff"/>
+
+  <!-- Heading cone -->
+  <polygon points="400,240 388,210 412,210" fill="#3a86ff" fill-opacity="0.3"/>
+
+  <!-- Attribution button (bottom-right) -->
+  <rect x="750" y="440" width="30" height="24" rx="4" fill="#1e3540" stroke="#2d4a55" stroke-width="1"/>
+  <text x="765" y="457" text-anchor="middle" fill="#8ab4c0" font-size="11" font-family="sans-serif">©</text>
+
+  <!-- Logo / title watermark -->
+  <text x="400" y="460" text-anchor="middle" fill="#2d4a55" font-size="12" font-family="sans-serif">maphop.eu</text>
+</svg>
