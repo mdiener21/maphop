@@ -88,6 +88,8 @@ Existing map applications require accounts, collect location data server-side, a
 ```
 tests/
 ├── unit/
+│   ├── attribution-controller.test.js Structured attribution rendering and terrain suffix behavior
+│   ├── base-layer-controller.test.js Style switching success/failure and rollback behavior
 │   ├── favorite-transfer.test.js   Validation logic, file handling, import/export status messages
 │   ├── favorite-store.test.js      IndexedDB CRUD, deduplication, sort order, export shape
 │   └── location-tracker.test.js    Tracker lifecycle, idle timeout, geolocation error messages
@@ -108,22 +110,39 @@ src/
 │   ├── favorite-transfer.js JSON import/export validation and transfer helpers
 │   ├── impressum.js        Legal page interactions
 │   ├── location-tracker.js Geolocation state, geo-math helpers, and map overlay rendering
-│   ├── maphop.js           Map page state, base maps, favorites UI, PWA install prompt, SW registration
+│   ├── maphop.js           Thin map-page bootstrap and dependency wiring
 │   ├── page-shell.js       Shared page title and version-label wiring
-│   └── settings.js         Settings page behavior
+│   ├── settings.js         Settings page behavior
+│   └── map/
+│       ├── attribution-controller.js  Attribution widget rendering from structured provider metadata
+│       ├── base-layer-controller.js   Base-style switching, timeout handling, and fallback restore
+│       ├── base-map-registry.js       Source-of-truth base map definitions and provider attribution metadata
+│       ├── dom.js                     Centralized map-page DOM lookups
+│       ├── favorites-panel.js         Favorites menu rendering, save/delete actions, and navigation
+│       ├── install-prompt-controller.js PWA install prompt and iOS hint lifecycle
+│       ├── menu-controller.js         Menu open/close and section state
+│       └── terrain-controller.js      Terrain and hillshade lifecycle across style reloads
 ├── public/
 │   ├── sw.js               Service worker — network-first cache strategy for app shell
 │   └── _headers            Static hosting security headers (Netlify / compatible hosts)
 ├── images/                 App icons (72–512px, maskable variants)
 └── manifest.webmanifest    PWA manifest (standalone display, portrait, scope /)
+
+doc/
+├── architecture/
+│   └── code-map.md         Human- and AI-oriented module ownership guide for fast code navigation
+└── spec/
+  └── product-spec.md     Product requirements and constraints
 ```
 
 ### Design Principles
 
-1. **Small-module simplicity** — map, location, favorites, transfer, and page-shell behavior are split into focused ES modules with no framework or client-side router.
-2. **Local-first data** — IndexedDB for persistence, no network dependency for user data.
-3. **Progressive enhancement** — the map works without geolocation, without favorites, and without service worker. Each capability layers on independently.
-4. **Graceful degradation** — base map switching falls back on timeout; geolocation fails with user-friendly messages; import validation rejects bad files early; offline mode serves cached assets.
+1. **Thin-entry orchestration** — `src/js/maphop.js` bootstraps the page, wires dependencies, and delegates feature behavior to focused controllers under `src/js/map/`.
+2. **Small-module simplicity** — map, location, favorites, transfer, attribution, install prompt, and page-shell behavior are split into focused ES modules with no framework or client-side router.
+3. **Local-first data** — IndexedDB for persistence, no network dependency for user data.
+4. **Progressive enhancement** — the map works without geolocation, without favorites, and without service worker. Each capability layers on independently.
+5. **Graceful degradation** — base map switching falls back on timeout; geolocation fails with user-friendly messages; import validation rejects bad files early; offline mode serves cached assets.
+6. **Searchable ownership boundaries** — each capability has one obvious module home, and `doc/architecture/code-map.md` provides a low-token navigation index for contributors and AI agents.
 
 ### Data Flow
 
@@ -142,6 +161,27 @@ Settings Page
   │
   └─► Export / Import Favorites ──► favorite-transfer.js ──► favorite-store.js ──► IndexedDB (local)
 ```
+
+### Map Page Module Boundaries
+
+| Module | Responsibility |
+|--------|----------------|
+| `src/js/maphop.js` | Create the MapLibre instance, instantiate controllers, and wire cross-controller events |
+| `src/js/map/base-map-registry.js` | Declare base map labels, styles, and structured attribution data |
+| `src/js/map/base-layer-controller.js` | Handle style loads, 12-second timeout, active-layer state, and rollback on failure |
+| `src/js/map/terrain-controller.js` | Keep DEM and hillshade sources/layers consistent across terrain toggles and style reloads |
+| `src/js/map/attribution-controller.js` | Render attribution UI using DOM APIs from structured metadata, not provider HTML strings |
+| `src/js/location-tracker.js` | Own geolocation state, follow mode, idle timeout, and location overlay rendering |
+| `src/js/map/favorites-panel.js` | Handle favorites menu rendering, prompt/save/delete flows, and map navigation from saved entries |
+| `src/js/map/menu-controller.js` | Own menu visibility and section expansion state |
+| `src/js/map/install-prompt-controller.js` | Capture install prompt events and iOS standalone hints |
+| `src/js/map/dom.js` | Centralize map-page DOM queries for easier auditing and reuse |
+
+### Architecture Indexing Rule
+
+- `doc/architecture/code-map.md` must stay aligned with active entrypoints and controller ownership whenever map-page responsibilities move.
+- New map features should be added to a dedicated module under `src/js/map/` unless they are purely geolocation overlay logic (`location-tracker.js`) or cross-page shell logic (`page-shell.js`).
+- Provider attribution data must remain structured and render through DOM node creation, never by injecting user- or admin-editable HTML strings.
 
 ---
 
@@ -181,7 +221,7 @@ Seven map providers are available through a radio-button menu:
 | `esriSatellite` | Esri Satellite | 256px | 19 | `server.arcgisonline.com` |
 | `basemapGrauWmts` | basemap.at Grau WMTS | 256px | 20 | `mapsneu.wien.gv.at` |
 
-Each config entry carries an `attribution` HTML string with links to the provider's copyright page, used by the attribution widget (§4.7).
+Each config entry carries structured attribution metadata (provider label plus href pairs) used by the attribution widget (§4.7).
 
 **Behavior:**
 - Switching base maps triggers a style load with a **12-second timeout**.
@@ -253,12 +293,12 @@ A small `©` button fixed at the bottom-right corner of the map that opens a pan
 | Button position | `bottom: 8px; right: 8px` |
 | Panel position | Appears above the button |
 | Panel max-width | `min(300px, 100vw − 24px)` |
-| Attribution rendering | `innerHTML` — safe because all strings are hardcoded in source |
+| Attribution rendering | DOM node creation from structured provider metadata; no raw HTML injection |
 
 **Behavior:**
 - The panel is **hidden by default**; clicking the `©` button toggles it open/closed.
 - Clicking anywhere outside the panel (global `click` handler) closes it.
-- Attribution text is set from the active base map's `attribution` field in `baseMapConfigs`.
+- Attribution text is rendered from the active base map's structured metadata in `baseMapConfigs`.
 - When 3D Terrain is active, the text is appended with `· Hillshade © basemap.at · Terrain © Mapterhorn`.
 - Attribution updates automatically on every base map switch and on every terrain toggle.
 
@@ -593,7 +633,7 @@ Open Settings
 | Referrer Policy | `<meta name="referrer" content="no-referrer">` on all pages — tile providers receive no `Referer` header. |
 | HTTP security headers | `_headers` file (Netlify / compatible hosts): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy: geolocation=(self)`, `X-XSS-Protection: 0`. |
 | Input validation | Favorites import: 64 KB file size cap, JSON parse guard, coordinate range check, 250-record limit, 80-char name limit, duplicate skipping. |
-| DOM safety | User data rendered exclusively via `textContent`; no `innerHTML` with dynamic content. |
+| DOM safety | User data and provider attribution render through `textContent`, attribute assignment, and explicit element creation; no dynamic `innerHTML` injection. |
 
 ### Accessibility
 
@@ -617,16 +657,22 @@ The project ships with two test suites sharing a common goal: verify correctness
 
 | File | Count | What is covered |
 |------|------:|-----------------|
+| `attribution-controller.test.js` | 4 | Structured attribution rendering, terrain suffix handling, and attribution panel open-state updates |
+| `base-layer-controller.test.js` | 4 | Style-load success path, load-error rollback, timeout rollback, and active-layer UI state |
+| `install-prompt-controller.test.js` | 5 | iOS hint visibility, snooze persistence, Android install prompt capture, dismiss flow, and `appinstalled` cleanup |
+| `menu-controller.test.js` | 5 | Menu shell open/close state, toggle behavior, section initialization, and missing-panel no-op handling |
 | `favorite-transfer.test.js` | 18 | File type/size validation; JSON payload parsing; coordinate range checks; name length; import result status messages; export empty-state; import-button wiring |
-| `favorite-store.test.js` | 16 | `saveFavorite`, `readFavorites`, `deleteFavoriteById`, `importFavorites`, `getFavoritesForExport`; newest-first sort; case-insensitive dedup; within-batch dedup; export field shape |
-| `location-tracker.test.js` | 12 | `isActive` initial state; `start()`/`stop()` lifecycle; geolocation API calls; 15-minute idle timeout; `registerActivity()` timer reset; all four geolocation error codes |
-| **Total** | **46** | |
+| `favorite-store.test.js` | 13 | `saveFavorite`, `readFavorites`, `deleteFavoriteById`, `importFavorites`, `getFavoritesForExport`; newest-first sort; case-insensitive dedup; within-batch dedup; export field shape |
+| `location-tracker.test.js` | 15 | `isActive` initial state; `start()`/`stop()` lifecycle; geolocation API calls; 15-minute idle timeout; `registerActivity()` timer reset; all four geolocation error codes |
+| `terrain-controller.test.js` | 5 | Terrain enable/disable lifecycle, style-reload restoration, and toggle-state sync |
+| **Total** | **69** | |
 
 Key unit test design decisions:
 - `vi.resetModules()` + `new IDBFactory()` per test resets the module-level `favoritesDbPromise` singleton in `favorite-store.js`, giving each test an isolated store.
 - `vi.mock('maplibre-gl')` stubs `LngLatBounds` so `location-tracker.js` loads cleanly in jsdom without a WebGL context.
 - `vi.useFakeTimers()` drives the 15-minute idle timeout synchronously.
 - Replacing `global.navigator` with a plain object (no `geolocation` property) makes `"geolocation" in navigator` return `false` for the unsupported-browser test.
+- Controller-level tests use fake map objects and DOM fixtures so map orchestration stays verifiable without a browser-wide integration harness.
 
 **E2E tests (Playwright + Firefox)** — `npm run test:e2e`
 
@@ -694,7 +740,8 @@ Chromium is not used because the `chrome-headless-shell` binary on this WSL2 hos
 | 3D Terrain toggles correctly | Terrain exaggeration, hillshade, and 45° pitch activate and deactivate cleanly; survive base map switch |
 | Attribution is accurate | © panel shows correct provider credit for every base map; terrain suffix appears/disappears in sync |
 | Compass resets orientation | Button appears on rotation or tilt; needle tracks north; tap returns to bearing 0° and pitch 0° |
-| Unit test suite passes | `npm test` exits 0 with all 46 tests green |
+| Map architecture is navigable | `doc/architecture/code-map.md` is sufficient to locate the owning module for each map-page capability without reading `src/js/maphop.js` in full |
+| Unit test suite passes | `npm test` exits 0 with all 69 tests green |
 | E2E test suite passes | `npm run test:e2e` exits 0 with all 12 tests green against the dev server |
 
 ---

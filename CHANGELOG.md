@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- Architecture code map: `doc/architecture/code-map.md` now provides a low-context index of entrypoints, controller ownership, and test locations for faster human and AI navigation.
 - Compass button now also appears when the map is tilted (pitch > 0); clicking it resets both bearing and pitch to zero (full 2D north view) in a single animated transition.
 - Product spec updated (v1.4): §4.3 notes Location section is a collapsible accordion defaulting to closed; §4.8 menu location updated to Location section; §4.9 Compass expanded to cover pitch visibility and pitch reset; §5 Flow 5 updated; §6 terrain toggle position and section toggle description updated; §9 compass criterion updated.
 - Compass button: appears bottom-left when the map is rotated away from north; needle rotates to indicate north direction; tap resets bearing to north with animation. `maxPitch: 85` allows full 3D tilt via right-click drag (desktop) or two-finger gesture (touch).
@@ -16,6 +17,13 @@
 - `vitest.config.js` and `playwright.config.js` at project root
 - `npm run test:watch` and `npm run test:coverage` scripts
 - Product spec updated (v1.2): testing tools added to Tech Stack, `tests/` directory added to Architecture file structure, new Testing subsection in Non-Functional Requirements covering both suites with design rationale, two test-pass criteria added to Success Criteria
+
+### Changed
+- Refactored `src/js/maphop.js` into a thin bootstrap and extracted map-page responsibilities into focused controllers under `src/js/map/` for base-layer switching, terrain, attribution, menu state, install prompts, DOM lookup, status toast handling, and favorites UI.
+- Base map definitions now live in `src/js/map/base-map-registry.js` as the single source of truth for styles and structured attribution metadata.
+- Attribution rendering now uses explicit DOM node creation instead of HTML-string injection, reducing future XSS risk if provider configuration becomes user-editable.
+- Unit coverage expanded to 69 tests with controller-level coverage for attribution rendering, base-layer rollback behavior, terrain lifecycle, install prompt handling, and menu state.
+- Product spec updated (v1.4) to document the modular map-page architecture, code-map maintenance rule, structured attribution rendering, and updated validated test counts.
 
 ## [1.0.2] - 2026-03-28
 
