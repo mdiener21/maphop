@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- Location accordion section toggle (`locationSectionToggle`) was not wired up in `dom.js` and therefore could not be expanded or collapsed; added it to `menuSectionToggleElements` alongside the Favorites and Maps toggles.
+
 ### Added
 - Comprehensive README with user introduction, feature table, how-to-use guide, screenshot placeholder, and developer build/deploy instructions.
 

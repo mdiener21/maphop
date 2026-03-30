@@ -1,4 +1,5 @@
 export function getMapPageDom() {
+    const locationSectionToggle = document.getElementById("locationSectionToggle");
     const favoritesSectionToggle = document.getElementById("favoritesSectionToggle");
     const mapsSectionToggle = document.getElementById("mapsSectionToggle");
 
@@ -12,9 +13,10 @@ export function getMapPageDom() {
         saveFavoriteButton: document.getElementById("saveFavoriteButton"),
         favoritesList: document.getElementById("favoritesList"),
         favoritesEmpty: document.getElementById("favoritesEmpty"),
+        locationSectionToggle,
         favoritesSectionToggle,
         mapsSectionToggle,
-        menuSectionToggleElements: [favoritesSectionToggle, mapsSectionToggle].filter(Boolean),
+        menuSectionToggleElements: [locationSectionToggle, favoritesSectionToggle, mapsSectionToggle].filter(Boolean),
         appVersionElement: document.getElementById("appVersion"),
         layerOptionElements: Array.from(document.querySelectorAll(".layer-option")),
         installBanner: document.getElementById("installBanner"),
