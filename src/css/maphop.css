@@ -729,6 +729,55 @@ body::before {
     background: rgba(255, 255, 255, 0.06);
 }
 
+/* ── Shared location banner ─────────────────────────────────── */
+.shared-location-banner {
+    position: fixed;
+    top: max(1.25rem, calc(env(safe-area-inset-top, 0px) + 1rem));
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(calc(100% - 2rem), 440px);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 0.75rem 0.75rem 0.9rem;
+    background: rgba(11, 18, 21, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(111, 242, 189, 0.22);
+    border-radius: 14px;
+    color: var(--text);
+    font-size: 0.875rem;
+    line-height: 1.4;
+    z-index: 300;
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+}
+
+.shared-location-pin-icon {
+    flex-shrink: 0;
+}
+
+.shared-location-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.shared-location-add-btn {
+    flex-shrink: 0;
+    padding: 0.42rem 0.95rem;
+    background: var(--accent);
+    color: #0d1b20;
+    border: none;
+    border-radius: 9px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.shared-location-add-btn:active {
+    opacity: 0.8;
+}
+
 /* ── Attribution widget ─────────────────────────────────────── */
 .attribution-widget {
     position: absolute;

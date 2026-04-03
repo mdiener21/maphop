@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+- **Shared location pin**: when the page loads with a shared location URL, a pin marker is shown at the center of the map highlighting the shared spot.
+- **Shared location banner**: a top banner appears on shared location load with "Add to Favorites" (saves the pinned spot directly to favorites) and a dismiss button (removes pin and banner).
+
+### Changed
+- **Pin icon size**: favorites and shared location pins are now 30% larger (31×42 px rendered, up from 24×32 px).
+
 ## [1.3.0] - 2026-04-03
 
 ### Added

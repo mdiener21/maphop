@@ -21,9 +21,9 @@ function buildGeoJson(favorites) {
     };
 }
 
-function createPinImageData() {
-    // 24×32 SVG pin: teardrop shape with accent fill
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32">
+export function createPinImageData() {
+    // 31×42 SVG pin (30% larger than the base 24×32): teardrop shape with accent fill
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="31" height="42" viewBox="0 0 24 32">
         <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20S24 21 24 12C24 5.373 18.627 0 12 0z"
               fill="#6ff2bd" stroke="#0d1b20" stroke-width="1.5"/>
         <circle cx="12" cy="12" r="4" fill="#0d1b20"/>
@@ -43,7 +43,7 @@ export function createFavoritesOverlay(map) {
 
     function addPinImageAndLayer() {
         const url = createPinImageData();
-        const img = new Image(24, 32);
+        const img = new Image(31, 42);
         img.onload = () => {
             URL.revokeObjectURL(url);
             if (map.hasImage(imageId)) {

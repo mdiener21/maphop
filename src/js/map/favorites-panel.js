@@ -389,8 +389,19 @@ export function createFavoritesPanel({
         }
     });
 
+    function promptFavoriteNameAt(coordinates) {
+        if (!isFavoritesStorageAvailable()) {
+            onStatus("IndexedDB is not available in this browser.");
+            return;
+        }
+
+        pendingFavoriteCoordinates = coordinates;
+        openFavoriteNameModal();
+    }
+
     return {
         loadFavorites,
-        startFavoriteSelection
+        startFavoriteSelection,
+        promptFavoriteNameAt
     };
 }

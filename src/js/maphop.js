@@ -6,7 +6,7 @@ import { createAttributionController } from "./map/attribution-controller.js";
 import { createBaseLayerController, loadBaseLayerPreference } from "./map/base-layer-controller.js";
 import { baseMapConfigs } from "./map/base-map-registry.js";
 import { getMapPageDom } from "./map/dom.js";
-import { createFavoritesOverlay } from "./map/favorites-overlay.js";
+import { createFavoritesOverlay, createPinImageData } from "./map/favorites-overlay.js";
 import { createFavoritesPanel } from "./map/favorites-panel.js";
 import { createInstallPromptController } from "./map/install-prompt-controller.js";
 import { createMenuController } from "./map/menu-controller.js";
@@ -223,6 +223,26 @@ registerScopedServiceWorker();
 installPromptController.init();
 menuController.initializeSections();
 
+let sharedLocationMarker = null;
+
+function dismissSharedLocation() {
+    sharedLocationMarker?.remove();
+    sharedLocationMarker = null;
+    dom.sharedLocationBanner.hidden = true;
+}
+
+dom.dismissSharedLocationButton?.addEventListener("click", () => {
+    dismissSharedLocation();
+});
+
+dom.addSharedToFavoritesButton?.addEventListener("click", () => {
+    dismissSharedLocation();
+    favoritesPanel.promptFavoriteNameAt({
+        longitude: sharedLocation.center[0],
+        latitude: sharedLocation.center[1]
+    });
+});
+
 map.on("load", () => {
     terrainController.ensureAfterStyleLoad();
     tracker.ensureOverlayAfterStyleLoad();
@@ -231,4 +251,17 @@ map.on("load", () => {
     baseLayerController.updateLayerOptionState();
     refreshAttribution();
     favoritesPanel.loadFavorites();
+
+    if (sharedLocation) {
+        const blobUrl = createPinImageData();
+        const pinImg = new Image(31, 42);
+        pinImg.onload = () => {
+            URL.revokeObjectURL(blobUrl);
+            sharedLocationMarker = new maplibregl.Marker({ element: pinImg, anchor: "bottom" })
+                .setLngLat(sharedLocation.center)
+                .addTo(map);
+        };
+        pinImg.src = blobUrl;
+        dom.sharedLocationBanner.hidden = false;
+    }
 });
