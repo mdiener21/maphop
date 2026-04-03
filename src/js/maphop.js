@@ -88,7 +88,14 @@ const favoritesPanel = createFavoritesPanel({
     favoritesEmpty: dom.favoritesEmpty,
     onStatus: setStatus,
     onMenuClose: () => menuController.setOpen(false),
-    overlay: favoritesOverlay
+    overlay: favoritesOverlay,
+    selectionOverlay: dom.favoriteSelectionOverlay,
+    cancelSelectionButton: dom.cancelFavoriteSelectionButton,
+    confirmSelectionButton: dom.confirmFavoriteSelectionButton,
+    favoriteNameModalBackdrop: dom.favoriteNameModalBackdrop,
+    favoriteNameForm: dom.favoriteNameForm,
+    favoriteNameInput: dom.favoriteNameInput,
+    cancelFavoriteNameButton: dom.cancelFavoriteNameButton
 });
 
 const baseLayerController = createBaseLayerController({
@@ -152,7 +159,7 @@ dom.layerOptionElements.forEach((element) => {
 });
 
 dom.saveFavoriteButton.addEventListener("click", () => {
-    favoritesPanel.saveCurrentViewAsFavorite();
+    favoritesPanel.startFavoriteSelection();
 });
 
 dom.reCenterButton.addEventListener("click", () => {

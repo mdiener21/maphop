@@ -1,6 +1,6 @@
 # Product Specification: Maphop
 
-**Version:** 1.6
+**Version:** 1.7
 **Last Updated:** 2026-04-03
 **Author:** Product Management
 **Status:** Draft
@@ -118,7 +118,7 @@ src/
 │       ├── base-layer-controller.js   Base-style switching, timeout handling, and fallback restore
 │       ├── base-map-registry.js       Source-of-truth base map definitions and provider attribution metadata
 │       ├── dom.js                     Centralized map-page DOM lookups
-│       ├── favorites-panel.js         Favorites menu rendering, save/delete actions, and navigation
+│       ├── favorites-panel.js         Favorites menu rendering, crosshair selection flow, save/delete actions, and navigation
 │       ├── install-prompt-controller.js PWA install prompt and iOS hint lifecycle
 │       ├── menu-controller.js         Menu open/close and section state
 │       └── terrain-controller.js      Terrain and hillshade lifecycle across style reloads
@@ -153,7 +153,9 @@ User Interaction
     │
   ├─► Location Toggle ──► Geolocation API ──► LocationTracker ──► GeoJSON Overlay (on-map)
     │
-  ├─► Save Favorite / Delete Favorite ──► favorite-store.js ──► IndexedDB (local) ──► Favorites List (DOM)
+  ├─► Add Favorite ──► Crosshair Selection Overlay ──► Name Modal ──► favorite-store.js ──► IndexedDB (local) ──► Favorites List (DOM)
+    │
+  ├─► Delete Favorite ──► favorite-store.js ──► IndexedDB (local) ──► Favorites List (DOM)
     │
     └─► Base Map Switch ──► setBaseLayer() ──► Style Load (with 12s timeout + fallback)
 
@@ -175,7 +177,7 @@ Map Page
 | `src/js/map/terrain-controller.js` | Keep DEM and hillshade sources/layers consistent across terrain toggles and style reloads |
 | `src/js/map/attribution-controller.js` | Render attribution UI using DOM APIs from structured metadata, not provider HTML strings |
 | `src/js/location-tracker.js` | Own geolocation state, follow mode, idle timeout, and location overlay rendering |
-| `src/js/map/favorites-panel.js` | Handle favorites menu rendering, prompt/save/delete flows, map navigation from saved entries, and overlay toggle wiring |
+| `src/js/map/favorites-panel.js` | Handle favorites menu rendering, crosshair selection and naming modal flow, save/delete actions, map navigation from saved entries, and overlay toggle wiring |
 | `src/js/map/favorites-overlay.js` | Manage the favorites GeoJSON source and symbol layer, pin image registration, hover popup, toggle state, and style-reload restoration |
 | `src/js/map/menu-controller.js` | Own menu visibility and section expansion state |
 | `src/js/map/install-prompt-controller.js` | Capture install prompt events and iOS standalone hints |
@@ -336,15 +338,20 @@ Local-only bookmarking system using IndexedDB.
 | Fields | `name`, `longitude`, `latitude`, `createdAt` |
 
 **Behavior:**
-- **Save**: captures map center, prompts for a name (default: current date), stores in IndexedDB, shows confirmation toast.
+- **Add Favorite**: tapping "Add Favorite" closes the menu and enters selection mode with a centered crosshair overlay on the live map.
+- **Selection mode**: the user can pan or zoom freely; the target location is always the current map center under the crosshair.
+- **Confirm selection**: tapping "Save This Spot" captures the current map center and opens a compact centered naming modal with a default name based on the current date.
+- **Save**: confirming the modal stores the selected center point in IndexedDB and shows a confirmation toast.
+- **Cancel**: cancel buttons, clicking the modal backdrop, or pressing `Escape` abort the in-progress add-favorite flow without saving.
 - **List**: sorted newest-first, each entry shows name and coordinates (5 decimal places).
 - **Navigate**: clicking a favorite eases the map to saved coordinates (650ms `easeTo` animation) and closes the menu.
 - **Delete**: inline trash-icon button removes the entry and refreshes the list.
 - **Empty state**: shows "No saved locations yet." when the store is empty.
-- **Overlay toggle**: "Show on Map" toggle button in the Favorites section panel shows/hides all favorites as pin markers on the live map (see §4.10).
+- **Overlay toggle**: "Show on Map" toggle button in the Favorites section panel shows/hides all favorites as pin markers on the live map (see §4.8).
 
 **Acceptance criteria:**
 - Favorites persist across browser sessions and page reloads.
+- The map remains interactive while favorite selection mode is active.
 - Saving, navigating, and deleting all produce status toast feedback.
 - No network requests are made for any favorites operation.
 - Adding or deleting a favorite refreshes the overlay while it is visible.
@@ -442,7 +449,7 @@ A toggle in the Favorites section of the control menu that renders all saved fav
 | Hover interaction | `maplibregl.Popup` showing the favorite's `name` property |
 
 **Behavior:**
-- A "Show on Map" toggle button sits in the Favorites section panel, below the "Save Current View" button.
+- A "Show on Map" toggle button sits in the Favorites section panel, below the "Add Favorite" button.
 - Clicking the toggle shows or hides the `favorites-overlay-pins` layer and flips `data-state` between `"active"` and `"idle"` for CSS pill styling.
 - Toggle state persists across sessions via `localStorage`.
 - The GeoJSON source is updated (`setData`) whenever a favorite is saved, deleted, or loaded from IndexedDB while the overlay exists on the map.
@@ -528,7 +535,7 @@ Open URL
   → User pans/zooms to explore
   → (Optional) Opens menu to switch base map
   → (Optional) Enables location tracking
-  → (Optional) Saves a favorite
+  → (Optional) Adds a favorite
 ```
 
 ### Flow 2: Location Tracking
@@ -546,9 +553,12 @@ Open menu → Toggle "Show My Location" ON
 
 ```
 Pan map to point of interest
-  → Open menu → "Save Current View"
-  → Enter name (or accept default) → Confirm
-  → Toast: "Saved: [name]"
+  → Open menu → "Add Favorite"
+  → Menu closes, centered crosshair appears
+  → Pan / zoom until the location sits under the crosshair
+  → Tap "Save This Spot"
+  → Naming modal appears → Enter name (or accept default) → Confirm
+  → Toast: "Saved [name]."
   → Later: Open menu → Favorites section
   → Tap saved favorite → map eases to coordinates, menu closes
 ```
@@ -672,6 +682,8 @@ Open menu → Favorites section
 | Control panel | 260px (mobile) / 280px (desktop), top-right | Glass panel, max-height transition (180ms) |
 | Location toggle | Full-width row | Animated pill with gradient active state |
 | Terrain toggle | Full-width row, Location section (below privacy note) | Same animated pill; separated by top border |
+| Favorite selection overlay | Full-map overlay | Centered crosshair with bottom action card; map remains pannable and zoomable |
+| Favorite naming modal | Centered modal dialog | Text input + cancel/save actions after location selection |
 | Favorite item | Full-width card | Name + coordinates, inline delete button |
 | Show on Map toggle | Full-width toggle row, Favorites section | Animated pill; `data-state` active/idle; persists to localStorage |
 | Favorites pin | Map symbol layer | Green teardrop SVG; popup on hover showing favorite name |

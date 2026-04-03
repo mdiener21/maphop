@@ -50,6 +50,50 @@
     <div id="app">
         <div id="map" aria-label="Maphop map"></div>
 
+        <div class="favorite-selection-overlay" id="favoriteSelectionOverlay" hidden aria-hidden="true">
+            <div class="favorite-crosshair" aria-hidden="true">
+                <svg width="46" height="46" viewBox="0 0 46 46" fill="none">
+                    <circle cx="23" cy="23" r="7" stroke="currentColor" stroke-width="2.5"></circle>
+                    <path d="M23 5V13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                    <path d="M23 33V41" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                    <path d="M5 23H13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                    <path d="M33 23H41" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                </svg>
+            </div>
+
+            <div class="favorite-selection-card">
+                <p class="favorite-selection-eyebrow">Favorite Location</p>
+                <p class="favorite-selection-copy">Pan or zoom until the crosshair is over the place you want to save.</p>
+                <div class="favorite-selection-actions">
+                    <button class="favorite-selection-button favorite-selection-button-secondary" id="cancelFavoriteSelectionButton" type="button">
+                        Cancel
+                    </button>
+                    <button class="favorite-selection-button favorite-selection-button-primary" id="confirmFavoriteSelectionButton" type="button">
+                        Save This Spot
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="favorite-modal-backdrop" id="favoriteNameModalBackdrop" hidden>
+            <div class="favorite-modal" role="dialog" aria-modal="true" aria-labelledby="favoriteNameModalTitle">
+                <form class="favorite-modal-form" id="favoriteNameForm">
+                    <p class="favorite-modal-eyebrow">Save Favorite</p>
+                    <h2 class="favorite-modal-title" id="favoriteNameModalTitle">Name this location</h2>
+                    <label class="favorite-modal-label" for="favoriteNameInput">Favorite name</label>
+                    <input class="favorite-modal-input" id="favoriteNameInput" name="favoriteName" type="text" maxlength="80" autocomplete="off" required>
+                    <div class="favorite-modal-actions">
+                        <button class="favorite-selection-button favorite-selection-button-secondary" id="cancelFavoriteNameButton" type="button">
+                            Cancel
+                        </button>
+                        <button class="favorite-selection-button favorite-selection-button-primary" id="confirmFavoriteNameButton" type="submit">
+                            Save Favorite
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <section class="control-menu" id="menuShell">
             <div class="control-menu-header">
                 <span class="menu-title" aria-hidden="true">Maphop</span>
@@ -116,7 +160,7 @@
                         </button>
                         <div class="menu-section-panel" id="favoritesSectionPanel">
                             <button class="menu-action-button" id="saveFavoriteButton" type="button">
-                                Save Current View
+                                Add Favorite
                             </button>
                             <button class="menu-toggle-row" id="showFavoritesOnMapButton" type="button" data-state="idle">
                                 <span class="menu-toggle-copy">

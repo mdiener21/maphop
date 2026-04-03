@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+- **Favorite save flow**: adding a favorite now enters a map-selection mode with a centered crosshair so the user can pan and zoom before saving the current center point.
+- **Favorite naming UI**: replaced the browser prompt with a compact centered modal shown after location selection, keeping the map interaction and naming steps separate.
+- Product spec updated (v1.7): favorites behavior, data flow, component inventory, and user flow now describe the crosshair selection overlay and post-selection naming modal.
+
 ## [1.2.0] - 2026-04-03
 
 ### Added

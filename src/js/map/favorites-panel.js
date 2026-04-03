@@ -9,6 +9,10 @@ function formatFavoriteCoordinates(longitude, latitude) {
     return latitude.toFixed(5) + ", " + longitude.toFixed(5);
 }
 
+function getSuggestedFavoriteName() {
+    return "Favorite " + new Date().toLocaleDateString();
+}
+
 function createTrashIcon() {
     const namespace = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(namespace, "svg");
@@ -30,7 +34,25 @@ function createTrashIcon() {
     return svg;
 }
 
-export function createFavoritesPanel({ map, favoritesList, favoritesEmpty, onStatus, onMenuClose, overlay }) {
+export function createFavoritesPanel({
+    map,
+    favoritesList,
+    favoritesEmpty,
+    onStatus,
+    onMenuClose,
+    overlay,
+    selectionOverlay,
+    cancelSelectionButton,
+    confirmSelectionButton,
+    favoriteNameModalBackdrop,
+    favoriteNameForm,
+    favoriteNameInput,
+    cancelFavoriteNameButton
+}) {
+    let pendingFavoriteCoordinates = null;
+    let selectionActive = false;
+    let restoreFocusElement = null;
+
     async function deleteFavorite(id, name) {
         if (!isFavoritesStorageAvailable()) {
             onStatus("IndexedDB is not available in this browser.");
@@ -45,6 +67,58 @@ export function createFavoritesPanel({ map, favoritesList, favoritesEmpty, onSta
             onStatus("Unable to delete favorite location.");
             console.error(error);
         }
+    }
+
+    function setSelectionOverlayVisible(isVisible) {
+        if (!selectionOverlay) {
+            return;
+        }
+
+        selectionOverlay.hidden = !isVisible;
+        selectionOverlay.setAttribute("aria-hidden", String(!isVisible));
+    }
+
+    function setFavoriteNameModalVisible(isVisible) {
+        if (!favoriteNameModalBackdrop) {
+            return;
+        }
+
+        favoriteNameModalBackdrop.hidden = !isVisible;
+    }
+
+    function finishFavoriteFlow() {
+        selectionActive = false;
+        pendingFavoriteCoordinates = null;
+        setSelectionOverlayVisible(false);
+        setFavoriteNameModalVisible(false);
+        favoriteNameForm?.reset();
+        favoriteNameInput?.setCustomValidity("");
+
+        if (restoreFocusElement instanceof HTMLElement) {
+            restoreFocusElement.focus();
+        }
+
+        restoreFocusElement = null;
+    }
+
+    function cancelFavoriteFlow(statusMessage = "Favorite not saved.") {
+        finishFavoriteFlow();
+        onStatus(statusMessage);
+    }
+
+    function openFavoriteNameModal() {
+        if (!favoriteNameInput) {
+            return;
+        }
+
+        setFavoriteNameModalVisible(true);
+        favoriteNameInput.value = getSuggestedFavoriteName();
+        favoriteNameInput.setSelectionRange(0, favoriteNameInput.value.length);
+
+        window.requestAnimationFrame(() => {
+            favoriteNameInput.focus();
+            favoriteNameInput.select();
+        });
     }
 
     function renderFavorites(favorites) {
@@ -107,9 +181,28 @@ export function createFavoritesPanel({ map, favoritesList, favoritesEmpty, onSta
         }
     }
 
-    async function saveCurrentViewAsFavorite() {
+    function startFavoriteSelection() {
         if (!isFavoritesStorageAvailable()) {
             onStatus("IndexedDB is not available in this browser.");
+            return;
+        }
+
+        if (selectionActive || !selectionOverlay) {
+            return;
+        }
+
+        restoreFocusElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        selectionActive = true;
+        pendingFavoriteCoordinates = null;
+        setSelectionOverlayVisible(true);
+        setFavoriteNameModalVisible(false);
+        favoriteNameForm?.reset();
+        onMenuClose();
+        onStatus("Move the map, then save the spot under the crosshair.");
+    }
+
+    function confirmFavoriteSelection() {
+        if (!selectionActive) {
             return;
         }
 
@@ -119,27 +212,41 @@ export function createFavoritesPanel({ map, favoritesList, favoritesEmpty, onSta
             return;
         }
 
-        const suggestedName = "Favorite " + new Date().toLocaleDateString();
-        const name = window.prompt("Name this saved location:", suggestedName);
-        if (name === null) {
+        pendingFavoriteCoordinates = {
+            longitude: center.lng,
+            latitude: center.lat
+        };
+        setSelectionOverlayVisible(false);
+        openFavoriteNameModal();
+    }
+
+    async function submitFavoriteName(event) {
+        event?.preventDefault();
+
+        if (!pendingFavoriteCoordinates || !favoriteNameInput) {
+            cancelFavoriteFlow();
             return;
         }
 
-        const trimmedName = name.trim();
+        const trimmedName = favoriteNameInput.value.trim();
         if (!trimmedName) {
-            onStatus("Saved location needs a name.");
+            favoriteNameInput.setCustomValidity("Saved location needs a name.");
+            favoriteNameInput.reportValidity();
             return;
         }
+
+        favoriteNameInput.setCustomValidity("");
 
         try {
             await saveFavorite({
                 name: trimmedName,
-                longitude: center.lng,
-                latitude: center.lat,
+                longitude: pendingFavoriteCoordinates.longitude,
+                latitude: pendingFavoriteCoordinates.latitude,
                 createdAt: Date.now()
             });
 
             await loadFavorites();
+            finishFavoriteFlow();
             onStatus("Saved " + trimmedName + ".");
         } catch (error) {
             onStatus("Unable to save favorite location.");
@@ -147,8 +254,51 @@ export function createFavoritesPanel({ map, favoritesList, favoritesEmpty, onSta
         }
     }
 
+    cancelSelectionButton?.addEventListener("click", () => {
+        cancelFavoriteFlow();
+    });
+
+    confirmSelectionButton?.addEventListener("click", () => {
+        confirmFavoriteSelection();
+    });
+
+    favoriteNameForm?.addEventListener("submit", (event) => {
+        submitFavoriteName(event);
+    });
+
+    cancelFavoriteNameButton?.addEventListener("click", () => {
+        cancelFavoriteFlow();
+    });
+
+    favoriteNameInput?.addEventListener("input", () => {
+        favoriteNameInput.setCustomValidity("");
+    });
+
+    favoriteNameModalBackdrop?.addEventListener("click", (event) => {
+        if (event.target === favoriteNameModalBackdrop) {
+            cancelFavoriteFlow();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") {
+            return;
+        }
+
+        if (!favoriteNameModalBackdrop?.hidden) {
+            event.preventDefault();
+            cancelFavoriteFlow();
+            return;
+        }
+
+        if (selectionActive) {
+            event.preventDefault();
+            cancelFavoriteFlow();
+        }
+    });
+
     return {
         loadFavorites,
-        saveCurrentViewAsFavorite
+        startFavoriteSelection
     };
 }
