@@ -76,8 +76,6 @@ body::before {
     height: 58px;
     border-radius: 50%;
     color: var(--accent);
-    background: rgba(8, 13, 15, 0.22);
-    backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     box-shadow:
         0 0 0 1px rgba(237, 244, 239, 0.12),
