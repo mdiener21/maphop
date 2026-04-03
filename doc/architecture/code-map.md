@@ -20,7 +20,8 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Terrain and hillshade lifecycle | `src/js/map/terrain-controller.js` |
 | Attribution widget rendering or open/close state | `src/js/map/attribution-controller.js` |
 | Menu open state or expandable sections | `src/js/map/menu-controller.js` |
-| Favorites rendering, save/delete flows, or map navigation from favorites | `src/js/map/favorites-panel.js` |
+| Favorites rendering, share/save/delete flows, or map navigation from favorites | `src/js/map/favorites-panel.js` |
+| Shared location URL format and deep-link parsing | `src/js/map/share-location.js` |
 | PWA install prompt and iOS install hint behavior | `src/js/map/install-prompt-controller.js` |
 | Map-page DOM element lookup | `src/js/map/dom.js` |
 | Status toast behavior | `src/js/map/status-toast.js` |
@@ -43,6 +44,7 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Install prompt controller | `tests/unit/install-prompt-controller.test.js` |
 | Menu controller | `tests/unit/menu-controller.test.js` |
 | Terrain controller | `tests/unit/terrain-controller.test.js` |
+| Shared location URL helpers | `tests/unit/share-location.test.js` |
 | Favorites store | `tests/unit/favorite-store.test.js` |
 | Favorites transfer | `tests/unit/favorite-transfer.test.js` |
 | Location tracker | `tests/unit/location-tracker.test.js` |

@@ -4,6 +4,7 @@ import {
     readFavorites,
     saveFavorite
 } from "../favorite-store.js";
+import { buildSharedLocationUrl } from "./share-location.js";
 
 function formatFavoriteCoordinates(longitude, latitude) {
     return latitude.toFixed(5) + ", " + longitude.toFixed(5);
@@ -34,6 +35,27 @@ function createTrashIcon() {
     return svg;
 }
 
+function createShareIcon() {
+    const namespace = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(namespace, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+
+    [["circle", { cx: "18", cy: "5", r: "3" }], ["circle", { cx: "6", cy: "12", r: "3" }], ["circle", { cx: "18", cy: "19", r: "3" }], ["path", { d: "M8.6 13.5l6.8 4" }], ["path", { d: "M15.4 6.5l-6.8 4" }]].forEach(([tagName, attributes]) => {
+        const node = document.createElementNS(namespace, tagName);
+        Object.entries(attributes).forEach(([name, value]) => {
+            node.setAttribute(name, value);
+        });
+        svg.append(node);
+    });
+
+    return svg;
+}
+
 export function createFavoritesPanel({
     map,
     favoritesList,
@@ -52,6 +74,62 @@ export function createFavoritesPanel({
     let pendingFavoriteCoordinates = null;
     let selectionActive = false;
     let restoreFocusElement = null;
+
+    async function copyTextToClipboard(text) {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return;
+        }
+
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "true");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        textarea.style.pointerEvents = "none";
+        document.body.append(textarea);
+        textarea.select();
+
+        const copied = document.execCommand("copy");
+        textarea.remove();
+
+        if (!copied) {
+            throw new Error("Clipboard copy command failed.");
+        }
+    }
+
+    async function shareFavorite(favorite) {
+        const shareUrl = buildSharedLocationUrl({
+            latitude: favorite.latitude,
+            longitude: favorite.longitude,
+            zoom: map.getZoom()
+        });
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: "Maphop Favorite",
+                    text: favorite.name,
+                    url: shareUrl
+                });
+                return;
+            } catch (error) {
+                if (error?.name === "AbortError") {
+                    return;
+                }
+
+                console.error(error);
+            }
+        }
+
+        try {
+            await copyTextToClipboard(shareUrl);
+            onStatus("Copied share link for " + favorite.name + ".");
+        } catch (error) {
+            onStatus("Unable to share favorite location.");
+            console.error(error);
+        }
+    }
 
     async function deleteFavorite(id, name) {
         if (!isFavoritesStorageAvailable()) {
@@ -151,7 +229,7 @@ export function createFavoritesPanel({
 
             const deleteButton = document.createElement("button");
             deleteButton.type = "button";
-            deleteButton.className = "favorite-delete";
+            deleteButton.className = "favorite-action favorite-delete";
             deleteButton.setAttribute("aria-label", "Delete " + favorite.name);
             deleteButton.append(createTrashIcon());
             deleteButton.addEventListener("click", async (event) => {
@@ -159,7 +237,21 @@ export function createFavoritesPanel({
                 await deleteFavorite(favorite.id, favorite.name);
             });
 
-            row.append(button, deleteButton);
+            const shareButton = document.createElement("button");
+            shareButton.type = "button";
+            shareButton.className = "favorite-action favorite-share";
+            shareButton.setAttribute("aria-label", "Share " + favorite.name);
+            shareButton.append(createShareIcon());
+            shareButton.addEventListener("click", async (event) => {
+                event.stopPropagation();
+                await shareFavorite(favorite);
+            });
+
+            const actions = document.createElement("div");
+            actions.className = "favorite-actions";
+            actions.append(shareButton, deleteButton);
+
+            row.append(button, actions);
             favoritesList.append(row);
         });
     }

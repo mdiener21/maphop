@@ -59,7 +59,7 @@ describe('setupFavoriteTransfer — export', () => {
         });
         exportButton.click();
         await new Promise(resolve => setTimeout(resolve, 0));
-        expect(setStatus).toHaveBeenCalledWith('Favorites exported as JSON.');
+        expect(setStatus).toHaveBeenCalledWith('Favorites exported as GeoJSON.');
         appendSpy.mockRestore();
     });
 });

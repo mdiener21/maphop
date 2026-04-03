@@ -1,6 +1,6 @@
 # Product Specification: Maphop
 
-**Version:** 1.7
+**Version:** 1.8
 **Last Updated:** 2026-04-03
 **Author:** Product Management
 **Status:** Draft
@@ -92,7 +92,8 @@ tests/
 │   ├── base-layer-controller.test.js Style switching success/failure and rollback behavior
 │   ├── favorite-transfer.test.js   Validation logic, file handling, import/export status messages
 │   ├── favorite-store.test.js      IndexedDB CRUD, deduplication, sort order, export shape
-│   └── location-tracker.test.js    Tracker lifecycle, idle timeout, geolocation error messages
+│   ├── location-tracker.test.js    Tracker lifecycle, idle timeout, geolocation error messages
+│   └── share-location.test.js      Shared-location URL generation and query-param parsing
 └── e2e/
     └── app.spec.js                 Page titles, DOM structure, menu interaction, navigation
 
@@ -118,9 +119,10 @@ src/
 │       ├── base-layer-controller.js   Base-style switching, timeout handling, and fallback restore
 │       ├── base-map-registry.js       Source-of-truth base map definitions and provider attribution metadata
 │       ├── dom.js                     Centralized map-page DOM lookups
-│       ├── favorites-panel.js         Favorites menu rendering, crosshair selection flow, save/delete actions, and navigation
+│       ├── favorites-panel.js         Favorites menu rendering, crosshair selection flow, share/save/delete actions, and navigation
 │       ├── install-prompt-controller.js PWA install prompt and iOS hint lifecycle
 │       ├── menu-controller.js         Menu open/close and section state
+│       ├── share-location.js          Shared-location URL builder and query-param parser
 │       └── terrain-controller.js      Terrain and hillshade lifecycle across style reloads
 ├── public/
 │   ├── sw.js               Service worker — network-first cache strategy for app shell
@@ -155,6 +157,8 @@ User Interaction
     │
   ├─► Add Favorite ──► Crosshair Selection Overlay ──► Name Modal ──► favorite-store.js ──► IndexedDB (local) ──► Favorites List (DOM)
     │
+  ├─► Share Favorite ──► share-location.js ──► Native Share Sheet / Clipboard
+    │
   ├─► Delete Favorite ──► favorite-store.js ──► IndexedDB (local) ──► Favorites List (DOM)
     │
     └─► Base Map Switch ──► setBaseLayer() ──► Style Load (with 12s timeout + fallback)
@@ -164,6 +168,8 @@ Settings Page
   └─► Export / Import Favorites ──► favorite-transfer.js ──► favorite-store.js ──► IndexedDB (local)
 
 Map Page
+  ├─► Shared Location URL (`lat`,`lng`,`z`) ──► share-location.js ──► Initial map center / zoom
+  │
   └─► Favorites Overlay Toggle ──► favorites-overlay.js ──► MapLibre source/layer ──► Pin markers on map
 ```
 
@@ -177,9 +183,10 @@ Map Page
 | `src/js/map/terrain-controller.js` | Keep DEM and hillshade sources/layers consistent across terrain toggles and style reloads |
 | `src/js/map/attribution-controller.js` | Render attribution UI using DOM APIs from structured metadata, not provider HTML strings |
 | `src/js/location-tracker.js` | Own geolocation state, follow mode, idle timeout, and location overlay rendering |
-| `src/js/map/favorites-panel.js` | Handle favorites menu rendering, crosshair selection and naming modal flow, save/delete actions, map navigation from saved entries, and overlay toggle wiring |
+| `src/js/map/favorites-panel.js` | Handle favorites menu rendering, crosshair selection and naming modal flow, share/save/delete actions, map navigation from saved entries, and overlay toggle wiring |
 | `src/js/map/favorites-overlay.js` | Manage the favorites GeoJSON source and symbol layer, pin image registration, hover popup, toggle state, and style-reload restoration |
 | `src/js/map/menu-controller.js` | Own menu visibility and section expansion state |
+| `src/js/map/share-location.js` | Build favorite share URLs and parse incoming shared-location query parameters |
 | `src/js/map/install-prompt-controller.js` | Capture install prompt events and iOS standalone hints |
 | `src/js/map/dom.js` | Centralize map-page DOM queries for easier auditing and reuse |
 
@@ -336,6 +343,7 @@ Local-only bookmarking system using IndexedDB.
 | Object store | `favoriteLocations` |
 | Key | Auto-increment |
 | Fields | `name`, `longitude`, `latitude`, `createdAt` |
+| Share URL params | `lat`, `lng`, optional `z` |
 
 **Behavior:**
 - **Add Favorite**: tapping "Add Favorite" closes the menu and enters selection mode with a centered crosshair overlay on the live map.
@@ -344,6 +352,8 @@ Local-only bookmarking system using IndexedDB.
 - **Save**: confirming the modal stores the selected center point in IndexedDB and shows a confirmation toast.
 - **Cancel**: cancel buttons, clicking the modal backdrop, or pressing `Escape` abort the in-progress add-favorite flow without saving.
 - **List**: sorted newest-first, each entry shows name and coordinates (5 decimal places).
+- **Share**: each favorite row includes a share button that generates a deep link to the saved coordinates; native share targets are used when available, otherwise the URL is copied to the clipboard.
+- **Open shared location**: loading Maphop with `lat` and `lng` query parameters centers the map on that location; optional `z` sets the initial zoom.
 - **Navigate**: clicking a favorite eases the map to saved coordinates (650ms `easeTo` animation) and closes the menu.
 - **Delete**: inline trash-icon button removes the entry and refreshes the list.
 - **Empty state**: shows "No saved locations yet." when the store is empty.
@@ -352,6 +362,7 @@ Local-only bookmarking system using IndexedDB.
 **Acceptance criteria:**
 - Favorites persist across browser sessions and page reloads.
 - The map remains interactive while favorite selection mode is active.
+- Sharing a favorite produces a URL that opens Maphop centered on the saved location.
 - Saving, navigating, and deleting all produce status toast feedback.
 - No network requests are made for any favorites operation.
 - Adding or deleting a favorite refreshes the overlay while it is visible.
@@ -652,6 +663,17 @@ Open menu → Favorites section
   → Toggle state remembered across page reloads
 ```
 
+### Flow 11: Share Favorite
+
+```
+Open menu → Favorites section
+  → Tap share button beside a saved favorite
+  → On supported mobile/browser: native share sheet opens with the deep link
+  → OR: share URL is copied to the clipboard
+  → Receiver opens the link
+  → Maphop loads centered on the shared coordinates, applying shared zoom if present
+```
+
 ---
 
 ## 6. UI & Design System
@@ -684,7 +706,8 @@ Open menu → Favorites section
 | Terrain toggle | Full-width row, Location section (below privacy note) | Same animated pill; separated by top border |
 | Favorite selection overlay | Full-map overlay | Centered crosshair with bottom action card; map remains pannable and zoomable |
 | Favorite naming modal | Centered modal dialog | Text input + cancel/save actions after location selection |
-| Favorite item | Full-width card | Name + coordinates, inline delete button |
+| Favorite item | Full-width card | Name + coordinates, inline share and delete buttons |
+| Favorite share button | 38×38px icon button | Opens native share targets when available; otherwise copies the deep link |
 | Show on Map toggle | Full-width toggle row, Favorites section | Animated pill; `data-state` active/idle; persists to localStorage |
 | Favorites pin | Map symbol layer | Green teardrop SVG; popup on hover showing favorite name |
 | Layer option | Full-width button | Radio-style selection, accent highlight |
@@ -766,8 +789,9 @@ The project ships with two test suites sharing a common goal: verify correctness
 | `favorite-transfer.test.js` | 18 | File type/size validation; JSON payload parsing; coordinate range checks; name length; import result status messages; export empty-state; import-button wiring |
 | `favorite-store.test.js` | 13 | `saveFavorite`, `readFavorites`, `deleteFavoriteById`, `importFavorites`, `getFavoritesForExport`; newest-first sort; case-insensitive dedup; within-batch dedup; export field shape |
 | `location-tracker.test.js` | 15 | `isActive` initial state; `start()`/`stop()` lifecycle; geolocation API calls; 15-minute idle timeout; `registerActivity()` timer reset; all four geolocation error codes |
+| `share-location.test.js` | 5 | Shared favorite URL generation, coordinate validation, missing-param handling, and incoming query-param parsing |
 | `terrain-controller.test.js` | 5 | Terrain enable/disable lifecycle, style-reload restoration, and toggle-state sync |
-| **Total** | **69** | |
+| **Total** | **74** | |
 
 Key unit test design decisions:
 - `vi.resetModules()` + `new IDBFactory()` per test resets the module-level `favoritesDbPromise` singleton in `favorite-store.js`, giving each test an isolated store.
@@ -833,6 +857,7 @@ Chromium is not used because the `chrome-headless-shell` binary on this WSL2 hos
 | Location tracking is functional | Accuracy circle, heading cone, and point render on activation |
 | Idle timeout fires | Tracking stops after 15 minutes of inactivity |
 | Favorites CRUD complete | Save, list, navigate-to, and delete all work with toast feedback |
+| Favorites sharing works | Share action produces a deep link that opens Maphop at the saved coordinates |
 | Favorites backup works | Export produces valid GeoJSON FeatureCollection; imports accept GeoJSON, legacy format, and raw array; duplicates skipped |
 | Favorites overlay works | Pins appear/disappear on toggle; hover shows name popup; overlay survives style switch; state persists |
 | Offline launch | App shell loads without network after first visit |
@@ -845,7 +870,7 @@ Chromium is not used because the `chrome-headless-shell` binary on this WSL2 hos
 | Attribution is accurate | © panel shows correct provider credit for every base map; terrain suffix appears/disappears in sync |
 | Compass resets orientation | Button appears on rotation or tilt; needle tracks north; tap returns to bearing 0° and pitch 0° |
 | Map architecture is navigable | `doc/architecture/code-map.md` is sufficient to locate the owning module for each map-page capability without reading `src/js/maphop.js` in full |
-| Unit test suite passes | `npm test` exits 0 with all 69 tests green |
+| Unit test suite passes | `npm test` exits 0 with all 74 tests green |
 | E2E test suite passes | `npm run test:e2e` exits 0 with all 12 tests green against the dev server |
 
 ---

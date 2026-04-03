@@ -547,6 +547,12 @@ body::before {
     align-items: stretch;
 }
 
+.favorite-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 38px);
+    gap: 6px;
+}
+
 .favorite-item {
     appearance: none;
     display: block;
@@ -573,7 +579,7 @@ body::before {
     color: var(--text-muted);
 }
 
-.favorite-delete {
+.favorite-action {
     appearance: none;
     display: inline-flex;
     align-items: center;
@@ -586,10 +592,14 @@ body::before {
     touch-action: manipulation;
 }
 
-.favorite-delete svg {
+.favorite-action svg {
     width: 15px;
     height: 15px;
     stroke: currentColor;
+}
+
+.favorite-share {
+    color: var(--accent);
 }
 
 .favorites-empty {

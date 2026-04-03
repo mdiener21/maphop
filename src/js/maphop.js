@@ -11,12 +11,14 @@ import { createFavoritesPanel } from "./map/favorites-panel.js";
 import { createInstallPromptController } from "./map/install-prompt-controller.js";
 import { createMenuController } from "./map/menu-controller.js";
 import { registerScopedServiceWorker } from "./map/service-worker.js";
+import { parseSharedLocationFromUrl } from "./map/share-location.js";
 import { createStatusToast } from "./map/status-toast.js";
 import { createTerrainController } from "./map/terrain-controller.js";
 
 const fallbackBaseLayerKey = "bergfex";
 const defaultCenter = [14.268, 46.59026];
 const defaultZoom = 15;
+const sharedLocation = parseSharedLocationFromUrl();
 
 const dom = getMapPageDom();
 
@@ -32,8 +34,8 @@ const initialBaseLayerKey =
 
 const map = new maplibregl.Map({
     style: baseMapConfigs[initialBaseLayerKey].style,
-    center: defaultCenter,
-    zoom: defaultZoom,
+    center: sharedLocation?.center ?? defaultCenter,
+    zoom: sharedLocation?.zoom ?? defaultZoom,
     container: "map",
     attributionControl: false,
     maxPitch: 85
