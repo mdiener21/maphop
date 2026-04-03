@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-04-03
+
 ### Added
 - **Favorite share links**: each saved favorite now includes a share action that generates a deep link to the exact saved location, suitable for native sharing targets like WhatsApp or copying as a URL.
 
