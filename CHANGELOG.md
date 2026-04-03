@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-04-03
+
 ### Added
 - **Shared location pin**: when the page loads with a shared location URL, a pin marker is shown at the center of the map highlighting the shared spot.
 - **Shared location banner**: a top banner appears on shared location load with "Add to Favorites" (saves the pinned spot directly to favorites) and a dismiss button (removes pin and banner).
