@@ -1,6 +1,6 @@
 # Product Specification: Maphop
 
-**Version:** 1.8
+**Version:** 1.9
 **Last Updated:** 2026-04-03
 **Author:** Product Management
 **Status:** Draft
@@ -168,7 +168,7 @@ Settings Page
   └─► Export / Import Favorites ──► favorite-transfer.js ──► favorite-store.js ──► IndexedDB (local)
 
 Map Page
-  ├─► Shared Location URL (`lat`,`lng`,`z`) ──► share-location.js ──► Initial map center / zoom
+  ├─► Shared Location URL (`lat`,`lng`,`z`) ──► share-location.js ──► Initial map center / zoom ──► Pin marker on map + shared location banner (Add to Favorites / Dismiss)
   │
   └─► Favorites Overlay Toggle ──► favorites-overlay.js ──► MapLibre source/layer ──► Pin markers on map
 ```
@@ -353,7 +353,7 @@ Local-only bookmarking system using IndexedDB.
 - **Cancel**: cancel buttons, clicking the modal backdrop, or pressing `Escape` abort the in-progress add-favorite flow without saving.
 - **List**: sorted newest-first, each entry shows name and coordinates (5 decimal places).
 - **Share**: each favorite row includes a share button that generates a deep link to the saved coordinates; native share targets are used when available, otherwise the URL is copied to the clipboard.
-- **Open shared location**: loading Maphop with `lat` and `lng` query parameters centers the map on that location; optional `z` sets the initial zoom.
+- **Open shared location**: loading Maphop with `lat` and `lng` query parameters centers the map on that location (optional `z` sets the initial zoom), places a pin marker at the shared coordinates, and shows the shared location banner (see §4.9).
 - **Navigate**: clicking a favorite eases the map to saved coordinates (650ms `easeTo` animation) and closes the menu.
 - **Delete**: inline trash-icon button removes the entry and refreshes the list.
 - **Empty state**: shows "No saved locations yet." when the store is empty.
@@ -453,7 +453,7 @@ A toggle in the Favorites section of the control menu that renders all saved fav
 | MapLibre layer ID | `favorites-overlay-pins` |
 | Layer type | `symbol` |
 | Icon image ID | `favorites-pin` |
-| Pin SVG | Custom SVG — teardrop pin shape, accent color (`#6ff2bd`) fill, dark stroke |
+| Pin SVG | Custom SVG — teardrop pin shape, accent color (`#6ff2bd`) fill, dark stroke; rendered at 31×42 px (30% larger than the base 24×32 viewBox) |
 | Icon size | `0.7` |
 | Icon anchor | `bottom` |
 | Toggle state persistence | `localStorage` key `maphop-favorites-overlay` (`"1"` = visible) |
@@ -475,6 +475,33 @@ A toggle in the Favorites section of the control menu that renders all saved fav
 - Adding or removing a favorite refreshes the pins immediately while the overlay is on.
 - Overlay survives base map style switches without manual re-toggle.
 - Toggle state is remembered across page reloads.
+
+### 4.9 Shared Location Receiver Experience
+
+When Maphop is opened via a shared location link containing valid `lat` and `lng` query parameters, the receiver sees a pin marker on the map and a contextual banner with actions.
+
+| Property | Value |
+|----------|-------|
+| Trigger | Valid `lat` and `lng` query parameters present on page load |
+| Pin marker | `maplibregl.Marker` using the same pin SVG (31×42 px), anchor `bottom`, placed at the shared coordinates |
+| Banner position | Fixed, top-center; `top: max(1.25rem, safe-area-inset-top + 1rem)`; `z-index: 300` |
+| Banner appearance | Glass panel (dark, blurred background; accent-colored border); max-width 440px; consistent with install banners |
+| Banner contents | Small pin icon · descriptive text · "Add to Favorites" button · dismiss (✕) button |
+
+**Behavior:**
+- On map load, if a shared location is detected, a pin marker is added at the shared coordinates and the banner is shown.
+- Tapping **Add to Favorites** dismisses the banner and marker, then opens the favorite naming modal directly at the shared coordinates — bypassing the crosshair selection step via `favoritesPanel.promptFavoriteNameAt()`.
+- Tapping **✕** removes the marker and hides the banner without saving anything.
+- The map remains centered on the shared location regardless of whether the banner is dismissed.
+- No banner or marker is shown when there are no shared-location query parameters in the URL.
+
+**Acceptance criteria:**
+- A shared link opens Maphop centered on the shared coordinates.
+- A pin marker appears at the shared coordinates immediately after map load.
+- The banner is visible with "Add to Favorites" and dismiss (✕) actions.
+- Tapping "Add to Favorites" opens the naming modal with the shared coordinates pre-set; saving stores the location in IndexedDB.
+- Dismissing removes the pin and hides the banner without affecting the map position.
+- No banner or marker is shown on normal (non-shared) page loads.
 
 ### 4.10 3D Terrain
 
@@ -665,13 +692,25 @@ Open menu → Favorites section
 
 ### Flow 11: Share Favorite
 
+**Sender:**
 ```
 Open menu → Favorites section
   → Tap share button beside a saved favorite
   → On supported mobile/browser: native share sheet opens with the deep link
   → OR: share URL is copied to the clipboard
-  → Receiver opens the link
-  → Maphop loads centered on the shared coordinates, applying shared zoom if present
+```
+
+**Receiver:**
+```
+Receiver opens the shared link
+  → Maphop loads centered on the shared coordinates (shared zoom applied if present)
+  → Pin marker appears at the shared location on the map
+  → Shared location banner appears at top of screen
+  → Receiver taps "Add to Favorites"
+    → Banner and pin dismissed
+    → Favorite naming modal opens with the shared coordinates pre-filled
+    → Receiver enters a name and confirms → location saved to their own favorites
+  → OR: Receiver taps ✕ → banner and pin dismissed, map stays centered on shared location
 ```
 
 ---
@@ -717,6 +756,7 @@ Open menu → Favorites section
 | Attribution widget | Bottom-right `(8px, 8px)` | `©` button + collapsible glass panel; closes on outside click |
 | Compass button | 36×36px circle, `bottom-left ~70px` | Hidden when bearing ≈ 0°; SVG needle counter-rotates; tap resets to north |
 | Re-center button | Pill, `bottom-left 18px` | Hidden unless tracking active and user has panned; tap re-centers + resumes follow |
+| Shared location banner | max 440px, top-center | Glass panel; pin icon + text + "Add to Favorites" + Dismiss; shown only when `lat`/`lng` params are present |
 | Install banner (Android) | max 440px, bottom-center | Glass panel; Install + Dismiss buttons; driven by `beforeinstallprompt` |
 | Install hint (iOS) | max 440px, bottom-center | Glass panel; Share instruction + Dismiss; 7-day snooze |
 
@@ -843,7 +883,7 @@ Chromium is not used because the `chrome-headless-shell` binary on this WSL2 hos
 - Require user accounts or authentication.
 - Add analytics, tracking, or telemetry.
 - Auto-prompt for geolocation on page load.
-- Store user-generated or location data outside the browser (no cookies, no server sync). Non-sensitive UI state may use `localStorage` (current uses: iOS install hint snooze timestamp `ios-hint-snoozed-until`, last-selected base map `maphop-base-layer`).
+- Store user-generated or location data outside the browser (no cookies, no server sync). Non-sensitive UI state may use `localStorage` (current uses: iOS install hint snooze timestamp `ios-hint-snoozed-until`, last-selected base map `maphop-base-layer`, favorites overlay visibility `maphop-favorites-overlay`).
 
 ---
 
@@ -858,6 +898,7 @@ Chromium is not used because the `chrome-headless-shell` binary on this WSL2 hos
 | Idle timeout fires | Tracking stops after 15 minutes of inactivity |
 | Favorites CRUD complete | Save, list, navigate-to, and delete all work with toast feedback |
 | Favorites sharing works | Share action produces a deep link that opens Maphop at the saved coordinates |
+| Shared location receiver experience works | Opening a shared link shows a pin at the shared spot and a banner; "Add to Favorites" saves it; dismiss removes pin and banner |
 | Favorites backup works | Export produces valid GeoJSON FeatureCollection; imports accept GeoJSON, legacy format, and raw array; duplicates skipped |
 | Favorites overlay works | Pins appear/disappear on toggle; hover shows name popup; overlay survives style switch; state persists |
 | Offline launch | App shell loads without network after first visit |

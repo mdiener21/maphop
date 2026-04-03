@@ -56,7 +56,7 @@ Maphop is a lightweight map viewer you open in any modern browser. It gives you:
 | 🗺️ **7 Base Maps** | Bergfex OSM, OpenStreetMap, OpenFreeMap Liberty, OpenTopoMap, CyclOSM, Esri Satellite, basemap.at Grau |
 | 📍 **Live Location** | Opt-in GPS tracking with an accuracy circle, heading cone, and follow mode |
 | ⭐ **Favorites** | Crosshair-based save flow, local-only storage in IndexedDB, and one-tap return to saved places |
-| 🔗 **Favorite Sharing** | Share any saved favorite as a deep link that opens Maphop at the same location |
+| 🔗 **Favorite Sharing** | Share any saved favorite as a deep link; recipients see a pin marker and a banner to add the spot to their own favorites or dismiss |
 | 📌 **Favorites Overlay** | Show all saved favorites as pin markers directly on the map |
 | 💾 **GeoJSON Backup** | Export favorites as GeoJSON and import previously saved favorites from Settings |
 | 🏔️ **3D Terrain** | Toggle hillshade and terrain exaggeration for a three-dimensional view |
@@ -116,7 +116,7 @@ Available styles:
 3. On supported devices, Maphop opens the native share sheet so you can send the link through apps like WhatsApp.
 4. If native sharing is unavailable, Maphop copies the share URL to your clipboard instead.
 
-Anyone who opens the shared link will land directly on the same location in Maphop.
+Anyone who opens the shared link will land directly on the same location in Maphop. A pin marker appears at the shared spot and a banner at the top of the screen offers two actions: **Add to Favorites** (saves the location straight to their own favorites list) or **✕** to dismiss the pin and banner.
 
 ### Showing Favorites on the Map
 

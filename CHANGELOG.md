@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+- README updated to document the shared location recipient experience (pin marker and banner).
+- Product spec updated (v1.9): new §4.9 for shared location receiver experience; §4.5, §4.8, §5 Flow 11, §6 component inventory, §8 localStorage list, and §9 success criteria updated to reflect v1.4.0 shipped behavior.
+
 ## [1.4.0] - 2026-04-03
 
 ### Added
