@@ -23,6 +23,9 @@
   - [Switching Map Styles](#switching-map-styles)
   - [Showing Your Location](#showing-your-location)
   - [Saving Favorites](#saving-favorites)
+  - [Sharing Favorites](#sharing-favorites)
+  - [Showing Favorites on the Map](#showing-favorites-on-the-map)
+  - [Backing Up Favorites](#backing-up-favorites)
   - [3D Terrain](#3d-terrain)
   - [Installing as an App](#installing-as-an-app)
 - [Screenshot](#screenshot)
@@ -51,11 +54,15 @@ Maphop is a lightweight map viewer you open in any modern browser. It gives you:
 | Feature | Description |
 |---------|-------------|
 | 🗺️ **7 Base Maps** | Bergfex OSM, OpenStreetMap, OpenFreeMap Liberty, OpenTopoMap, CyclOSM, Esri Satellite, basemap.at Grau |
-| 📍 **Live Location** | Opt-in GPS tracking with an accuracy circle and heading cone overlay |
-| ⭐ **Favorites** | Save and recall named map views; stored 100% locally in IndexedDB |
+| 📍 **Live Location** | Opt-in GPS tracking with an accuracy circle, heading cone, and follow mode |
+| ⭐ **Favorites** | Crosshair-based save flow, local-only storage in IndexedDB, and one-tap return to saved places |
+| 🔗 **Favorite Sharing** | Share any saved favorite as a deep link that opens Maphop at the same location |
+| 📌 **Favorites Overlay** | Show all saved favorites as pin markers directly on the map |
+| 💾 **GeoJSON Backup** | Export favorites as GeoJSON and import previously saved favorites from Settings |
 | 🏔️ **3D Terrain** | Toggle hillshade and terrain exaggeration for a three-dimensional view |
-| 🧭 **Compass** | Appears when the map is rotated; tap to snap back to north |
+| 🧭 **Compass** | Appears when the map is rotated or tilted; tap to reset to flat north-up view |
 | 🔄 **Re-center** | Appears when you pan away from your live location; tap to fly back |
+| © **Attribution Widget** | Compact attribution panel for the active base map and terrain sources |
 | 📴 **Offline-capable** | Service worker caches the app shell for use without connectivity |
 | 📲 **Installable PWA** | Add to your home screen on Android or iOS for a native app feel |
 | 🔒 **Privacy-first** | No accounts, no analytics, tile requests use a `no-referrer` policy |
@@ -72,6 +79,7 @@ Visit **[https://maphop.eu](https://maphop.eu)** in any modern browser. The map 
 
 1. Tap the **☰ hamburger button** (top-right) to open the menu.
 2. Scroll to the **Maps** section and tap any style name to switch instantly.
+3. Maphop remembers the last base map you used and restores it on the next visit.
 
 Available styles:
 
@@ -95,10 +103,31 @@ Available styles:
 
 1. Pan and zoom the map to the view you want to save.
 2. Open the menu and expand the **Favorites** section.
-3. Tap **Save Current View** — you will be prompted for a name.
-4. Saved favorites appear as buttons in the list; tap any to fly back to that view.
+3. Tap **Add Favorite**.
+4. A crosshair appears in the center of the map; pan or zoom until it sits over the location you want.
+5. Tap **Save This Spot**.
+6. Enter a name in the centered modal and confirm.
+7. Saved favorites appear in the list; tap any one to fly back to that location.
 
-To back up or restore your favorites, go to **Settings** (link in the menu footer) and use the JSON export/import controls.
+### Sharing Favorites
+
+1. Open the **Favorites** section in the menu.
+2. Tap the **share button** beside any saved favorite.
+3. On supported devices, Maphop opens the native share sheet so you can send the link through apps like WhatsApp.
+4. If native sharing is unavailable, Maphop copies the share URL to your clipboard instead.
+
+Anyone who opens the shared link will land directly on the same location in Maphop.
+
+### Showing Favorites on the Map
+
+1. Open the **Favorites** section in the menu.
+2. Toggle **Show on Map** on.
+3. All saved favorites appear as green pins on the live map.
+4. Hover over a pin on desktop to see the favorite name.
+
+### Backing Up Favorites
+
+Open **Settings** from the menu footer to export favorites as **GeoJSON** or import a previously saved favorites file.
 
 ### 3D Terrain
 
@@ -163,7 +192,7 @@ npm run test:coverage
 npm run test:e2e
 ```
 
-Unit tests live in `tests/unit/` and cover `favorite-store.js`, `favorite-transfer.js`, and `LocationTracker`. End-to-end tests live in `tests/e2e/` and exercise the map page, settings page, impressum page, and inter-page navigation.
+Unit tests live in `tests/unit/` and currently cover attribution rendering, base-layer switching, install prompts, menu state, favorites transfer/store logic, location tracking, terrain lifecycle, and share-link helpers. End-to-end tests live in `tests/e2e/` and exercise the map page, settings page, impressum page, and inter-page navigation.
 
 ### Building for Production
 

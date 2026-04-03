@@ -2,10 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+- **Favorite share links**: each saved favorite now includes a share action that generates a deep link to the exact saved location, suitable for native sharing targets like WhatsApp or copying as a URL.
+
 ### Changed
+- **README refresh**: updated the project README to match the shipped app behavior, including the crosshair-based favorite flow, favorite sharing, favorites map overlay, GeoJSON backup, and current test coverage.
 - **Favorite save flow**: adding a favorite now enters a map-selection mode with a centered crosshair so the user can pan and zoom before saving the current center point.
 - **Favorite naming UI**: replaced the browser prompt with a compact centered modal shown after location selection, keeping the map interaction and naming steps separate.
-- Product spec updated (v1.7): favorites behavior, data flow, component inventory, and user flow now describe the crosshair selection overlay and post-selection naming modal.
+- **Shared location startup**: the map now reads `lat`, `lng`, and optional `z` query parameters on page load and opens directly at the shared location when present.
+- Product spec updated (v1.8): favorites sharing, deep-link startup behavior, architecture, component inventory, and test counts now reflect the share URL flow.
 
 ## [1.2.0] - 2026-04-03
 
