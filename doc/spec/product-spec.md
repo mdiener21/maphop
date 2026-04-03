@@ -1,7 +1,7 @@
 # Product Specification: Maphop
 
-**Version:** 1.5
-**Last Updated:** 2026-03-28 13:40:32
+**Version:** 1.6
+**Last Updated:** 2026-04-03
 **Author:** Product Management
 **Status:** Draft
 
@@ -160,6 +160,9 @@ User Interaction
 Settings Page
   │
   └─► Export / Import Favorites ──► favorite-transfer.js ──► favorite-store.js ──► IndexedDB (local)
+
+Map Page
+  └─► Favorites Overlay Toggle ──► favorites-overlay.js ──► MapLibre source/layer ──► Pin markers on map
 ```
 
 ### Map Page Module Boundaries
@@ -172,7 +175,8 @@ Settings Page
 | `src/js/map/terrain-controller.js` | Keep DEM and hillshade sources/layers consistent across terrain toggles and style reloads |
 | `src/js/map/attribution-controller.js` | Render attribution UI using DOM APIs from structured metadata, not provider HTML strings |
 | `src/js/location-tracker.js` | Own geolocation state, follow mode, idle timeout, and location overlay rendering |
-| `src/js/map/favorites-panel.js` | Handle favorites menu rendering, prompt/save/delete flows, and map navigation from saved entries |
+| `src/js/map/favorites-panel.js` | Handle favorites menu rendering, prompt/save/delete flows, map navigation from saved entries, and overlay toggle wiring |
+| `src/js/map/favorites-overlay.js` | Manage the favorites GeoJSON source and symbol layer, pin image registration, hover popup, toggle state, and style-reload restoration |
 | `src/js/map/menu-controller.js` | Own menu visibility and section expansion state |
 | `src/js/map/install-prompt-controller.js` | Capture install prompt events and iOS standalone hints |
 | `src/js/map/dom.js` | Centralize map-page DOM queries for easier auditing and reuse |
@@ -337,11 +341,13 @@ Local-only bookmarking system using IndexedDB.
 - **Navigate**: clicking a favorite eases the map to saved coordinates (650ms `easeTo` animation) and closes the menu.
 - **Delete**: inline trash-icon button removes the entry and refreshes the list.
 - **Empty state**: shows "No saved locations yet." when the store is empty.
+- **Overlay toggle**: "Show on Map" toggle button in the Favorites section panel shows/hides all favorites as pin markers on the live map (see §4.10).
 
 **Acceptance criteria:**
 - Favorites persist across browser sessions and page reloads.
 - Saving, navigating, and deleting all produce status toast feedback.
 - No network requests are made for any favorites operation.
+- Adding or deleting a favorite refreshes the overlay while it is visible.
 
 ### 4.6 Settings & Favorites Transfer
 
@@ -350,20 +356,44 @@ A dedicated settings page keeps backup actions and future configuration out of t
 | Property | Value |
 |----------|-------|
 | Page | `settings.html` |
-| Export format | `maphop-favorites` JSON payload |
-| Export version | `1` |
+| Export format | GeoJSON `FeatureCollection` (standard GeoJSON RFC 7946) |
+| Export filename | `maphop-favorites-YYYY-MM-DD.geojson` |
 | Max import file size | 64 KB |
 | Max imported favorites per file | 250 |
 | Max favorite name length | 80 characters |
 
+**Export shape:**
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [longitude, latitude] },
+      "properties": { "name": "My Place", "createdAt": 1712345678901 }
+    }
+  ]
+}
+```
+
+**Import — accepted formats (all validated identically):**
+
+| Format | Detection |
+|--------|-----------|
+| GeoJSON `FeatureCollection` | `payload.type === "FeatureCollection"` |
+| Legacy `maphop-favorites` envelope | `payload.format === "maphop-favorites"` |
+| Raw JSON array | Top-level array of objects |
+
 **Behavior:**
 - The settings page shows the current favorites count and confirms operations through a status line.
-- Export writes a timestamped `maphop-favorites-YYYY-MM-DD.json` file.
-- Import accepts `.json` files only, validates structure and coordinate ranges, and skips duplicate favorites already in IndexedDB.
+- Export writes a timestamped `.geojson` file as a standard GeoJSON FeatureCollection.
+- Import accepts `.json` and `.geojson` files, validates structure and coordinate ranges, and skips duplicate favorites already in IndexedDB.
 - Shared page-shell code keeps the page title and visible app version consistent across pages.
 
 **Acceptance criteria:**
-- Export produces a valid JSON backup when favorites exist and reports an empty-state message otherwise.
+- Export produces a valid GeoJSON FeatureCollection when favorites exist and reports an empty-state message otherwise.
+- Exported file is loadable in standard GIS tools (QGIS, geojson.io, etc.).
+- Import accepts GeoJSON FeatureCollection, legacy `maphop-favorites` envelope, and raw JSON arrays.
 - Import rejects invalid, oversized, or malformed files with user-facing status text.
 - Successful imports refresh the visible favorites count and do not duplicate existing saved locations.
 
@@ -395,7 +425,40 @@ A dedicated settings page keeps backup actions and future configuration out of t
 - Install banner appears on first eligible Android/Chrome visit; dismissing it does not permanently suppress it.
 - iOS hint appears on first eligible Safari visit and re-appears after 7 days if the user has not installed.
 
-### 4.8 3D Terrain
+### 4.8 Favorites Map Overlay
+
+A toggle in the Favorites section of the control menu that renders all saved favorites as pin markers on the live map.
+
+| Property | Value |
+|----------|-------|
+| MapLibre source ID | `favorites-overlay` |
+| MapLibre layer ID | `favorites-overlay-pins` |
+| Layer type | `symbol` |
+| Icon image ID | `favorites-pin` |
+| Pin SVG | Custom SVG — teardrop pin shape, accent color (`#6ff2bd`) fill, dark stroke |
+| Icon size | `0.7` |
+| Icon anchor | `bottom` |
+| Toggle state persistence | `localStorage` key `maphop-favorites-overlay` (`"1"` = visible) |
+| Hover interaction | `maplibregl.Popup` showing the favorite's `name` property |
+
+**Behavior:**
+- A "Show on Map" toggle button sits in the Favorites section panel, below the "Save Current View" button.
+- Clicking the toggle shows or hides the `favorites-overlay-pins` layer and flips `data-state` between `"active"` and `"idle"` for CSS pill styling.
+- Toggle state persists across sessions via `localStorage`.
+- The GeoJSON source is updated (`setData`) whenever a favorite is saved, deleted, or loaded from IndexedDB while the overlay exists on the map.
+- After every base map style switch, `ensureAfterStyleLoad()` re-registers the pin image and re-adds the source and layer, restoring the previous visibility state.
+- Mouse cursor changes to `pointer` on hover over a pin; restores to `""` on leave.
+- A `maplibregl.Popup` anchored to `bottom` opens at the feature's coordinates showing the favorite name; it is removed on `mouseleave`.
+
+**Acceptance criteria:**
+- Toggle button appears in the Favorites section and toggles pins on/off.
+- All saved favorites appear as pin markers at their stored coordinates.
+- Mousing over a pin shows the favorite's name in a popup; moving away removes it.
+- Adding or removing a favorite refreshes the pins immediately while the overlay is on.
+- Overlay survives base map style switches without manual re-toggle.
+- Toggle state is remembered across page reloads.
+
+### 4.10 3D Terrain
 
 Toggle in the Maps menu section that enables MapLibre native terrain exaggeration over the active base map.
 
@@ -429,7 +492,7 @@ Toggle in the Maps menu section that enables MapLibre native terrain exaggeratio
 - Terrain and hillshade survive base map style switches without manual re-toggle.
 - Terrain attribution appears in the attribution panel while active and disappears on disable.
 
-### 4.9 Compass & Map Orientation
+### 4.11 Compass & Map Orientation
 
 A floating compass button that indicates when the map has been rotated or tilted away from the default 2D north view and provides a one-tap reset to flat north.
 
@@ -556,14 +619,27 @@ First visit in Safari (not standalone)
   → Next launch from home screen → app opens in standalone mode, no hint shown
 ```
 
-### Flow 9: Favorites Backup
+### Flow 9: Favorites Backup (GeoJSON)
 
 ```
 Open Settings
   → Review favorites count
-  → Tap "Export favorites JSON" → download starts immediately
-  → OR: Tap "Import favorites JSON" → choose file
+  → Tap "Export favorites JSON" → maphop-favorites-YYYY-MM-DD.geojson downloads immediately
+  → OR: Tap "Import favorites JSON" → choose .json or .geojson file
   → File validates → unique favorites are imported → count refreshes → status confirms result
+```
+
+### Flow 10: View Favorites on Map
+
+```
+Open menu → Favorites section
+  → Tap "Show on Map" toggle → pill turns active
+  → Menu closes / stays open
+  → All saved favorites appear as green pin markers on the map
+  → Hover over a pin → popup shows the favorite's name
+  → Move mouse away → popup closes
+  → Tap "Show on Map" again → pins disappear
+  → Toggle state remembered across page reloads
 ```
 
 ---
@@ -597,6 +673,8 @@ Open Settings
 | Location toggle | Full-width row | Animated pill with gradient active state |
 | Terrain toggle | Full-width row, Location section (below privacy note) | Same animated pill; separated by top border |
 | Favorite item | Full-width card | Name + coordinates, inline delete button |
+| Show on Map toggle | Full-width toggle row, Favorites section | Animated pill; `data-state` active/idle; persists to localStorage |
+| Favorites pin | Map symbol layer | Green teardrop SVG; popup on hover showing favorite name |
 | Layer option | Full-width button | Radio-style selection, accent highlight |
 | Section toggle | Full-width header | Chevron rotates 180° on expand; used by Location (default closed), Favorites, and Maps sections |
 | Settings card | Responsive grid card | Groups backup actions, roadmap placeholders, and privacy copy |
@@ -743,7 +821,8 @@ Chromium is not used because the `chrome-headless-shell` binary on this WSL2 hos
 | Location tracking is functional | Accuracy circle, heading cone, and point render on activation |
 | Idle timeout fires | Tracking stops after 15 minutes of inactivity |
 | Favorites CRUD complete | Save, list, navigate-to, and delete all work with toast feedback |
-| Favorites backup works | Export succeeds for saved data; imports validate input and skip duplicates |
+| Favorites backup works | Export produces valid GeoJSON FeatureCollection; imports accept GeoJSON, legacy format, and raw array; duplicates skipped |
+| Favorites overlay works | Pins appear/disappear on toggle; hover shows name popup; overlay survives style switch; state persists |
 | Offline launch | App shell loads without network after first visit |
 | PWA installable | Passes Lighthouse PWA installability checks |
 | Privacy preserved | Zero outbound requests except tile fetches; no cookies or analytics |
