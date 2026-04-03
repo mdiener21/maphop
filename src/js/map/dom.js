@@ -11,6 +11,8 @@ export function getMapPageDom() {
         locateButton: document.getElementById("locateButton"),
         locationToggleLabel: document.getElementById("locationToggleLabel"),
         saveFavoriteButton: document.getElementById("saveFavoriteButton"),
+        showFavoritesOnMapButton: document.getElementById("showFavoritesOnMapButton"),
+        showFavoritesOnMapLabel: document.getElementById("showFavoritesOnMapLabel"),
         favoritesList: document.getElementById("favoritesList"),
         favoritesEmpty: document.getElementById("favoritesEmpty"),
         locationSectionToggle,

@@ -2,10 +2,19 @@
 
 ## [Unreleased]
 
+### Added
+- **Favorites GeoJSON export**: export now produces a standard GeoJSON `FeatureCollection` (RFC 7946) downloaded as `maphop-favorites-YYYY-MM-DD.geojson`, loadable directly in QGIS, geojson.io, and other GIS tools.
+- **Favorites map overlay**: "Show on Map" toggle in the Favorites section renders all saved favorites as green pin markers on the live map; hovering over a pin shows a popup with the favorite's name; toggle state persists across sessions via `localStorage`.
+- **Multi-format import**: favorites import now accepts GeoJSON `FeatureCollection` files (`.geojson` or `.json`) in addition to the legacy `maphop-favorites` envelope and raw JSON arrays. Import also accepts `.geojson` file extension.
+- Product spec updated (v1.6): §4.6 updated to reflect GeoJSON export format with import format table; new §4.8 Favorites Map Overlay; §3 Architecture module table and data flow updated; §5 Flow 9 updated, Flow 10 added; §6 component inventory updated; §9 success criteria updated.
+
 ### Fixed
 - Location accordion section toggle (`locationSectionToggle`) was not wired up in `dom.js` and therefore could not be expanded or collapsed; added it to `menuSectionToggleElements` alongside the Favorites and Maps toggles.
 
-### Added
+### Changed
+- Favorites export status toast updated to "Favorites exported as GeoJSON."
+
+### Added (prior)
 - Comprehensive README with user introduction, feature table, how-to-use guide, screenshot placeholder, and developer build/deploy instructions.
 
 ## [1.1.0] - 2026-03-28

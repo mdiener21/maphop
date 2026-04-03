@@ -30,7 +30,7 @@ function createTrashIcon() {
     return svg;
 }
 
-export function createFavoritesPanel({ map, favoritesList, favoritesEmpty, onStatus, onMenuClose }) {
+export function createFavoritesPanel({ map, favoritesList, favoritesEmpty, onStatus, onMenuClose, overlay }) {
     async function deleteFavorite(id, name) {
         if (!isFavoritesStorageAvailable()) {
             onStatus("IndexedDB is not available in this browser.");
@@ -97,7 +97,9 @@ export function createFavoritesPanel({ map, favoritesList, favoritesEmpty, onSta
         }
 
         try {
-            renderFavorites(await readFavorites());
+            const favorites = await readFavorites();
+            renderFavorites(favorites);
+            overlay?.update(favorites);
         } catch (error) {
             favoritesEmpty.hidden = false;
             favoritesEmpty.textContent = "Unable to load saved locations.";

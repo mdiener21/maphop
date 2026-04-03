@@ -6,6 +6,7 @@ import { createAttributionController } from "./map/attribution-controller.js";
 import { createBaseLayerController, loadBaseLayerPreference } from "./map/base-layer-controller.js";
 import { baseMapConfigs } from "./map/base-map-registry.js";
 import { getMapPageDom } from "./map/dom.js";
+import { createFavoritesOverlay } from "./map/favorites-overlay.js";
 import { createFavoritesPanel } from "./map/favorites-panel.js";
 import { createInstallPromptController } from "./map/install-prompt-controller.js";
 import { createMenuController } from "./map/menu-controller.js";
@@ -79,12 +80,15 @@ const terrainController = createTerrainController({
     onStateChange: refreshAttribution
 });
 
+const favoritesOverlay = createFavoritesOverlay(map);
+
 const favoritesPanel = createFavoritesPanel({
     map,
     favoritesList: dom.favoritesList,
     favoritesEmpty: dom.favoritesEmpty,
     onStatus: setStatus,
-    onMenuClose: () => menuController.setOpen(false)
+    onMenuClose: () => menuController.setOpen(false),
+    overlay: favoritesOverlay
 });
 
 const baseLayerController = createBaseLayerController({
@@ -97,6 +101,7 @@ const baseLayerController = createBaseLayerController({
     onStyleReady: () => {
         terrainController.ensureAfterStyleLoad();
         tracker.ensureOverlayAfterStyleLoad();
+        favoritesOverlay.ensureAfterStyleLoad();
     },
     onActiveLayerChanged: refreshAttribution,
     onMenuClose: () => menuController.setOpen(false)
@@ -212,6 +217,8 @@ menuController.initializeSections();
 map.on("load", () => {
     terrainController.ensureAfterStyleLoad();
     tracker.ensureOverlayAfterStyleLoad();
+    favoritesOverlay.ensureAfterStyleLoad();
+    favoritesOverlay.initToggleButton(dom.showFavoritesOnMapButton, dom.showFavoritesOnMapLabel);
     baseLayerController.updateLayerOptionState();
     refreshAttribution();
     favoritesPanel.loadFavorites();

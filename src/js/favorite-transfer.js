@@ -1,9 +1,8 @@
 const exportFormatName = "maphop-favorites";
-const exportFormatVersion = 1;
 const maxImportFileSizeBytes = 64 * 1024;
 const maxImportFavorites = 250;
 const maxFavoriteNameLength = 80;
-const jsonMimeTypes = new Set(["application/json", "text/json"]);
+const jsonMimeTypes = new Set(["application/json", "text/json", "application/geo+json"]);
 
 function downloadTextFile(filename, text) {
     const blob = new Blob([text], { type: "application/json" });
@@ -25,7 +24,7 @@ function downloadTextFile(filename, text) {
 function isAcceptedJsonFile(file) {
     const fileType = (file.type || "").toLowerCase();
     const fileName = (file.name || "").toLowerCase();
-    return fileName.endsWith(".json") || jsonMimeTypes.has(fileType);
+    return fileName.endsWith(".json") || fileName.endsWith(".geojson") || jsonMimeTypes.has(fileType);
 }
 
 function normalizeFavoriteRecord(record) {
@@ -33,10 +32,17 @@ function normalizeFavoriteRecord(record) {
         throw new Error("Favorites import must contain objects.");
     }
 
-    const name = typeof record.name === "string" ? record.name.trim() : "";
-    const longitude = Number(record.longitude);
-    const latitude = Number(record.latitude);
-    const createdAt = Number(record.createdAt);
+    // Support GeoJSON Feature format: { type: "Feature", geometry: { coordinates: [lng, lat] }, properties: { name, createdAt } }
+    const isGeoJsonFeature = record.type === "Feature" &&
+        record.geometry?.type === "Point" &&
+        Array.isArray(record.geometry?.coordinates);
+
+    const name = typeof (isGeoJsonFeature ? record.properties?.name : record.name) === "string"
+        ? (isGeoJsonFeature ? record.properties.name : record.name).trim()
+        : "";
+    const longitude = isGeoJsonFeature ? Number(record.geometry.coordinates[0]) : Number(record.longitude);
+    const latitude = isGeoJsonFeature ? Number(record.geometry.coordinates[1]) : Number(record.latitude);
+    const createdAt = Number(isGeoJsonFeature ? record.properties?.createdAt : record.createdAt);
 
     if (!name) {
         throw new Error("Each imported favorite needs a name.");
@@ -64,10 +70,18 @@ function normalizeFavoriteRecord(record) {
 
 function createExportPayload(favorites) {
     return {
-        format: exportFormatName,
-        version: exportFormatVersion,
-        exportedAt: new Date().toISOString(),
-        favorites: favorites.map((favorite) => normalizeFavoriteRecord(favorite))
+        type: "FeatureCollection",
+        features: favorites.map((favorite) => ({
+            type: "Feature",
+            geometry: {
+                type: "Point",
+                coordinates: [favorite.longitude, favorite.latitude]
+            },
+            properties: {
+                name: favorite.name,
+                createdAt: favorite.createdAt
+            }
+        }))
     };
 }
 
@@ -80,11 +94,15 @@ function parseImportPayload(text) {
         throw new Error("Selected file is not valid JSON.");
     }
 
-    const favorites = Array.isArray(payload)
-        ? payload
-        : payload?.format === exportFormatName && Array.isArray(payload.favorites)
-            ? payload.favorites
-            : null;
+    let favorites = null;
+
+    if (Array.isArray(payload)) {
+        favorites = payload;
+    } else if (payload?.type === "FeatureCollection" && Array.isArray(payload.features)) {
+        favorites = payload.features;
+    } else if (payload?.format === exportFormatName && Array.isArray(payload.favorites)) {
+        favorites = payload.favorites;
+    }
 
     if (!favorites) {
         throw new Error("Selected file is not a valid favorites export.");
@@ -103,7 +121,7 @@ function parseImportPayload(text) {
 
 function createExportFilename() {
     const dayStamp = new Date().toISOString().slice(0, 10);
-    return `maphop-favorites-${dayStamp}.json`;
+    return `maphop-favorites-${dayStamp}.geojson`;
 }
 
 async function handleExport(onExportFavorites, setStatus) {
@@ -116,7 +134,7 @@ async function handleExport(onExportFavorites, setStatus) {
 
     const payload = createExportPayload(favorites);
     downloadTextFile(createExportFilename(), JSON.stringify(payload, null, 2));
-    setStatus("Favorites exported as JSON.");
+    setStatus("Favorites exported as GeoJSON.");
 }
 
 async function handleImport(file, onImportFavorites, setStatus) {
