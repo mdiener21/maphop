@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-04-05
+
 ### Added
 - Optional Thunderforest Outdoors base map support behind the build-time env var `VITE_THUNDERFOREST_API_KEY`; the menu option is hidden when no key is configured.
 
@@ -129,3 +131,12 @@
 - Added a `Maphop` title in the menu header that appears to the left of the hamburger button only while the menu is open
 - Left-aligned the `Maphop` header title within the open menu
 - Updated the Vite build config to emit both the main app page and `src/impressum.html`
+
+[Unreleased]: https://github.com/mdiener21/maphop/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/mdiener21/maphop/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/mdiener21/maphop/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/mdiener21/maphop/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/mdiener21/maphop/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/mdiener21/maphop/compare/v1.0.2...v1.1.0
+[1.0.2]: https://github.com/mdiener21/maphop/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/mdiener21/maphop/releases/tag/v1.0.1
