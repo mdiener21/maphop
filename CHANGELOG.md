@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- Optional Thunderforest Transport base map
+
 ## [1.5.0] - 2026-04-05
 
 ### Added

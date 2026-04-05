@@ -1,12 +1,15 @@
 const bergfexTilesUrl = "https://tiles.bergfex.at/styles/bergfex-osm/512/{z}/{x}/{y}.png";
-const thunderforestBaseUrl = "https://api.thunderforest.com/outdoors/{z}/{x}/{y}.png";
+const thunderforestBaseUrls = {
+    outdoors: "https://api.thunderforest.com/outdoors/{z}/{x}/{y}.png",
+    transport: "https://api.thunderforest.com/transport/{z}/{x}/{y}.png"
+};
 
 function expandSubdomains(urlTemplate) {
     return ["a", "b", "c"].map((subdomain) => urlTemplate.replace("{s}", subdomain));
 }
 
-function createThunderforestTilesUrl(apiKey) {
-    return `${thunderforestBaseUrl}?apikey=${encodeURIComponent(apiKey)}`;
+function createThunderforestTilesUrl(urlTemplate, apiKey) {
+    return `${urlTemplate}?apikey=${encodeURIComponent(apiKey)}`;
 }
 
 function createRasterStyle(tiles, { tileSize, maxzoom }) {
@@ -97,7 +100,23 @@ export function createBaseMapConfigs(thunderforestApiKey = readThunderforestApiK
                         prefix: "Data © "
                     }
                 ],
-                style: createRasterStyle([createThunderforestTilesUrl(normalizedThunderforestApiKey)], {
+                style: createRasterStyle([createThunderforestTilesUrl(thunderforestBaseUrls.outdoors, normalizedThunderforestApiKey)], {
+                    tileSize: 256,
+                    maxzoom: 22
+                })
+            },
+            transport: {
+                label: "Transport",
+                attribution: [
+                    { type: "link", label: "Thunderforest", href: "https://www.thunderforest.com", prefix: "Maps © " },
+                    {
+                        type: "link",
+                        label: "OpenStreetMap contributors",
+                        href: "https://www.openstreetmap.org/copyright",
+                        prefix: "Data © "
+                    }
+                ],
+                style: createRasterStyle([createThunderforestTilesUrl(thunderforestBaseUrls.transport, normalizedThunderforestApiKey)], {
                     tileSize: 256,
                     maxzoom: 22
                 })

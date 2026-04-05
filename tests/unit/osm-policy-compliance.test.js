@@ -38,4 +38,11 @@ describe("OpenStreetMap policy compliance", () => {
         expect(indexHtml).not.toContain('name="referrer" content="no-referrer"');
         expect(headersFile).not.toContain("Referrer-Policy: no-referrer");
     });
+
+    it("includes a map menu option for the Thunderforest transport layer", () => {
+        const indexHtml = readProjectFile("src/index.html");
+
+        expect(indexHtml).toContain('data-layer-key="transport"');
+        expect(indexHtml).toContain("Transport");
+    });
 });
