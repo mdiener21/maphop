@@ -93,6 +93,7 @@ export function createFavoritesOverlay(map) {
             closeButton: false,
             closeOnClick: false,
             anchor: "bottom",
+            offset: [0, -25],
             className: "favorites-overlay-popup"
         })
             .setLngLat(feature.geometry.coordinates)

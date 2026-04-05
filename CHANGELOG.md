@@ -7,6 +7,7 @@
 - Product spec updated (v1.9): new §4.9 for shared location receiver experience; §4.5, §4.8, §5 Flow 11, §6 component inventory, §8 localStorage list, and §9 success criteria updated to reflect v1.4.0 shipped behavior.
 - Product spec restructured for LLM token efficiency: removed ToC, merged behavior/acceptance-criteria, compacted testing section, added Quick Index.
 - Refactor: extracted `MSG_INDEXEDDB_UNAVAILABLE` constant in `favorites-panel.js` to deduplicate 4 identical string literals.
+- Favorites map overlay popup now uses black text for contrast and is offset upward so it clears the pin marker.
 
 ## [1.4.0] - 2026-04-03
 
