@@ -34,6 +34,16 @@ export const terrainAttributionTokens = [
 ];
 
 export const baseMapConfigs = {
+    osm: {
+        label: "OpenStreetMap",
+        attribution: [
+            { type: "link", label: "OpenStreetMap contributors", href: "https://www.openstreetmap.org/copyright", prefix: "© " }
+        ],
+        style: createRasterStyle(["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], {
+            tileSize: 256,
+            maxzoom: 19
+        })
+    },
     bergfex: {
         label: "Bergfex OSM",
         attribution: [
@@ -41,16 +51,6 @@ export const baseMapConfigs = {
             { type: "link", label: "OpenStreetMap contributors", href: "https://www.openstreetmap.org/copyright", prefix: "© " }
         ],
         style: createRasterStyle([bergfexTilesUrl], { tileSize: 512, maxzoom: 20 })
-    },
-    osm: {
-        label: "OpenStreetMap",
-        attribution: [
-            { type: "link", label: "OpenStreetMap contributors", href: "https://www.openstreetmap.org/copyright", prefix: "© " }
-        ],
-        style: createRasterStyle(expandSubdomains("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"), {
-            tileSize: 256,
-            maxzoom: 19
-        })
     },
     openfreemap: {
         label: "OpenFreeMap Liberty",

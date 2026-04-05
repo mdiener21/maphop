@@ -23,16 +23,7 @@ function appendTokens(container, tokens) {
     });
 }
 
-export function createAttributionController({ attributionButton, attributionPanel, attributionText, baseMapConfigs }) {
-    function setOpen(isOpen) {
-        attributionPanel.hidden = !isOpen;
-        attributionButton.setAttribute("aria-expanded", String(isOpen));
-    }
-
-    function toggle() {
-        setOpen(attributionPanel.hidden);
-    }
-
+export function createAttributionController({ attributionText, baseMapConfigs }) {
     function update(activeBaseLayerKey, terrainActive) {
         const config = baseMapConfigs[activeBaseLayerKey];
         attributionText.replaceChildren();
@@ -45,8 +36,6 @@ export function createAttributionController({ attributionButton, attributionPane
     }
 
     return {
-        setOpen,
-        toggle,
         update
     };
 }

@@ -8,14 +8,14 @@
     >
     <meta name="description" content="Personal mobile map with optional live location and saved favorites.">
     <meta name="theme-color" content="#0d1b20">
-    <meta name="referrer" content="no-referrer">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'none';
         script-src 'self' blob:;
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: blob:
             https://tiles.bergfex.at
-            https://*.tile.openstreetmap.org
+            https://tile.openstreetmap.org
             https://*.tile.opentopomap.org
             https://*.tile-cyclosm.openstreetmap.fr
             https://server.arcgisonline.com
@@ -24,7 +24,7 @@
             https://tiles.mapterhorn.com;
         connect-src 'self' blob:
             https://tiles.bergfex.at
-            https://*.tile.openstreetmap.org
+            https://tile.openstreetmap.org
             https://*.tile.opentopomap.org
             https://*.tile-cyclosm.openstreetmap.fr
             https://server.arcgisonline.com
@@ -187,11 +187,11 @@
                         </button>
                         <div class="menu-section-panel" id="mapsSectionPanel">
                             <div class="map-options" role="group" aria-label="Base maps">
-                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="bergfex">
-                                    Bergfex OSM
-                                </button>
                                 <button class="layer-option" type="button" role="menuitemradio" data-layer-key="osm">
                                     OpenStreetMap
+                                </button>
+                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="bergfex">
+                                    Bergfex OSM
                                 </button>
                                 <button class="layer-option" type="button" role="menuitemradio" data-layer-key="openfreemap">
                                     OpenFreeMap Liberty
@@ -225,12 +225,7 @@
         <p class="status-toast" id="status" aria-live="polite"></p>
 
         <div class="attribution-widget" id="attributionWidget">
-            <div class="attribution-panel" id="attributionPanel" hidden>
-                <p class="attribution-text" id="attributionText"></p>
-            </div>
-            <button class="attribution-button" id="attributionButton" type="button" aria-label="Map attribution" aria-expanded="false" aria-controls="attributionPanel">
-                &copy;
-            </button>
+            <p class="attribution-text" id="attributionText"></p>
         </div>
 
         <button class="compass-button" id="compassButton" type="button" aria-label="Reset map orientation to 2D north" hidden>

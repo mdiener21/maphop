@@ -2,21 +2,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createAttributionController } from "../../src/js/map/attribution-controller.js";
 
 function makeController(baseMapConfigs) {
-    const attributionButton = document.createElement("button");
-    const attributionPanel = document.createElement("div");
     const attributionText = document.createElement("p");
 
-    attributionPanel.hidden = true;
-    attributionButton.setAttribute("aria-expanded", "false");
-
     const controller = createAttributionController({
-        attributionButton,
-        attributionPanel,
         attributionText,
         baseMapConfigs
     });
 
-    return { attributionButton, attributionPanel, attributionText, controller };
+    return { attributionText, controller };
 }
 
 const baseMapConfigs = {
@@ -53,27 +46,20 @@ describe("createAttributionController", () => {
         expect(attributionText.textContent).toContain("Terrain © Mapterhorn");
     });
 
-    it("setOpen syncs panel visibility and aria-expanded", () => {
-        const { attributionButton, attributionPanel, controller } = makeController(baseMapConfigs);
+    it("replaces the previous attribution when the active layer changes", () => {
+        const { attributionText, controller } = makeController({
+            bergfex: baseMapConfigs.bergfex,
+            osm: {
+                attribution: [
+                    { type: "link", label: "OpenStreetMap contributors", href: "https://example.com/osm", prefix: "© " }
+                ]
+            }
+        });
 
-        controller.setOpen(true);
-        expect(attributionPanel.hidden).toBe(false);
-        expect(attributionButton.getAttribute("aria-expanded")).toBe("true");
+        controller.update("bergfex", false);
+        controller.update("osm", false);
 
-        controller.setOpen(false);
-        expect(attributionPanel.hidden).toBe(true);
-        expect(attributionButton.getAttribute("aria-expanded")).toBe("false");
-    });
-
-    it("toggle flips the current open state", () => {
-        const { attributionButton, attributionPanel, controller } = makeController(baseMapConfigs);
-
-        controller.toggle();
-        expect(attributionPanel.hidden).toBe(false);
-        expect(attributionButton.getAttribute("aria-expanded")).toBe("true");
-
-        controller.toggle();
-        expect(attributionPanel.hidden).toBe(true);
-        expect(attributionButton.getAttribute("aria-expanded")).toBe("false");
+        expect(attributionText.textContent).toBe("© OpenStreetMap contributors");
+        expect(attributionText.querySelectorAll("a")).toHaveLength(1);
     });
 });

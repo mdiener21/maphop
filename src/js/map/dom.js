@@ -42,8 +42,6 @@ export function getMapPageDom() {
         compassNeedle: document.getElementById("compassNeedle"),
         terrainButton: document.getElementById("terrainButton"),
         terrainToggleLabel: document.getElementById("terrainToggleLabel"),
-        attributionButton: document.getElementById("attributionButton"),
-        attributionPanel: document.getElementById("attributionPanel"),
         attributionText: document.getElementById("attributionText")
     };
 }

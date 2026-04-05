@@ -1,341 +1,184 @@
-# Product Specification: Maphop
+# Product Spec: Maphop
 
-**Version:** 1.9
-**Last Updated:** 2026-04-03
-**Author:** Product Management
-**Status:** Draft
+**v1.9 · 2026-04-03 · Status: Active**
 
-**Maintenance Rule:** Update this spec whenever `CHANGELOG.md` is updated for shipped behavior, architecture, UX, user flow, or constraint changes.
+Local-first, privacy-first PWA map viewer. No accounts, no server-side state, all user data on-device.
 
----
-
-## Table of Contents
-
-| Section | Summary |
-|---------|---------|
-| [1. Objective](#1-objective) | Vision, problem statement, and target users |
-| [2. Tech Stack](#2-tech-stack) | Runtime dependencies, build tools, browser APIs |
-| [3. Architecture](#3-architecture) | File structure, data flow, and design principles |
-| [4. Features](#4-features) | Detailed feature specifications with acceptance criteria |
-| [5. User Flows](#5-user-flows) | End-to-end workflows for core scenarios |
-| [6. UI & Design System](#6-ui--design-system) | Visual language, components, and responsive behavior |
-| [7. Non-Functional Requirements](#7-non-functional-requirements) | Performance, privacy, accessibility, offline support |
-| [8. Boundaries & Constraints](#8-boundaries--constraints) | Always / Ask First / Never guardrails |
-| [9. Success Criteria](#9-success-criteria) | Measurable outcomes that define "done" |
-| [10. Future Considerations](#10-future-considerations) | Known gaps and potential roadmap items |
+**Rule:** Update this spec and `CHANGELOG.md` together whenever shipped behavior, architecture, UX, or constraints change.
 
 ---
 
-## 1. Objective
+## Quick Index
 
-### Vision
-
-Maphop is a **local-first, privacy-first Progressive Web App** that gives users a fast, distraction-free map viewer with personal location bookmarking — no accounts, no tracking, no server-side state.
-
-### Problem Statement
-
-Existing map applications require accounts, collect location data server-side, and bundle features most users never need. Users who want a simple, private way to view maps and save personal locations have no lightweight alternative that works offline and respects their data.
-
-### Target Users
-
-- **Privacy-conscious individuals** who want map functionality without surveillance.
-- **Outdoor enthusiasts** (mountain bikers, hikers, cyclists) who need offline-capable maps with multiple tile providers including topographic and cycling layers.
-- **Casual navigators** who want to bookmark and return to locations without creating accounts.
-
-### Core Value Propositions
-
-1. **Zero setup** — open the URL, start using the map immediately.
-2. **All data stays on-device** — favorites in IndexedDB, no server round-trips.
-3. **Works offline** — service worker caches the app shell; cached tiles remain available.
-4. **Multiple map styles** — switch between 7 tile providers for different use cases.
+[Tech Stack](#tech-stack) · [Architecture](#architecture) · [Features](#features) · [User Flows](#user-flows) · [UI & Design](#ui--design-system) · [Non-Functional](#non-functional-requirements) · [Constraints](#constraints) · [Success Criteria](#success-criteria) · [Future](#future-considerations)
 
 ---
 
-## 2. Tech Stack
+## Tech Stack
 
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| Map Renderer | MapLibre GL JS | ^5.21.0 | Vector/raster map display, geolocation overlay, terrain exaggeration |
-| Terrain Tiles | PMTiles | ^4.3.0 | Protocol handler for Mapterhorn terrain tile archive; registered as `pmtiles://` protocol before map init |
-| Build Tool | Vite | ^8.0.2 | Dev server, production bundling, HMR |
-| Runtime | Vanilla ES Modules | ES2020+ | No framework — modular browser app |
-| Storage | IndexedDB | Browser API | Favorites persistence (`personal-map-db`) |
-| Offline | Service Worker | Browser API | App shell caching, offline support |
-| Geolocation | Geolocation API | Browser API | Opt-in position tracking |
-| Unit Test Runner | Vitest | ^4.1.2 | Fast ES-module unit tests with jsdom environment |
-| DOM Environment | jsdom | ^29.0.1 | Browser-like DOM for unit tests |
-| IndexedDB Stub | fake-indexeddb | ^6.2.5 | In-memory IndexedDB implementation for unit tests |
-| E2E Test Runner | Playwright | ^1.58.2 | Cross-browser end-to-end tests (Firefox) |
-
-### Commands
-
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Start Vite dev server |
-| `npm run build` | Production build to `dist/` |
-| `npm run preview` | Preview production build locally |
-| `npm test` | Run all unit tests once |
-| `npm run test:watch` | Run unit tests in watch mode |
-| `npm run test:e2e` | Run Playwright e2e tests (starts dev server automatically) |
-| `npm run test:coverage` | Run unit tests with V8 coverage report |
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Map renderer | MapLibre GL JS ^5.21.0 | Vector/raster display, geolocation overlay, terrain |
+| Terrain protocol | PMTiles ^4.3.0 | `pmtiles://` protocol registered before map init |
+| Build | Vite ^8.0.2 | Dev server, bundling, HMR |
+| Runtime | Vanilla ES Modules ES2020+ | No framework |
+| Storage | IndexedDB (`personal-map-db`) | Favorites persistence |
+| Offline | Service Worker | App shell caching |
+| Geolocation | Geolocation API | Opt-in position tracking |
+| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 74 tests |
+| E2E tests | Playwright ^1.58.2 (Firefox) | 12 tests |
 
 ---
 
-## 3. Architecture
+## Architecture
 
 ### File Structure
 
 ```
-tests/
-├── unit/
-│   ├── attribution-controller.test.js Structured attribution rendering and terrain suffix behavior
-│   ├── base-layer-controller.test.js Style switching success/failure and rollback behavior
-│   ├── favorite-transfer.test.js   Validation logic, file handling, import/export status messages
-│   ├── favorite-store.test.js      IndexedDB CRUD, deduplication, sort order, export shape
-│   ├── location-tracker.test.js    Tracker lifecycle, idle timeout, geolocation error messages
-│   └── share-location.test.js      Shared-location URL generation and query-param parsing
-└── e2e/
-    └── app.spec.js                 Page titles, DOM structure, menu interaction, navigation
-
 src/
-├── index.html              Live map page shell and mobile control menu
-├── settings.html           Settings page for favorites backup and future map source controls
+├── index.html              Map page shell and control menu
+├── settings.html           Favorites backup and future config
 ├── impressum.html          Legal/privacy page
 ├── css/
-│   ├── app-page.css        Shared layout chrome for secondary pages
-│   ├── impressum.css       Legal page styling
-│   ├── maphop.css          Live map styling, control menu UI, and install banner
-│   └── settings.css        Settings page styling
+│   ├── maphop.css          Live map styles and control menu
+│   ├── app-page.css        Shared secondary page chrome
+│   ├── settings.css
+│   └── impressum.css
 ├── js/
-│   ├── favorite-store.js   IndexedDB access for favorites
-│   ├── favorite-transfer.js JSON import/export validation and transfer helpers
-│   ├── impressum.js        Legal page interactions
-│   ├── location-tracker.js Geolocation state, geo-math helpers, and map overlay rendering
-│   ├── maphop.js           Thin map-page bootstrap and dependency wiring
-│   ├── page-shell.js       Shared page title and version-label wiring
+│   ├── maphop.js           Map page bootstrap and dependency wiring
+│   ├── location-tracker.js Geolocation state, geo-math, overlay rendering
+│   ├── favorite-store.js   IndexedDB CRUD for favorites
+│   ├── favorite-transfer.js JSON import/export validation
 │   ├── settings.js         Settings page behavior
+│   ├── page-shell.js       Shared page title and version wiring
+│   ├── impressum.js
 │   └── map/
-│       ├── attribution-controller.js  Attribution widget rendering from structured provider metadata
-│       ├── base-layer-controller.js   Base-style switching, timeout handling, and fallback restore
-│       ├── base-map-registry.js       Source-of-truth base map definitions and provider attribution metadata
-│       ├── dom.js                     Centralized map-page DOM lookups
-│       ├── favorites-panel.js         Favorites menu rendering, crosshair selection flow, share/save/delete actions, and navigation
-│       ├── install-prompt-controller.js PWA install prompt and iOS hint lifecycle
-│       ├── menu-controller.js         Menu open/close and section state
-│       ├── share-location.js          Shared-location URL builder and query-param parser
-│       └── terrain-controller.js      Terrain and hillshade lifecycle across style reloads
+│       ├── base-map-registry.js    Source-of-truth base map definitions and attribution metadata
+│       ├── base-layer-controller.js Style switching, 12s timeout, rollback
+│       ├── terrain-controller.js   DEM/hillshade lifecycle across style reloads
+│       ├── attribution-controller.js Attribution widget from structured metadata
+│       ├── favorites-panel.js      Favorites menu, crosshair flow, naming modal, share/save/delete
+│       ├── favorites-overlay.js    GeoJSON pin layer, hover popup, toggle persistence
+│       ├── share-location.js       Share URL builder and query-param parser
+│       ├── menu-controller.js      Menu open/close and section state
+│       ├── install-prompt-controller.js PWA install prompt and iOS hint
+│       ├── dom.js                  Centralized map-page DOM lookups
+│       └── service-worker.js       SW registration
 ├── public/
-│   ├── sw.js               Service worker — network-first cache strategy for app shell
-│   └── _headers            Static hosting security headers (Netlify / compatible hosts)
-├── images/                 App icons (72–512px, maskable variants)
-└── manifest.webmanifest    PWA manifest (standalone display, portrait, scope /)
+│   ├── sw.js               Service worker (network-first, scope /)
+│   └── _headers            Security headers (Netlify-compatible)
+├── images/                 App icons 72–512px (maskable variants)
+└── manifest.webmanifest    PWA manifest (standalone, portrait, scope /)
+
+tests/
+├── unit/                   Vitest + jsdom (74 tests across 9 files)
+└── e2e/app.spec.js         Playwright Firefox (12 tests)
 
 doc/
-├── architecture/
-│   └── code-map.md         Human- and AI-oriented module ownership guide for fast code navigation
-└── spec/
-  └── product-spec.md     Product requirements and constraints
+├── architecture/code-map.md  Module ownership quick-navigation guide
+└── spec/product-spec.md      This file
 ```
 
 ### Design Principles
 
-1. **Thin-entry orchestration** — `src/js/maphop.js` bootstraps the page, wires dependencies, and delegates feature behavior to focused controllers under `src/js/map/`.
-2. **Small-module simplicity** — map, location, favorites, transfer, attribution, install prompt, and page-shell behavior are split into focused ES modules with no framework or client-side router.
-3. **Local-first data** — IndexedDB for persistence, no network dependency for user data.
-4. **Progressive enhancement** — the map works without geolocation, without favorites, and without service worker. Each capability layers on independently.
-5. **Graceful degradation** — base map switching falls back on timeout; geolocation fails with user-friendly messages; import validation rejects bad files early; offline mode serves cached assets.
-6. **Searchable ownership boundaries** — each capability has one obvious module home, and `doc/architecture/code-map.md` provides a low-token navigation index for contributors and AI agents.
+1. **Thin orchestration** — `maphop.js` bootstraps and wires; behavior lives in focused controllers under `src/js/map/`.
+2. **Small modules** — each capability has one obvious module home.
+3. **Local-first** — IndexedDB for persistence, no network dependency for user data.
+4. **Progressive enhancement** — map works without geolocation, favorites, or service worker; each layers on independently.
+5. **Graceful degradation** — base map switches fall back on timeout; imports validate early; offline serves cache.
+6. **Structured attribution** — provider metadata renders via DOM creation, never `innerHTML`.
 
-### Data Flow
-
-```
-User Interaction
-    │
-    ├─► Map Events ──► MapLibre GL JS ──► Tile Provider (network)
-    │
-  ├─► Location Toggle ──► Geolocation API ──► LocationTracker ──► GeoJSON Overlay (on-map)
-    │
-  ├─► Add Favorite ──► Crosshair Selection Overlay ──► Name Modal ──► favorite-store.js ──► IndexedDB (local) ──► Favorites List (DOM)
-    │
-  ├─► Share Favorite ──► share-location.js ──► Native Share Sheet / Clipboard
-    │
-  ├─► Delete Favorite ──► favorite-store.js ──► IndexedDB (local) ──► Favorites List (DOM)
-    │
-    └─► Base Map Switch ──► setBaseLayer() ──► Style Load (with 12s timeout + fallback)
-
-Settings Page
-  │
-  └─► Export / Import Favorites ──► favorite-transfer.js ──► favorite-store.js ──► IndexedDB (local)
-
-Map Page
-  ├─► Shared Location URL (`lat`,`lng`,`z`) ──► share-location.js ──► Initial map center / zoom ──► Pin marker on map + shared location banner (Add to Favorites / Dismiss)
-  │
-  └─► Favorites Overlay Toggle ──► favorites-overlay.js ──► MapLibre source/layer ──► Pin markers on map
-```
-
-### Map Page Module Boundaries
+### Module Boundaries
 
 | Module | Responsibility |
 |--------|----------------|
-| `src/js/maphop.js` | Create the MapLibre instance, instantiate controllers, and wire cross-controller events |
-| `src/js/map/base-map-registry.js` | Declare base map labels, styles, and structured attribution data |
-| `src/js/map/base-layer-controller.js` | Handle style loads, 12-second timeout, active-layer state, and rollback on failure |
-| `src/js/map/terrain-controller.js` | Keep DEM and hillshade sources/layers consistent across terrain toggles and style reloads |
-| `src/js/map/attribution-controller.js` | Render attribution UI using DOM APIs from structured metadata, not provider HTML strings |
-| `src/js/location-tracker.js` | Own geolocation state, follow mode, idle timeout, and location overlay rendering |
-| `src/js/map/favorites-panel.js` | Handle favorites menu rendering, crosshair selection and naming modal flow, share/save/delete actions, map navigation from saved entries, and overlay toggle wiring |
-| `src/js/map/favorites-overlay.js` | Manage the favorites GeoJSON source and symbol layer, pin image registration, hover popup, toggle state, and style-reload restoration |
-| `src/js/map/menu-controller.js` | Own menu visibility and section expansion state |
-| `src/js/map/share-location.js` | Build favorite share URLs and parse incoming shared-location query parameters |
-| `src/js/map/install-prompt-controller.js` | Capture install prompt events and iOS standalone hints |
-| `src/js/map/dom.js` | Centralize map-page DOM queries for easier auditing and reuse |
+| `maphop.js` | Create MapLibre instance, instantiate controllers, wire cross-controller events |
+| `base-map-registry.js` | Base map labels, style URLs, structured attribution data |
+| `base-layer-controller.js` | Style loads, 12s timeout, active-layer state, rollback on failure |
+| `terrain-controller.js` | DEM and hillshade sources/layers across terrain toggles and style reloads |
+| `attribution-controller.js` | Render attribution from structured metadata; DOM node creation only |
+| `location-tracker.js` | Geolocation state, follow mode, idle timeout, location overlay rendering |
+| `favorites-panel.js` | Favorites list, crosshair selection, naming modal, share/save/delete, map navigation |
+| `favorites-overlay.js` | GeoJSON source/layer, pin image, hover popup, toggle state, style-reload restore |
+| `menu-controller.js` | Menu visibility and section expansion state |
+| `share-location.js` | Build share URLs; parse incoming `lat`/`lng`/`z` query params |
+| `install-prompt-controller.js` | `beforeinstallprompt` capture; iOS standalone hint with 7-day snooze |
+| `dom.js` | Centralized map-page DOM queries |
 
-### Architecture Indexing Rule
-
-- `doc/architecture/code-map.md` must stay aligned with active entrypoints and controller ownership whenever map-page responsibilities move.
-- New map features should be added to a dedicated module under `src/js/map/` unless they are purely geolocation overlay logic (`location-tracker.js`) or cross-page shell logic (`page-shell.js`).
-- Provider attribution data must remain structured and render through DOM node creation, never by injecting user- or admin-editable HTML strings.
+**Rule:** New map features → dedicated module under `src/js/map/`. Pure geolocation overlay logic → `location-tracker.js`. Cross-page shell logic → `page-shell.js`. Keep `doc/architecture/code-map.md` aligned when module responsibilities move.
 
 ---
 
-## 4. Features
+## Features
 
 ### 4.1 Map Display
 
-The core map view fills the entire viewport using MapLibre GL JS.
-
 | Property | Value |
 |----------|-------|
-| Default center | 14.268°E, 46.59026°N (Central Europe) |
+| Default center | 14.268°E, 46.59026°N |
 | Default zoom | 15 |
 | Max pitch | 85° |
-| Rotation | Enabled — right-click drag (desktop) or two-finger twist (touch) |
-| Pitch | Enabled — right-click drag (desktop) or two-finger vertical gesture (touch) |
-| Attribution | Custom widget (no built-in MapLibre control) |
-| Native controls | All MapLibre control containers hidden via CSS |
+| Rotation / pitch | Right-click drag (desktop); two-finger gestures (touch) |
+| Attribution | Custom widget; built-in MapLibre control hidden |
 
-**Acceptance criteria:**
-- Map renders immediately on page load with the default base layer (Bergfex OSM).
-- Pan and pinch-zoom work on touch and desktop.
-- Right-click drag (desktop) and two-finger gestures (touch) tilt and rotate the map.
-- Map fills 100% of viewport with no scroll overflow.
+- Map renders immediately on load with the default base layer (Bergfex OSM).
+- Fills 100% of viewport; pan and pinch-zoom work on touch and desktop.
 
 ### 4.2 Base Map Selection
 
-Seven map providers are available through a radio-button menu:
+Seven providers selectable from the radio-button Maps menu:
 
-| Key | Name | Tile Size | Max Zoom | Source |
-|-----|------|-----------|----------|--------|
-| `bergfex` | Bergfex OSM | 512px | 20 | `tiles.bergfex.at` |
-| `osm` | OpenStreetMap | 256px | 19 | `tile.openstreetmap.org` |
-| `openfreemap` | OpenFreeMap Liberty | Style JSON | — | `tiles.openfreemap.org` |
-| `opentopo` | OpenTopoMap | 256px | 17 | `tile.opentopomap.org` |
-| `cyclosm` | CyclOSM | 256px | 20 | `tile-cyclosm.openstreetmap.fr` |
-| `esriSatellite` | Esri Satellite | 256px | 19 | `server.arcgisonline.com` |
-| `basemapGrauWmts` | basemap.at Grau WMTS | 256px | 20 | `mapsneu.wien.gv.at` |
+| Key | Name | Tile Size | Max Zoom |
+|-----|------|-----------|----------|
+| `bergfex` | Bergfex OSM | 512px | 20 |
+| `osm` | OpenStreetMap | 256px | 19 |
+| `openfreemap` | OpenFreeMap Liberty | Style JSON | — |
+| `opentopo` | OpenTopoMap | 256px | 17 |
+| `cyclosm` | CyclOSM | 256px | 20 |
+| `esriSatellite` | Esri Satellite | 256px | 19 |
+| `basemapGrauWmts` | basemap.at Grau WMTS | 256px | 20 |
 
-Each config entry carries structured attribution metadata (provider label plus href pairs) used by the attribution widget (§4.7).
+**Persistence:** `localStorage` key `maphop-base-layer`; saved on successful style load; restored on page load (no second load needed); fallback `bergfex`.
 
-**Persistence:**
-
-| Property | Value |
-|----------|-------|
-| Storage key | `maphop-base-layer` (`localStorage`) |
-| Saved on | Successful style load after user switches base map |
-| Restored on | Page load — used as the initial map style, no second load needed |
-| Fallback | `bergfex` if key is absent, unrecognised, or `localStorage` is unavailable |
-
-**Behavior:**
-- Switching base maps triggers a style load with a **12-second timeout**.
-- On failure, the app **reverts to the previous base layer** and shows an error toast.
-- After every style load: terrain source is re-added → hillshade layer re-added (if terrain active) → geolocation overlay re-applied (this order ensures the location dot renders above the hillshade).
-- The menu button is **disabled during style loading** to prevent rapid switching.
-- Attribution panel text updates to reflect the newly active base map.
-- On a successful switch, the active key is written to `localStorage` so the same provider is loaded directly on the next page visit.
-
-**Acceptance criteria:**
-- Selecting a map option loads the new style within 12 seconds or falls back.
-- Location overlay persists across map switches without losing the current GPS fix.
-- Active map is visually highlighted in the menu.
-- Attribution text matches the active base map after every switch.
-- Reloading the page restores the last-selected base map without a second style load.
-- If `localStorage` is unavailable (e.g. private browsing), the app falls back to Bergfex OSM without error.
+- Switching triggers a 12-second style-load timeout; failure reverts to the previous layer and shows an error toast.
+- Menu button disabled during style loading.
+- After every style load: terrain source re-added → hillshade re-applied (if active) → geolocation overlay re-applied (this order keeps location dot above hillshade).
+- Attribution panel updates on every switch.
+- If `localStorage` is unavailable, falls back to Bergfex OSM silently.
 
 ### 4.3 Geolocation Tracking
 
-Opt-in location tracking accessed via the **Location section** of the control menu. The Location section is a collapsible accordion (default: **closed**) with the same expand/collapse behavior as the Favorites and Maps sections. It contains the location toggle, the privacy note, and the 3D Terrain toggle (§4.8).
+Opt-in via the **Location section** (accordion, default closed) in the control menu.
 
-Three visual layers are rendered on a single GeoJSON source (`user-location`):
+**GeoJSON source** `user-location` with three layers:
 
-| Layer | Type | Visual |
-|-------|------|--------|
-| `user-location-accuracy` | Fill | Semi-transparent green circle showing GPS accuracy radius |
-| `user-location-heading` | Fill | 22° cone rendered as a 6-band blue gradient showing direction of travel |
-| `user-location-point` | Circle | 10px bright green dot with white border |
+| Layer ID | Type | Visual |
+|----------|------|--------|
+| `user-location-accuracy` | Fill | Semi-transparent green accuracy radius circle |
+| `user-location-heading` | Fill | 22° cone, 6-band blue gradient, direction of travel |
+| `user-location-point` | Circle | 10px bright green dot, white border |
 
-**Configuration:**
+**Config:** high accuracy; max age 5,000 ms; timeout 15,000 ms; 48-point accuracy polygon; 22° heading cone; 15-minute idle auto-stop.
 
-| Parameter | Value |
-|-----------|-------|
-| High accuracy | Enabled |
-| Maximum age | 5,000 ms |
-| Timeout | 15,000 ms |
-| Accuracy polygon steps | 48 points |
-| Heading cone spread | 22° |
-| Idle auto-stop | 15 minutes |
-
-**Behavior:**
-- First activation auto-fits map to the accuracy radius with padding.
-- After the initial position lock the tracker enters **follow mode**: the map pans to keep the user centered (`easeTo`, 500ms) on every GPS update.
-- If the user manually drags the map while tracking is active and a GPS fix exists, **follow mode is suspended** and a **Re-center button** appears (bottom-left).
-- While follow mode is suspended, GPS position updates continue but the map does **not** auto-pan.
-- Tapping **Re-center** flies the map back to the last known GPS position (500ms `easeTo`), re-enters follow mode, and hides the button.
-- Stopping tracking hides the Re-center button and resets follow mode for the next session.
-- Heading cone appears only when the device is moving (>0.7 m/s).
-- Heading is derived from GPS `heading` property or calculated from successive fixes (minimum 5 m displacement).
-- Tracking **automatically stops after 15 minutes** of user inactivity (no pointer, touch, wheel, or keyboard events). A toast notifies the user.
-- Tracking stops and the overlay is hidden when the page goes to the background (`visibilitychange`) or is unloaded (`pagehide`).
-
-**Error handling:**
-- Permission denied: toast with clear message.
-- Position unavailable: toast with fallback guidance.
-- Timeout: toast indicating GPS fix could not be obtained.
-
-**Acceptance criteria:**
-- Location toggle requires explicit user action; no auto-prompting on load.
-- Accuracy circle, heading cone, and point render correctly on the map.
-- Idle timeout fires after 15 minutes and cleans up all location state.
-- Re-center button appears only after a GPS fix has been received and the user has panned.
-- Re-center button is hidden when tracking is off.
-- Location data never leaves the device.
+- First fix auto-fits map to accuracy radius.
+- Enter **follow mode**: map pans to user on every GPS update (`easeTo` 500ms).
+- Manual drag while tracking → follow suspends, **Re-center button** appears (bottom-left); GPS continues but map doesn't auto-pan.
+- Tapping Re-center → flies to last GPS fix, resumes follow, hides button.
+- Heading cone appears only when moving (>0.7 m/s); derived from GPS `heading` or successive fixes (min 5 m).
+- Auto-stop after 15 minutes of inactivity (no pointer/touch/wheel/key events); toast notification.
+- Tracking stops and overlay hides on `visibilitychange` (hidden) or `pagehide`.
+- Errors: permission denied / unavailable / timeout each produce a specific toast message.
 
 ### 4.4 Map Attribution Widget
 
-A small `©` button fixed at the bottom-right corner of the map that opens a panel listing the active data sources.
+`©` button fixed `bottom: 8px; right: 8px`; toggles a glass panel above it (max-width `min(300px, 100vw − 24px)`).
 
-| Property | Value |
-|----------|-------|
-| Button position | `bottom: 8px; right: 8px` |
-| Panel position | Appears above the button |
-| Panel max-width | `min(300px, 100vw − 24px)` |
-| Attribution rendering | DOM node creation from structured provider metadata; no raw HTML injection |
-
-**Behavior:**
-- The panel is **hidden by default**; clicking the `©` button toggles it open/closed.
-- Clicking anywhere outside the panel (global `click` handler) closes it.
-- Attribution text is rendered from the active base map's structured metadata in `baseMapConfigs`.
-- When 3D Terrain is active, the text is appended with `· Hillshade © basemap.at · Terrain © Mapterhorn`.
-- Attribution updates automatically on every base map switch and on every terrain toggle.
-
-**Acceptance criteria:**
-- `©` button is visible at all times on the map page.
-- Panel opens and closes correctly without interfering with other map interactions.
-- Text matches the active base map after switching.
-- Terrain attribution suffix appears exactly when terrain is on and disappears when it is off.
+- Hidden by default; global `click` closes it.
+- Renders from structured metadata in `baseMapConfigs` via DOM node creation; no HTML injection.
+- Appends `· Hillshade © basemap.at · Terrain © Mapterhorn` while terrain is active.
+- Updates on every base map switch and terrain toggle.
 
 ### 4.5 Favorites (Saved Locations)
-
-Local-only bookmarking system using IndexedDB.
 
 | Property | Value |
 |----------|-------|
@@ -343,58 +186,41 @@ Local-only bookmarking system using IndexedDB.
 | Object store | `favoriteLocations` |
 | Key | Auto-increment |
 | Fields | `name`, `longitude`, `latitude`, `createdAt` |
-| Share URL params | `lat`, `lng`, optional `z` |
+| Coordinate display | 5 decimal places |
+| Sort order | Newest-first |
 
-**Behavior:**
-- **Add Favorite**: tapping "Add Favorite" closes the menu and enters selection mode with a centered crosshair overlay on the live map.
-- **Selection mode**: the user can pan or zoom freely; the target location is always the current map center under the crosshair.
-- **Confirm selection**: tapping "Save This Spot" captures the current map center and opens a compact centered naming modal with a default name based on the current date.
-- **Save**: confirming the modal stores the selected center point in IndexedDB and shows a confirmation toast.
-- **Cancel**: cancel buttons, clicking the modal backdrop, or pressing `Escape` abort the in-progress add-favorite flow without saving.
-- **List**: sorted newest-first, each entry shows name and coordinates (5 decimal places).
-- **Share**: each favorite row includes a share button that generates a deep link to the saved coordinates; native share targets are used when available, otherwise the URL is copied to the clipboard.
-- **Open shared location**: loading Maphop with `lat` and `lng` query parameters centers the map on that location (optional `z` sets the initial zoom), places a pin marker at the shared coordinates, and shows the shared location banner (see §4.9).
-- **Navigate**: clicking a favorite eases the map to saved coordinates (650ms `easeTo` animation) and closes the menu.
-- **Delete**: inline trash-icon button removes the entry and refreshes the list.
-- **Empty state**: shows "No saved locations yet." when the store is empty.
-- **Overlay toggle**: "Show on Map" toggle button in the Favorites section panel shows/hides all favorites as pin markers on the live map (see §4.8).
-
-**Acceptance criteria:**
-- Favorites persist across browser sessions and page reloads.
-- The map remains interactive while favorite selection mode is active.
-- Sharing a favorite produces a URL that opens Maphop centered on the saved location.
-- Saving, navigating, and deleting all produce status toast feedback.
-- No network requests are made for any favorites operation.
-- Adding or deleting a favorite refreshes the overlay while it is visible.
+- **Add**: "Add Favorite" closes menu, enters crosshair selection mode over the live map. User pans/zooms; map center under crosshair is the target. "Save This Spot" captures center and opens naming modal (default name = current date). Confirm stores to IndexedDB; toast confirms. Cancel / `Escape` / backdrop click aborts.
+- **Navigate**: tapping a favorite eases to coordinates (650ms `easeTo`) and closes menu.
+- **Delete**: inline trash icon removes entry and refreshes list.
+- **Share**: share button generates a deep link; native share sheet when available, otherwise copies to clipboard.
+- **Shared location receiver**: opening Maphop with valid `lat`+`lng` params centers the map, places a pin, and shows the shared location banner (§4.9).
+- **Overlay**: "Show on Map" toggle displays favorites as pin markers on the live map (§4.8).
+- No network requests for any favorites operation.
 
 ### 4.6 Settings & Favorites Transfer
-
-A dedicated settings page keeps backup actions and future configuration out of the live map menu.
 
 | Property | Value |
 |----------|-------|
 | Page | `settings.html` |
-| Export format | GeoJSON `FeatureCollection` (standard GeoJSON RFC 7946) |
+| Export format | GeoJSON `FeatureCollection` (RFC 7946) |
 | Export filename | `maphop-favorites-YYYY-MM-DD.geojson` |
 | Max import file size | 64 KB |
-| Max imported favorites per file | 250 |
+| Max imported favorites | 250 |
 | Max favorite name length | 80 characters |
 
 **Export shape:**
 ```json
 {
   "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "geometry": { "type": "Point", "coordinates": [longitude, latitude] },
-      "properties": { "name": "My Place", "createdAt": 1712345678901 }
-    }
-  ]
+  "features": [{
+    "type": "Feature",
+    "geometry": { "type": "Point", "coordinates": [longitude, latitude] },
+    "properties": { "name": "My Place", "createdAt": 1712345678901 }
+  }]
 }
 ```
 
-**Import — accepted formats (all validated identically):**
+**Import formats accepted:**
 
 | Format | Detection |
 |--------|-----------|
@@ -402,18 +228,9 @@ A dedicated settings page keeps backup actions and future configuration out of t
 | Legacy `maphop-favorites` envelope | `payload.format === "maphop-favorites"` |
 | Raw JSON array | Top-level array of objects |
 
-**Behavior:**
-- The settings page shows the current favorites count and confirms operations through a status line.
-- Export writes a timestamped `.geojson` file as a standard GeoJSON FeatureCollection.
-- Import accepts `.json` and `.geojson` files, validates structure and coordinate ranges, and skips duplicate favorites already in IndexedDB.
-- Shared page-shell code keeps the page title and visible app version consistent across pages.
-
-**Acceptance criteria:**
-- Export produces a valid GeoJSON FeatureCollection when favorites exist and reports an empty-state message otherwise.
-- Exported file is loadable in standard GIS tools (QGIS, geojson.io, etc.).
-- Import accepts GeoJSON FeatureCollection, legacy `maphop-favorites` envelope, and raw JSON arrays.
-- Import rejects invalid, oversized, or malformed files with user-facing status text.
-- Successful imports refresh the visible favorites count and do not duplicate existing saved locations.
+- Export: timestamped `.geojson`, valid GeoJSON, loadable in QGIS / geojson.io.
+- Import: validates structure and coordinate ranges; skips duplicates already in IndexedDB; rejects invalid/oversized/malformed files with user-facing status.
+- Settings page shows current favorites count and refreshes after import.
 
 ### 4.7 Progressive Web App
 
@@ -422,300 +239,166 @@ A dedicated settings page keeps backup actions and future configuration out of t
 | Display mode | Standalone |
 | Orientation | Portrait-primary |
 | Theme color | `#0d1b20` |
-| Start URL | `/` |
-| Scope | `/` |
+| Start URL / Scope | `/` |
 | Icons | 72, 128, 144, 192 (maskable), 512 (maskable) px |
 
-**Service worker:**
-- Registers at `/sw.js` with scope `/` in production (HTTPS + secure context only).
-- Strategy: **network-first** for same-origin requests; cross-origin tile requests bypass the cache entirely.
-- Old cache versions are deleted on `activate`; new SW takes control immediately via `skipWaiting` + `clients.claim`.
+**Service worker:** registers at `/sw.js`, scope `/`, production only (HTTPS). Strategy: network-first for same-origin; cross-origin tile requests bypass cache. Old caches deleted on `activate`; `skipWaiting` + `clients.claim` takes control immediately.
 
-**Install prompt:**
-- **Android/Chrome**: `beforeinstallprompt` is captured and prevented from firing automatically. A glass-panel install banner is shown at the bottom of the screen with an *Install* button and a *Dismiss* (✕) button.
-- **iOS Safari**: A "Tap Share → Add to Home Screen" hint banner is shown when the app is not already in standalone mode. Dismissing snoozes the hint for **7 days** via a `localStorage` timestamp; it reappears automatically after the snooze expires.
-- Both banners are hidden after the `appinstalled` event fires.
-- Neither banner is shown when the app is already running in standalone mode.
-
-**Acceptance criteria:**
-- Lighthouse PWA audit passes core checks (manifest, service worker, HTTPS, icons).
-- App launches in standalone mode when installed.
-- Install banner appears on first eligible Android/Chrome visit; dismissing it does not permanently suppress it.
-- iOS hint appears on first eligible Safari visit and re-appears after 7 days if the user has not installed.
+**Install prompts:**
+- **Android/Chrome**: `beforeinstallprompt` captured; glass-panel install banner (bottom) with Install + Dismiss.
+- **iOS Safari**: "Tap Share → Add to Home Screen" hint; dismissing snoozes 7 days via `localStorage` key `ios-hint-snoozed-until`; reappears after snooze expires.
+- Both banners hide on `appinstalled` or when already in standalone mode.
 
 ### 4.8 Favorites Map Overlay
 
-A toggle in the Favorites section of the control menu that renders all saved favorites as pin markers on the live map.
-
 | Property | Value |
 |----------|-------|
-| MapLibre source ID | `favorites-overlay` |
-| MapLibre layer ID | `favorites-overlay-pins` |
+| Source ID | `favorites-overlay` |
+| Layer ID | `favorites-overlay-pins` |
 | Layer type | `symbol` |
-| Icon image ID | `favorites-pin` |
-| Pin SVG | Custom SVG — teardrop pin shape, accent color (`#6ff2bd`) fill, dark stroke; rendered at 31×42 px (30% larger than the base 24×32 viewBox) |
+| Image ID | `favorites-pin` |
+| Pin SVG | Teardrop, `#6ff2bd` fill, dark stroke, 31×42 px (30% larger than 24×32 viewBox) |
 | Icon size | `0.7` |
 | Icon anchor | `bottom` |
-| Toggle state persistence | `localStorage` key `maphop-favorites-overlay` (`"1"` = visible) |
-| Hover interaction | `maplibregl.Popup` showing the favorite's `name` property |
+| Persistence | `localStorage` key `maphop-favorites-overlay` (`"1"` = visible) |
+| Hover | `maplibregl.Popup` at `bottom` showing favorite name |
 
-**Behavior:**
-- A "Show on Map" toggle button sits in the Favorites section panel, below the "Add Favorite" button.
-- Clicking the toggle shows or hides the `favorites-overlay-pins` layer and flips `data-state` between `"active"` and `"idle"` for CSS pill styling.
-- Toggle state persists across sessions via `localStorage`.
-- The GeoJSON source is updated (`setData`) whenever a favorite is saved, deleted, or loaded from IndexedDB while the overlay exists on the map.
-- After every base map style switch, `ensureAfterStyleLoad()` re-registers the pin image and re-adds the source and layer, restoring the previous visibility state.
-- Mouse cursor changes to `pointer` on hover over a pin; restores to `""` on leave.
-- A `maplibregl.Popup` anchored to `bottom` opens at the feature's coordinates showing the favorite name; it is removed on `mouseleave`.
+- Toggle button in Favorites section; `data-state` flips `"active"` / `"idle"`.
+- GeoJSON source updated (`setData`) on every save, delete, or load.
+- `ensureAfterStyleLoad()` re-registers pin image and re-adds source/layer after every base map switch, restoring previous visibility.
+- Cursor changes to `pointer` on pin hover; popup removed on `mouseleave`.
 
-**Acceptance criteria:**
-- Toggle button appears in the Favorites section and toggles pins on/off.
-- All saved favorites appear as pin markers at their stored coordinates.
-- Mousing over a pin shows the favorite's name in a popup; moving away removes it.
-- Adding or removing a favorite refreshes the pins immediately while the overlay is on.
-- Overlay survives base map style switches without manual re-toggle.
-- Toggle state is remembered across page reloads.
+### 4.9 Shared Location Receiver
 
-### 4.9 Shared Location Receiver Experience
-
-When Maphop is opened via a shared location link containing valid `lat` and `lng` query parameters, the receiver sees a pin marker on the map and a contextual banner with actions.
+Trigger: valid `lat` + `lng` query params on page load (optional `z` for zoom).
 
 | Property | Value |
 |----------|-------|
-| Trigger | Valid `lat` and `lng` query parameters present on page load |
-| Pin marker | `maplibregl.Marker` using the same pin SVG (31×42 px), anchor `bottom`, placed at the shared coordinates |
-| Banner position | Fixed, top-center; `top: max(1.25rem, safe-area-inset-top + 1rem)`; `z-index: 300` |
-| Banner appearance | Glass panel (dark, blurred background; accent-colored border); max-width 440px; consistent with install banners |
-| Banner contents | Small pin icon · descriptive text · "Add to Favorites" button · dismiss (✕) button |
+| Pin marker | `maplibregl.Marker`, same pin SVG, anchor `bottom` |
+| Banner | Fixed top-center; `top: max(1.25rem, safe-area-inset-top + 1rem)`; z-index 300; glass panel; max-width 440px |
+| Banner contents | Pin icon · descriptive text · "Add to Favorites" button · Dismiss (✕) |
 
-**Behavior:**
-- On map load, if a shared location is detected, a pin marker is added at the shared coordinates and the banner is shown.
-- Tapping **Add to Favorites** dismisses the banner and marker, then opens the favorite naming modal directly at the shared coordinates — bypassing the crosshair selection step via `favoritesPanel.promptFavoriteNameAt()`.
-- Tapping **✕** removes the marker and hides the banner without saving anything.
-- The map remains centered on the shared location regardless of whether the banner is dismissed.
-- No banner or marker is shown when there are no shared-location query parameters in the URL.
-
-**Acceptance criteria:**
-- A shared link opens Maphop centered on the shared coordinates.
-- A pin marker appears at the shared coordinates immediately after map load.
-- The banner is visible with "Add to Favorites" and dismiss (✕) actions.
-- Tapping "Add to Favorites" opens the naming modal with the shared coordinates pre-set; saving stores the location in IndexedDB.
-- Dismissing removes the pin and hides the banner without affecting the map position.
-- No banner or marker is shown on normal (non-shared) page loads.
+- Map centers on shared coordinates on load.
+- "Add to Favorites" → dismisses banner/pin, opens naming modal at shared coordinates via `favoritesPanel.promptFavoriteNameAt()` (bypasses crosshair step).
+- ✕ → removes pin and banner; map stays centered.
+- No banner or pin on normal (non-shared) page loads.
 
 ### 4.10 3D Terrain
 
-Toggle in the Maps menu section that enables MapLibre native terrain exaggeration over the active base map.
+Toggle in the Location section, below the tile-provider privacy note.
 
 | Property | Value |
 |----------|-------|
-| Menu location | Location section panel, below the tile-provider privacy note |
 | DEM source ID | `terrain-source` |
-| DEM tile provider | Mapterhorn — `https://tiles.mapterhorn.com/tilejson.json` |
-| DEM encoding | `terrarium` |
-| DEM protocol | PMTiles (`pmtiles://` registered before map init) |
-| Terrain exaggeration | `1` (1:1 real elevation) |
+| DEM provider | Mapterhorn — `https://tiles.mapterhorn.com/tilejson.json` |
+| DEM encoding | `terrarium` (PMTiles) |
+| Exaggeration | `1` |
 | Hillshade source ID | `hillshade-source` |
-| Hillshade tile provider | basemap.at — `mapsneu.wien.gv.at/basemap/bmapgelaende/grau/google3857/{z}/{y}/{x}.jpeg` |
-| Hillshade tile size | 256px |
-| Hillshade max zoom | 18 |
-| Hillshade blend opacity | `0.4` |
+| Hillshade provider | basemap.at — `mapsneu.wien.gv.at/basemap/bmapgelaende/grau/google3857/{z}/{y}/{x}.jpeg` |
+| Hillshade tile size / max zoom | 256px / 18 |
+| Hillshade opacity | `0.4` |
 | Pitch on enable | 45° (600ms `easeTo`) |
 | Pitch on disable | 0° (600ms `easeTo`) |
 
-**Behavior:**
-- Enabling terrain: adds DEM source → adds hillshade raster source and layer → calls `map.setTerrain()` → animates pitch to 45°.
-- Disabling terrain: calls `map.setTerrain(null)` → removes hillshade layer and source → animates pitch to 0°.
-- The DEM terrain source is **always kept alive** in the map style (not removed on disable) so it is available for future toggles.
-- After every base map style switch, `ensureTerrainAfterStyleLoad()` re-adds the terrain source unconditionally and re-applies the full terrain stack if terrain was active.
-- Layer order on style switch: terrain hillshade layer is added **before** the geolocation overlay layers so the location dot always renders on top.
-- Attribution panel appends `· Hillshade © basemap.at · Terrain © Mapterhorn` while terrain is active.
+- Enable: adds DEM source → adds hillshade source/layer → `map.setTerrain()` → pitch 45°.
+- Disable: `map.setTerrain(null)` → removes hillshade layer/source → pitch 0°.
+- DEM source **always kept alive** (not removed on disable).
+- After every style switch: `ensureTerrainAfterStyleLoad()` re-adds DEM source unconditionally; re-applies full terrain stack if active. Hillshade layer added **before** geolocation layers so location dot renders on top.
+- Attribution appends `· Hillshade © basemap.at · Terrain © Mapterhorn` while active.
 
-**Acceptance criteria:**
-- Toggling terrain on renders visible 3D elevation and a hillshade overlay within tile load time.
-- Map pitch animates to 45° on enable and 0° on disable.
-- Terrain and hillshade survive base map style switches without manual re-toggle.
-- Terrain attribution appears in the attribution panel while active and disappears on disable.
-
-### 4.11 Compass & Map Orientation
-
-A floating compass button that indicates when the map has been rotated or tilted away from the default 2D north view and provides a one-tap reset to flat north.
+### 4.11 Compass & Orientation Reset
 
 | Property | Value |
 |----------|-------|
-| Button position | `bottom-left`, stacked above the Re-center button |
-| Visibility condition | `Math.abs(bearing) >= 0.5°` **OR** `pitch >= 0.5°` |
-| Reset animation | `easeTo({ bearing: 0, pitch: 0 })`, 400ms |
+| Position | Bottom-left, stacked above Re-center button |
+| Visibility | `Math.abs(bearing) >= 0.5°` **OR** `pitch >= 0.5°` |
+| Reset | `easeTo({ bearing: 0, pitch: 0 })` 400ms |
 
-**Behavior:**
-- The compass button is **hidden only when both bearing and pitch are within 0.5° of zero** (flat north view).
-- When the map is rotated (right-click drag on desktop, two-finger twist on touch) **or tilted** (right-click drag on desktop, two-finger vertical gesture on touch), the button appears.
-- The SVG needle **counter-rotates** by `−bearing` degrees so the bright north tip always points to geographic north on screen.
-- Tapping the button resets **both bearing and pitch to 0°** in a single 400ms `easeTo` animation, returning to a flat 2D north-up view, and hides the button.
-- The button listens to both the MapLibre `rotate` and `pitch` events via a shared `updateCompassButton()` helper.
-
-**Acceptance criteria:**
-- Compass button is hidden on load (bearing = 0, pitch = 0).
-- Button appears when map is rotated away from north.
-- Button appears when map is tilted (pitch > 0), even with no rotation.
-- Needle visually points to north at all rotation angles.
-- Tapping resets both bearing and pitch to 0° and hides the button.
+- SVG needle counter-rotates by `−bearing` so north tip always points geographic north.
+- Listens to both MapLibre `rotate` and `pitch` events via shared `updateCompassButton()`.
+- Resets **both** bearing and pitch in one animation, then hides.
 
 ---
 
-## 5. User Flows
+## User Flows
 
 ### Flow 1: First Visit
-
 ```
-Open URL
-  → Map loads with Bergfex OSM at default location
-  → User pans/zooms to explore
-  → (Optional) Opens menu to switch base map
-  → (Optional) Enables location tracking
-  → (Optional) Adds a favorite
+Open URL → map loads (Bergfex OSM, default location)
+  → (optional) switch base map → (optional) enable location → (optional) add favorite
 ```
 
 ### Flow 2: Location Tracking
-
 ```
-Open menu → Toggle "Show My Location" ON
-  → Browser permission prompt appears
-  → On grant: GPS fix acquired → map auto-zooms to accuracy
-  → User moves → heading cone appears
-  → User idle 15 min → auto-stop + toast notification
-  → OR: User toggles OFF → tracking stops immediately
+Menu → "Show My Location" ON → browser permission prompt
+  → GPS fix → map auto-zooms to accuracy → heading cone when moving
+  → 15 min idle → auto-stop + toast
+  → OR toggle OFF → stops immediately
 ```
 
-### Flow 3: Favorite Round-Trip
-
+### Flow 3: Add Favorite
 ```
-Pan map to point of interest
-  → Open menu → "Add Favorite"
-  → Menu closes, centered crosshair appears
-  → Pan / zoom until the location sits under the crosshair
-  → Tap "Save This Spot"
-  → Naming modal appears → Enter name (or accept default) → Confirm
-  → Toast: "Saved [name]."
-  → Later: Open menu → Favorites section
-  → Tap saved favorite → map eases to coordinates, menu closes
+Pan to POI → menu → "Add Favorite"
+  → menu closes, crosshair appears
+  → pan/zoom until target is under crosshair
+  → "Save This Spot" → naming modal → confirm
+  → toast: "Saved [name]."
+  → later: menu → Favorites → tap entry → map eases there, menu closes
 ```
 
-### Flow 4: Re-center After Manual Pan
-
+### Flow 4: Re-center After Pan
 ```
-Location tracking is active, GPS fix received
-  → User drags map away from current position
-  → Re-center button appears (bottom-left)
-  → Map stops auto-following GPS updates
-  → User taps Re-center
-  → Map flies back to last GPS position (500ms easeTo)
-  → Follow mode resumes — map tracks GPS again
-  → Re-center button disappears
+Tracking active + GPS fix → user drags map
+  → Re-center button appears, follow suspends
+  → tap Re-center → flies to last GPS position (500ms) → follow resumes → button hides
 ```
 
 ### Flow 5: 3D Terrain
-
 ```
-Open menu → Location section → toggle "3D Terrain" ON
-  → Map pitches to 45° (600ms)
-  → Hillshade overlay appears on base map
-  → Terrain exaggeration active
-  → User right-click drags (desktop) or two-finger gestures (touch) to change pitch/rotation
-  → Compass button appears if map is rotated
-  → Toggle "3D Terrain" OFF → pitch returns to 0°, hillshade removed
+Menu → Location section → "3D Terrain" ON
+  → map pitches 45° (600ms), hillshade appears
+  → right-click drag / two-finger gesture → rotates/tilts → compass button appears
+  → "3D Terrain" OFF → pitch 0°, hillshade removed
 ```
 
 ### Flow 6: Base Map Switch
-
 ```
-Open menu → Maps section
-  → Tap "OpenTopoMap"
-  → Menu button disabled during load
-  → Style loads → terrain source restored → hillshade re-applied (if active) → location overlay re-applied → toast confirms
-  → OR: Style fails within 12s → reverts to previous map → error toast
+Menu → Maps section → tap provider
+  → menu button disabled during load
+  → success: terrain/overlay restored → toast confirms
+  → OR timeout (12s): reverts to previous map → error toast
 ```
 
 ### Flow 7: Compass Reset
-
 ```
-Map rotated (right-click drag or two-finger twist)
-  → Compass button appears bottom-left, needle points to north
-  → User taps compass
-  → Map rotates back to north (400ms easeTo)
-  → Compass button hides
+Map rotated → compass button appears, needle points north
+  → tap → bearing + pitch reset to 0° (400ms) → button hides
 ```
 
 ### Flow 8: PWA Install
+**Android:** `beforeinstallprompt` → install banner → tap Install → native dialog → installed.
+**iOS:** hint banner appears in Safari → tap ✕ → 7-day snooze → reappears → follow instructions → standalone mode.
 
-**Android / Chrome:**
+### Flow 9: Favorites Backup
 ```
-First visit (HTTPS, not already installed)
-  → beforeinstallprompt fires → Install banner appears at bottom
-  → User taps "Install" → native install dialog shown
-  → User confirms → app installed to home screen, banner hides
-  → OR: User taps ✕ → banner hides (reappears on next visit)
-```
-
-**iOS Safari:**
-```
-First visit in Safari (not standalone)
-  → "Tap Share → Add to Home Screen" hint appears
-  → User taps ✕ → hint hides, 7-day snooze set in localStorage
-  → After 7 days → hint appears again
-  → User follows hint → adds to home screen manually
-  → Next launch from home screen → app opens in standalone mode, no hint shown
-```
-
-### Flow 9: Favorites Backup (GeoJSON)
-
-```
-Open Settings
-  → Review favorites count
-  → Tap "Export favorites JSON" → maphop-favorites-YYYY-MM-DD.geojson downloads immediately
-  → OR: Tap "Import favorites JSON" → choose .json or .geojson file
-  → File validates → unique favorites are imported → count refreshes → status confirms result
+Settings → review count → "Export favorites JSON" → file downloads immediately
+  → OR "Import favorites JSON" → pick file → validates → imports unique → count refreshes
 ```
 
 ### Flow 10: View Favorites on Map
-
 ```
-Open menu → Favorites section
-  → Tap "Show on Map" toggle → pill turns active
-  → Menu closes / stays open
-  → All saved favorites appear as green pin markers on the map
-  → Hover over a pin → popup shows the favorite's name
-  → Move mouse away → popup closes
-  → Tap "Show on Map" again → pins disappear
-  → Toggle state remembered across page reloads
+Menu → Favorites → "Show on Map" toggle ON → pins appear on map
+  → hover pin → popup shows name → move away → popup closes
+  → toggle OFF → pins disappear (state persists across reloads)
 ```
 
 ### Flow 11: Share Favorite
-
-**Sender:**
-```
-Open menu → Favorites section
-  → Tap share button beside a saved favorite
-  → On supported mobile/browser: native share sheet opens with the deep link
-  → OR: share URL is copied to the clipboard
-```
-
-**Receiver:**
-```
-Receiver opens the shared link
-  → Maphop loads centered on the shared coordinates (shared zoom applied if present)
-  → Pin marker appears at the shared location on the map
-  → Shared location banner appears at top of screen
-  → Receiver taps "Add to Favorites"
-    → Banner and pin dismissed
-    → Favorite naming modal opens with the shared coordinates pre-filled
-    → Receiver enters a name and confirms → location saved to their own favorites
-  → OR: Receiver taps ✕ → banner and pin dismissed, map stays centered on shared location
-```
+**Sender:** Favorites → share button → native share sheet OR URL copied to clipboard.
+**Receiver:** open shared link → map centers on coordinates → pin marker + banner appear → "Add to Favorites" → naming modal → save; OR ✕ → dismiss.
 
 ---
 
-## 6. UI & Design System
+## UI & Design System
 
 ### Color Palette
 
@@ -729,62 +412,49 @@ Receiver opens the shared link
 | `--accent` | `#6ff2bd` | Buttons, active states, highlights |
 | `--accent-strong` | `#17c08b` | Stronger accent variant |
 
-### Visual Treatment
-
-- **Glass panel effect**: `backdrop-filter: blur(18px) saturate(140%)` on the control menu.
-- **Shadow**: `0 18px 45px rgba(0, 0, 0, 0.28)` for depth.
-- **Safe area insets**: respected via `env(safe-area-inset-*)` for notched devices.
+Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px rgba(0,0,0,0.28)`. Safe area insets via `env(safe-area-inset-*)`.
 
 ### Component Inventory
 
 | Component | Size / Position | Key Behavior |
 |-----------|----------------|-------------|
-| Menu button | 48×48px circle, top-right | Hamburger icon, toggles control panel |
-| Control panel | 260px (mobile) / 280px (desktop), top-right | Glass panel, max-height transition (180ms) |
-| Location toggle | Full-width row | Animated pill with gradient active state |
-| Terrain toggle | Full-width row, Location section (below privacy note) | Same animated pill; separated by top border |
-| Favorite selection overlay | Full-map overlay | Centered crosshair with bottom action card; map remains pannable and zoomable |
-| Favorite naming modal | Centered modal dialog | Text input + cancel/save actions after location selection |
-| Favorite item | Full-width card | Name + coordinates, inline share and delete buttons |
-| Favorite share button | 38×38px icon button | Opens native share targets when available; otherwise copies the deep link |
-| Show on Map toggle | Full-width toggle row, Favorites section | Animated pill; `data-state` active/idle; persists to localStorage |
-| Favorites pin | Map symbol layer | Green teardrop SVG; popup on hover showing favorite name |
-| Layer option | Full-width button | Radio-style selection, accent highlight |
-| Section toggle | Full-width header | Chevron rotates 180° on expand; used by Location (default closed), Favorites, and Maps sections |
-| Settings card | Responsive grid card | Groups backup actions, roadmap placeholders, and privacy copy |
-| Status toast | 280px, bottom-center | Auto-hides after 2.8s, slide-up animation |
-| Attribution widget | Bottom-right `(8px, 8px)` | `©` button + collapsible glass panel; closes on outside click |
-| Compass button | 36×36px circle, `bottom-left ~70px` | Hidden when bearing ≈ 0°; SVG needle counter-rotates; tap resets to north |
-| Re-center button | Pill, `bottom-left 18px` | Hidden unless tracking active and user has panned; tap re-centers + resumes follow |
-| Shared location banner | max 440px, top-center | Glass panel; pin icon + text + "Add to Favorites" + Dismiss; shown only when `lat`/`lng` params are present |
-| Install banner (Android) | max 440px, bottom-center | Glass panel; Install + Dismiss buttons; driven by `beforeinstallprompt` |
+| Menu button | 48×48px circle, top-right | Hamburger, toggles control panel |
+| Control panel | 260px mobile / 280px desktop, top-right | Glass panel, max-height transition 180ms |
+| Location toggle | Full-width row | Animated pill, gradient active state |
+| Terrain toggle | Full-width row, Location section (below privacy note) | Animated pill; top border separator |
+| Favorite selection overlay | Full-map overlay | Centered crosshair + bottom action card; map remains interactive |
+| Favorite naming modal | Centered dialog | Text input + cancel/save |
+| Favorite item | Full-width card | Name + coordinates; inline share + delete |
+| Favorite share button | 38×38px icon | Native share or clipboard copy |
+| Show on Map toggle | Full-width row, Favorites section | Animated pill; `data-state`; persists to localStorage |
+| Favorites pin | Map symbol layer | Green teardrop SVG; popup on hover |
+| Layer option | Full-width button | Radio-style, accent highlight |
+| Section toggle | Full-width header | Chevron rotates 180° on expand; Location (default closed), Favorites, Maps |
+| Status toast | 280px, bottom-center | Auto-hides 2.8s, slide-up animation; `aria-live="polite"` |
+| Attribution widget | Bottom-right (8px, 8px) | `©` button + collapsible glass panel; outside click closes |
+| Compass button | 36×36px circle, bottom-left ~70px | Hidden at bearing≈0 + pitch≈0; needle counter-rotates; tap resets |
+| Re-center button | Pill, bottom-left 18px | Hidden unless tracking active and user has panned |
+| Shared location banner | max 440px, top-center | Glass panel; pin icon + text + Add to Favorites + Dismiss |
+| Install banner (Android) | max 440px, bottom-center | Glass panel; Install + Dismiss; `beforeinstallprompt` |
 | Install hint (iOS) | max 440px, bottom-center | Glass panel; Share instruction + Dismiss; 7-day snooze |
 
-### Responsive Breakpoints
-
-| Breakpoint | Change |
-|------------|--------|
-| Default | Mobile-first, 260px menu width |
-| 700px+ | Menu expands to 280px |
+**Breakpoints:** Default mobile-first (260px menu); 700px+ → 280px menu.
 
 ---
 
-## 7. Non-Functional Requirements
+## Non-Functional Requirements
 
 ### Privacy
-
-- **No accounts or authentication.** The app has zero server-side user state.
-- **Geolocation is opt-in.** No prompting on load; user must explicitly toggle.
-- **Location data stays on-device.** GPS coordinates are never transmitted to any server.
-- **Tile provider caveat disclosed.** The menu displays: *"Remote map providers can infer your nearby area from the tiles your device requests."*
-- **No analytics or tracking scripts.**
+- No accounts or server-side user state.
+- Geolocation opt-in; never transmitted to any server.
+- Menu displays: *"Remote map providers can infer your nearby area from the tiles your device requests."*
+- No analytics or tracking scripts.
 
 ### Performance
 
 | Metric | Target |
 |--------|--------|
 | Runtime dependencies | 2 (MapLibre GL JS, PMTiles) |
-| Initial JS payload | Small modular bundles split by page |
 | Base map switch timeout | 12 seconds max |
 | Favorite navigation animation | 650ms |
 | Toast display duration | 2.8 seconds |
@@ -794,138 +464,90 @@ Receiver opens the shared link
 
 | Mechanism | Implementation |
 |-----------|---------------|
-| Content Security Policy | `<meta http-equiv="Content-Security-Policy">` on all three pages. `index.html` allowlists all 7 base map tile providers plus `tiles.mapterhorn.com` (terrain DEM) in `connect-src` and `img-src`; MapLibre blob workers covered by `worker-src blob: child-src blob:`. Secondary pages use a tighter policy with no external origins. |
-| Referrer Policy | `<meta name="referrer" content="no-referrer">` on all pages — tile providers receive no `Referer` header. |
-| HTTP security headers | `_headers` file (Netlify / compatible hosts): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy: geolocation=(self)`, `X-XSS-Protection: 0`. |
-| Input validation | Favorites import: 64 KB file size cap, JSON parse guard, coordinate range check, 250-record limit, 80-char name limit, duplicate skipping. |
-| DOM safety | User data and provider attribution render through `textContent`, attribute assignment, and explicit element creation; no dynamic `innerHTML` injection. |
+| Content Security Policy | `<meta>` on all pages; `index.html` allowlists all 7 tile providers + `tiles.mapterhorn.com` in `connect-src`/`img-src`; MapLibre blob workers via `worker-src blob: child-src blob:`. Secondary pages use tighter policy. |
+| Referrer Policy | `no-referrer` on all pages — tile providers receive no `Referer` header. |
+| HTTP security headers | `_headers`: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy: geolocation=(self)`, `X-XSS-Protection: 0`. |
+| Input validation | Import: 64 KB cap, JSON parse guard, coordinate range check, 250-record limit, 80-char name limit, duplicate skipping. |
+| DOM safety | User data renders via `textContent`, attribute assignment, explicit element creation; no `innerHTML`. |
 
 ### Accessibility
-
-- Semantic HTML with ARIA attributes (`aria-expanded`, `aria-controls`, `aria-checked`, `aria-label`, `aria-live`).
-- Touch targets minimum 48x48px.
-- Status toast uses `aria-live="polite"` for screen reader announcements.
-- Collapsible sections use proper `aria-expanded` state management.
+- Semantic HTML with `aria-expanded`, `aria-controls`, `aria-checked`, `aria-label`, `aria-live`.
+- Touch targets minimum 48×48px.
+- Status toast uses `aria-live="polite"`.
 
 ### Testing
-
-The project ships with two test suites sharing a common goal: verify correctness of pure logic in isolation, and confirm the real browser experience works end-to-end.
-
-**Configuration files:**
-
-| File | Purpose |
-|------|---------|
-| `vitest.config.js` | Unit test config — jsdom environment, resolves from project root (not `src/`) |
-| `playwright.config.js` | E2E config — Firefox, `webServer` auto-starts `npm run dev` on port 5173 |
-
-**Unit tests (Vitest + jsdom)** — `npm test`
-
-| File | Count | What is covered |
-|------|------:|-----------------|
-| `attribution-controller.test.js` | 4 | Structured attribution rendering, terrain suffix handling, and attribution panel open-state updates |
-| `base-layer-controller.test.js` | 4 | Style-load success path, load-error rollback, timeout rollback, and active-layer UI state |
-| `install-prompt-controller.test.js` | 5 | iOS hint visibility, snooze persistence, Android install prompt capture, dismiss flow, and `appinstalled` cleanup |
-| `menu-controller.test.js` | 5 | Menu shell open/close state, toggle behavior, section initialization, and missing-panel no-op handling |
-| `favorite-transfer.test.js` | 18 | File type/size validation; JSON payload parsing; coordinate range checks; name length; import result status messages; export empty-state; import-button wiring |
-| `favorite-store.test.js` | 13 | `saveFavorite`, `readFavorites`, `deleteFavoriteById`, `importFavorites`, `getFavoritesForExport`; newest-first sort; case-insensitive dedup; within-batch dedup; export field shape |
-| `location-tracker.test.js` | 15 | `isActive` initial state; `start()`/`stop()` lifecycle; geolocation API calls; 15-minute idle timeout; `registerActivity()` timer reset; all four geolocation error codes |
-| `share-location.test.js` | 5 | Shared favorite URL generation, coordinate validation, missing-param handling, and incoming query-param parsing |
-| `terrain-controller.test.js` | 5 | Terrain enable/disable lifecycle, style-reload restoration, and toggle-state sync |
-| **Total** | **74** | |
-
-Key unit test design decisions:
-- `vi.resetModules()` + `new IDBFactory()` per test resets the module-level `favoritesDbPromise` singleton in `favorite-store.js`, giving each test an isolated store.
-- `vi.mock('maplibre-gl')` stubs `LngLatBounds` so `location-tracker.js` loads cleanly in jsdom without a WebGL context.
-- `vi.useFakeTimers()` drives the 15-minute idle timeout synchronously.
-- Replacing `global.navigator` with a plain object (no `geolocation` property) makes `"geolocation" in navigator` return `false` for the unsupported-browser test.
-- Controller-level tests use fake map objects and DOM fixtures so map orchestration stays verifiable without a browser-wide integration harness.
-
-**E2E tests (Playwright + Firefox)** — `npm run test:e2e`
-
-| Group | Count | What is covered |
-|-------|------:|-----------------|
-| Map page | 6 | Title, `#map` attachment, `#layerMenuButton` visibility, `aria-expanded` toggle, layer button presence, all 7 `data-layer-key` values |
-| Settings page | 3 | Title, `#exportFavoritesButton`, `#importFavoritesButton` |
-| Impressum page | 1 | Title |
-| Navigation | 2 | Settings link and Impressum link from the open menu |
-| **Total** | **12** | |
-
-Chromium is not used because the `chrome-headless-shell` binary on this WSL2 host is missing `libnspr4.so`. Firefox is installed and fully functional. Switch `projects` in `playwright.config.js` to `Desktop Chrome` when running on a system with Chromium system libs available.
+- **Unit (Vitest + jsdom):** 74 tests across 9 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
+- **E2E (Playwright + Firefox):** 12 tests covering page titles, DOM structure, menu interaction, and navigation. Chromium excluded (missing `libnspr4.so` on this WSL2 host).
 
 ### Offline Support
-
 - Service worker caches app shell for offline launch.
-- Previously loaded map tiles remain available from browser cache.
-- Favorites are stored locally and accessible offline.
-- Geolocation works offline (GPS is device-native).
+- Previously loaded tiles remain in browser cache.
+- Favorites and geolocation work fully offline.
 
 ---
 
-## 8. Boundaries & Constraints
+## Constraints
 
 ### Always
-
-- All user data (favorites, location) stays on-device.
+- All user data stays on-device.
 - Base map switch failures revert to the previous working layer.
 - Geolocation tracking stops on background/unload.
-- `CHANGELOG.md` and this spec are updated together for shipped product, architecture, UX, and constraint changes.
-- PWA deployment assumptions stay aligned across Vite config, manifest, and runtime registration.
+- `CHANGELOG.md` and this spec updated together for shipped changes.
+- PWA deployment assumptions aligned across Vite config, manifest, and SW registration.
 
 ### Ask First
-
 - Adding new tile providers (affects privacy, reliability, attribution).
-- Changing the deployment path (requires coordinated updates to service worker, manifest, and build config).
+- Changing the deployment path (requires Vite config + manifest + SW updates together).
 - Adding any external network dependency beyond tile providers.
 
 ### Never
-
 - Send location data to a server.
 - Require user accounts or authentication.
 - Add analytics, tracking, or telemetry.
 - Auto-prompt for geolocation on page load.
-- Store user-generated or location data outside the browser (no cookies, no server sync). Non-sensitive UI state may use `localStorage` (current uses: iOS install hint snooze timestamp `ios-hint-snoozed-until`, last-selected base map `maphop-base-layer`, favorites overlay visibility `maphop-favorites-overlay`).
+- Store user data outside the browser. Non-sensitive UI state may use `localStorage` (current keys: `ios-hint-snoozed-until`, `maphop-base-layer`, `maphop-favorites-overlay`).
 
 ---
 
-## 9. Success Criteria
+## Success Criteria
 
 | Criterion | Measurement |
 |-----------|-------------|
-| Map loads successfully | Default base layer renders within 3 seconds on broadband |
-| Base map switching works | All 7 providers load or gracefully fall back |
-| Base map preference persists | Last-used base map is restored on reload; falls back to Bergfex OSM when storage is unavailable |
-| Location tracking is functional | Accuracy circle, heading cone, and point render on activation |
-| Idle timeout fires | Tracking stops after 15 minutes of inactivity |
-| Favorites CRUD complete | Save, list, navigate-to, and delete all work with toast feedback |
-| Favorites sharing works | Share action produces a deep link that opens Maphop at the saved coordinates |
-| Shared location receiver experience works | Opening a shared link shows a pin at the shared spot and a banner; "Add to Favorites" saves it; dismiss removes pin and banner |
-| Favorites backup works | Export produces valid GeoJSON FeatureCollection; imports accept GeoJSON, legacy format, and raw array; duplicates skipped |
-| Favorites overlay works | Pins appear/disappear on toggle; hover shows name popup; overlay survives style switch; state persists |
+| Map loads | Default base layer renders within 3s on broadband |
+| Base map switching | All 7 providers load or gracefully fall back |
+| Base map preference persists | Last-used restored on reload; falls back to Bergfex OSM when storage unavailable |
+| Location tracking | Accuracy circle, heading cone, and point render on activation |
+| Idle timeout | Tracking stops after 15 minutes of inactivity |
+| Favorites CRUD | Save, list, navigate-to, and delete all work with toast feedback |
+| Favorites sharing | Share produces a deep link opening Maphop at saved coordinates |
+| Shared location receiver | Pin + banner on shared link load; "Add to Favorites" saves; dismiss removes pin/banner |
+| Favorites backup | Export produces valid GeoJSON; import accepts all 3 formats; duplicates skipped |
+| Favorites overlay | Pins toggle on/off; hover shows name popup; survives style switch; state persists |
 | Offline launch | App shell loads without network after first visit |
 | PWA installable | Passes Lighthouse PWA installability checks |
 | Privacy preserved | Zero outbound requests except tile fetches; no cookies or analytics |
-| Mobile usable | All interactions work on touch devices with safe area support |
-| Accessibility baseline | No critical ARIA violations; all interactive elements are keyboard-reachable |
-| Re-center works | Button appears on pan-while-tracking; tap re-centers and resumes follow mode |
-| 3D Terrain toggles correctly | Terrain exaggeration, hillshade, and 45° pitch activate and deactivate cleanly; survive base map switch |
-| Attribution is accurate | © panel shows correct provider credit for every base map; terrain suffix appears/disappears in sync |
-| Compass resets orientation | Button appears on rotation or tilt; needle tracks north; tap returns to bearing 0° and pitch 0° |
-| Map architecture is navigable | `doc/architecture/code-map.md` is sufficient to locate the owning module for each map-page capability without reading `src/js/maphop.js` in full |
-| Unit test suite passes | `npm test` exits 0 with all 74 tests green |
-| E2E test suite passes | `npm run test:e2e` exits 0 with all 12 tests green against the dev server |
+| Mobile usable | All interactions work on touch with safe area support |
+| Accessibility baseline | No critical ARIA violations; all interactive elements keyboard-reachable |
+| Re-center | Button appears on pan-while-tracking; tap re-centers and resumes follow |
+| 3D Terrain | Terrain, hillshade, and 45° pitch activate/deactivate cleanly; survive style switch |
+| Attribution | © panel shows correct provider credit; terrain suffix syncs with terrain state |
+| Compass | Appears on rotation or tilt; needle tracks north; tap resets bearing + pitch to 0° |
+| Architecture navigable | `doc/architecture/code-map.md` sufficient to locate owning module without reading `maphop.js` |
+| Unit tests pass | `npm test` exits 0, all 74 tests green |
+| E2E tests pass | `npm run test:e2e` exits 0, all 12 tests green |
 
 ---
 
-## 10. Future Considerations
+## Future Considerations
 
-These are **not committed work items** — they represent known gaps and potential directions gathered from the current architecture.
+Not committed work items — known gaps and potential directions:
 
-- **Route/track recording** — leverage the existing geolocation infrastructure to record and display GPS tracks.
-- **Favorite categories/tags** — organize saved locations beyond a flat chronological list.
-- **Custom tile provider configuration** — let users add their own tile URLs beyond the built-in 7.
-- **Search/geocoding** — address lookup with a privacy-respecting provider (e.g., Nominatim).
-- **Distance measurement** — tap-to-measure between two points on the map.
-- **Dark/light theme toggle** — the current dark theme is hardcoded; some users may prefer light.
-- **Altitude/elevation profile** — surface per-point elevation values from the Mapterhorn DEM for route analysis or tap-to-query elevation.
-- **Terrain exaggeration slider** — let users tune the exaggeration factor (currently fixed at 1×) for dramatic or subtle 3D effect.
-- **Multi-language support** — UI strings are currently English-only.
+- **Route/track recording** — leverage existing geolocation infrastructure for GPS tracks.
+- **Favorite categories/tags** — organize beyond a flat chronological list.
+- **Custom tile provider configuration** — user-defined tile URLs beyond the built-in 7.
+- **Search/geocoding** — address lookup (e.g., Nominatim).
+- **Distance measurement** — tap-to-measure between two points.
+- **Dark/light theme toggle** — current dark theme is hardcoded.
+- **Altitude/elevation profile** — surface per-point elevation from Mapterhorn DEM.
+- **Terrain exaggeration slider** — tune exaggeration factor (currently fixed at 1×).
+- **Multi-language support** — UI is currently English-only.

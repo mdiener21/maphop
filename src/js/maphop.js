@@ -15,7 +15,7 @@ import { parseSharedLocationFromUrl } from "./map/share-location.js";
 import { createStatusToast } from "./map/status-toast.js";
 import { createTerrainController } from "./map/terrain-controller.js";
 
-const fallbackBaseLayerKey = "bergfex";
+const fallbackBaseLayerKey = "osm";
 const defaultCenter = [14.268, 46.59026];
 const defaultZoom = 15;
 const sharedLocation = parseSharedLocationFromUrl();
@@ -64,8 +64,6 @@ const menuController = createMenuController({
 });
 
 const attributionController = createAttributionController({
-    attributionButton: dom.attributionButton,
-    attributionPanel: dom.attributionPanel,
     attributionText: dom.attributionText,
     baseMapConfigs
 });
@@ -209,14 +207,8 @@ window.addEventListener("pagehide", () => {
     }
 });
 
-dom.attributionButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-    attributionController.toggle();
-});
-
 document.addEventListener("click", () => {
     menuController.setOpen(false);
-    attributionController.setOpen(false);
 });
 
 registerScopedServiceWorker();

@@ -24,7 +24,8 @@ self.addEventListener("fetch", (event) => {
     const { request } = event;
 
     // Only cache same-origin GET requests (app shell assets).
-    // Cross-origin tile/API requests go straight to the network.
+    // Cross-origin map tiles intentionally bypass the service worker so the
+    // browser's built-in HTTP cache can honor provider cache headers.
     if (request.method !== "GET" || !request.url.startsWith(self.location.origin)) {
         return;
     }

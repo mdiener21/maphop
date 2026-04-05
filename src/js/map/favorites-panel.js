@@ -6,6 +6,8 @@ import {
 } from "../favorite-store.js";
 import { buildSharedLocationUrl } from "./share-location.js";
 
+const MSG_INDEXEDDB_UNAVAILABLE = "IndexedDB is not available in this browser.";
+
 function formatFavoriteCoordinates(longitude, latitude) {
     return latitude.toFixed(5) + ", " + longitude.toFixed(5);
 }
@@ -133,7 +135,7 @@ export function createFavoritesPanel({
 
     async function deleteFavorite(id, name) {
         if (!isFavoritesStorageAvailable()) {
-            onStatus("IndexedDB is not available in this browser.");
+            onStatus(MSG_INDEXEDDB_UNAVAILABLE);
             return;
         }
 
@@ -258,7 +260,7 @@ export function createFavoritesPanel({
 
     async function loadFavorites() {
         if (!isFavoritesStorageAvailable()) {
-            favoritesEmpty.textContent = "IndexedDB is not available in this browser.";
+            favoritesEmpty.textContent = MSG_INDEXEDDB_UNAVAILABLE;
             return;
         }
 
@@ -275,7 +277,7 @@ export function createFavoritesPanel({
 
     function startFavoriteSelection() {
         if (!isFavoritesStorageAvailable()) {
-            onStatus("IndexedDB is not available in this browser.");
+            onStatus(MSG_INDEXEDDB_UNAVAILABLE);
             return;
         }
 
@@ -391,7 +393,7 @@ export function createFavoritesPanel({
 
     function promptFavoriteNameAt(coordinates) {
         if (!isFavoritesStorageAvailable()) {
-            onStatus("IndexedDB is not available in this browser.");
+            onStatus(MSG_INDEXEDDB_UNAVAILABLE);
             return;
         }
 
