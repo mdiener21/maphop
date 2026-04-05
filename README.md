@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://maphop.eu">🗺️ Live Demo</a>
+  <a href="https://maphop.eu">🗺️ Live at maphop.eu</a>
 </p>
 
 ---
