@@ -76,6 +76,7 @@ export function createFavoritesOverlay(map) {
             }
 
             map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
+            map.setLayoutProperty(layerId, "icon-offset", [0, 30]);
         };
         img.src = url;
     }
@@ -88,7 +89,12 @@ export function createFavoritesOverlay(map) {
         }
 
         currentPopup?.remove();
-        currentPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, anchor: "bottom" })
+        currentPopup = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            anchor: "bottom",
+            className: "favorites-overlay-popup"
+        })
             .setLngLat(feature.geometry.coordinates)
             .setText(feature.properties.name)
             .addTo(map);

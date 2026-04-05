@@ -215,6 +215,10 @@ body::before {
     display: none;
 }
 
+.favorites-overlay-popup .maplibregl-popup-content {
+    color: #000;
+}
+
 .control-menu {
     position: absolute;
     top: calc(var(--safe-top) + 14px);
