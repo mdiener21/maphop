@@ -2,8 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+- Optional Thunderforest Outdoors base map support behind the build-time env var `VITE_THUNDERFOREST_API_KEY`; the menu option is hidden when no key is configured.
+
 ### Changed
+- Base-map registry now builds provider definitions from env-backed config instead of hardcoding third-party credentials, and `.env*` files are ignored correctly.
 - README updated to document the shared location recipient experience (pin marker and banner).
+- README and product spec now document the optional Thunderforest setup and the client-side key visibility limitation for browser tile layers.
+- Product spec updated (v1.10): base-map selection, CSP/referrer notes, constraints, success criteria, and test counts now reflect optional Thunderforest Outdoors support.
 - Product spec updated (v1.9): new §4.9 for shared location receiver experience; §4.5, §4.8, §5 Flow 11, §6 component inventory, §8 localStorage list, and §9 success criteria updated to reflect v1.4.0 shipped behavior.
 - Product spec restructured for LLM token efficiency: removed ToC, merged behavior/acceptance-criteria, compacted testing section, added Quick Index.
 - Refactor: extracted `MSG_INDEXEDDB_UNAVAILABLE` constant in `favorites-panel.js` to deduplicate 4 identical string literals.

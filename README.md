@@ -45,7 +45,7 @@ Maphop is a lightweight map viewer you open in any modern browser. It gives you:
 - **Zero setup** — visit [maphop.eu](https://maphop.eu) and the map opens instantly.
 - **Complete privacy** — your saved locations live in your browser's IndexedDB only; nothing is sent to a server.
 - **Offline support** — a service worker caches the app shell so it loads even without a network connection.
-- **Multiple map styles** — choose from 7 tile providers covering street maps, topographic maps, cycling routes, and satellite imagery.
+- **Multiple map styles** — choose from 7 built-in tile providers, with optional Thunderforest Outdoors support for self-hosted deployments.
 
 ---
 
@@ -53,7 +53,7 @@ Maphop is a lightweight map viewer you open in any modern browser. It gives you:
 
 | Feature | Description |
 |---------|-------------|
-| 🗺️ **7 Base Maps** | Bergfex OSM, OpenStreetMap, OpenFreeMap Liberty, OpenTopoMap, CyclOSM, Esri Satellite, basemap.at Grau |
+| 🗺️ **Base Maps** | 7 built-in maps: Bergfex OSM, OpenStreetMap, OpenFreeMap Liberty, OpenTopoMap, CyclOSM, Esri Satellite, basemap.at Grau, plus optional Thunderforest Outdoors when configured |
 | 📍 **Live Location** | Opt-in GPS tracking with an accuracy circle, heading cone, and follow mode |
 | ⭐ **Favorites** | Crosshair-based save flow, local-only storage in IndexedDB, and one-tap return to saved places |
 | 🔗 **Favorite Sharing** | Share any saved favorite as a deep link; recipients see a pin marker and a banner to add the spot to their own favorites or dismiss |
@@ -65,7 +65,7 @@ Maphop is a lightweight map viewer you open in any modern browser. It gives you:
 | © **Attribution Widget** | Compact attribution panel for the active base map and terrain sources |
 | 📴 **Offline-capable** | Service worker caches the app shell for use without connectivity |
 | 📲 **Installable PWA** | Add to your home screen on Android or iOS for a native app feel |
-| 🔒 **Privacy-first** | No accounts, no analytics, tile requests use a `no-referrer` policy |
+| 🔒 **Privacy-first** | No accounts, no analytics, explicit CSP allowlists for tile hosts, and strict referrer handling on the live map page |
 
 ---
 
@@ -87,6 +87,7 @@ Available styles:
 - **OpenStreetMap** — classic community-maintained street map
 - **OpenFreeMap Liberty** — clean, lightweight vector map
 - **OpenTopoMap** — topographic contour map, great for hiking
+- **Outdoors** — Thunderforest outdoor map for hiking and trail context when enabled by the deployment
 - **CyclOSM** — cycling-focused map with route highlights
 - **Esri Satellite** — satellite imagery
 - **basemap.at Grau** — greyscale Austrian base map
@@ -170,11 +171,18 @@ cd maphop
 # Install dependencies
 npm install
 
+# Optional: enable Thunderforest Outdoors locally
+printf 'VITE_THUNDERFOREST_API_KEY=your-key-here\n' > .env.local
+
 # Start the Vite dev server with hot-module replacement
 npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser. Changes to source files in `src/` are reflected immediately without a full reload.
+
+`.env.local` is gitignored. Do not commit personal API keys.
+
+If you enable Thunderforest Outdoors, keep in mind that this is a browser-rendered tile layer: the key stays out of the repository, but it is still visible to users of a deployed build. Restrict the key in your Thunderforest account to the intended domains and usage limits.
 
 ### Running Tests
 

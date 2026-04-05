@@ -24,7 +24,7 @@ function makeMap() {
 }
 
 function makeLayerOptionElements() {
-    return ["bergfex", "osm"].map((key) => {
+    return ["bergfex", "osm", "outdoors"].map((key) => {
         const button = document.createElement("button");
         button.dataset.layerKey = key;
         return button;
@@ -75,6 +75,15 @@ beforeEach(() => {
 });
 
 describe("createBaseLayerController", () => {
+    it("hides unavailable layer options during initialization", () => {
+        const { layerOptionElements } = makeController();
+
+        expect(layerOptionElements[0].hidden).toBe(false);
+        expect(layerOptionElements[1].hidden).toBe(false);
+        expect(layerOptionElements[2].hidden).toBe(true);
+        expect(layerOptionElements[2].disabled).toBe(true);
+    });
+
     it("closes the menu and skips style changes when selecting the current layer", async () => {
         const { controller, map, onMenuClose } = makeController();
 

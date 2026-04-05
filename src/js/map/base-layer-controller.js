@@ -77,13 +77,24 @@ export function createBaseLayerController({
 }) {
     let activeBaseLayerKey = initialActiveKey;
 
+    function updateLayerOptionAvailability() {
+        layerOptionElements.forEach((element) => {
+            const isAvailable = Boolean(baseMapConfigs[element.dataset.layerKey]);
+            element.hidden = !isAvailable;
+            element.disabled = !isAvailable;
+        });
+    }
+
     function updateLayerOptionState(activeKey = activeBaseLayerKey) {
         layerOptionElements.forEach((element) => {
-            const isActive = element.dataset.layerKey === activeKey;
+            const isActive = Boolean(baseMapConfigs[element.dataset.layerKey]) && element.dataset.layerKey === activeKey;
             element.dataset.active = String(isActive);
             element.setAttribute("aria-checked", String(isActive));
         });
     }
+
+    updateLayerOptionAvailability();
+    updateLayerOptionState(activeBaseLayerKey);
 
     async function setBaseLayer(key) {
         if (!baseMapConfigs[key] || key === activeBaseLayerKey) {

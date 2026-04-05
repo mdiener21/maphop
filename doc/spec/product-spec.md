@@ -1,6 +1,6 @@
 # Product Spec: Maphop
 
-**v1.9 · 2026-04-03 · Status: Active**
+**v1.10 · 2026-04-05 · Status: Active**
 
 Local-first, privacy-first PWA map viewer. No accounts, no server-side state, all user data on-device.
 
@@ -25,7 +25,7 @@ Local-first, privacy-first PWA map viewer. No accounts, no server-side state, al
 | Storage | IndexedDB (`personal-map-db`) | Favorites persistence |
 | Offline | Service Worker | App shell caching |
 | Geolocation | Geolocation API | Opt-in position tracking |
-| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 74 tests |
+| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 81 tests |
 | E2E tests | Playwright ^1.58.2 (Firefox) | 12 tests |
 
 ---
@@ -71,7 +71,7 @@ src/
 └── manifest.webmanifest    PWA manifest (standalone, portrait, scope /)
 
 tests/
-├── unit/                   Vitest + jsdom (74 tests across 9 files)
+├── unit/                   Vitest + jsdom (81 tests across 12 files)
 └── e2e/app.spec.js         Playwright Firefox (12 tests)
 
 doc/
@@ -126,7 +126,7 @@ doc/
 
 ### 4.2 Base Map Selection
 
-Seven providers selectable from the radio-button Maps menu:
+Seven built-in providers selectable from the radio-button Maps menu, plus an optional Thunderforest layer when a build-time API key is configured:
 
 | Key | Name | Tile Size | Max Zoom |
 |-----|------|-----------|----------|
@@ -134,6 +134,7 @@ Seven providers selectable from the radio-button Maps menu:
 | `osm` | OpenStreetMap | 256px | 19 |
 | `openfreemap` | OpenFreeMap Liberty | Style JSON | — |
 | `opentopo` | OpenTopoMap | 256px | 17 |
+| `outdoors` | Thunderforest Outdoors | 256px | 22 |
 | `cyclosm` | CyclOSM | 256px | 20 |
 | `esriSatellite` | Esri Satellite | 256px | 19 |
 | `basemapGrauWmts` | basemap.at Grau WMTS | 256px | 20 |
@@ -142,6 +143,7 @@ Seven providers selectable from the radio-button Maps menu:
 
 - Switching triggers a 12-second style-load timeout; failure reverts to the previous layer and shows an error toast.
 - Menu button disabled during style loading.
+- The `outdoors` option is included only when `VITE_THUNDERFOREST_API_KEY` is present at build time; otherwise its menu button stays hidden and disabled.
 - After every style load: terrain source re-added → hillshade re-applied (if active) → geolocation overlay re-applied (this order keeps location dot above hillshade).
 - Attribution panel updates on every switch.
 - If `localStorage` is unavailable, falls back to Bergfex OSM silently.
@@ -464,8 +466,8 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 
 | Mechanism | Implementation |
 |-----------|---------------|
-| Content Security Policy | `<meta>` on all pages; `index.html` allowlists all 7 tile providers + `tiles.mapterhorn.com` in `connect-src`/`img-src`; MapLibre blob workers via `worker-src blob: child-src blob:`. Secondary pages use tighter policy. |
-| Referrer Policy | `no-referrer` on all pages — tile providers receive no `Referer` header. |
+| Content Security Policy | `<meta>` on all pages; `index.html` allowlists all built-in tile providers, optional `api.thunderforest.com`, and `tiles.mapterhorn.com` in `connect-src`/`img-src`; MapLibre blob workers via `worker-src blob: child-src blob:`. Secondary pages use tighter policy. |
+| Referrer Policy | `strict-origin-when-cross-origin` on `index.html`; secondary pages use `no-referrer`. |
 | HTTP security headers | `_headers`: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy: geolocation=(self)`, `X-XSS-Protection: 0`. |
 | Input validation | Import: 64 KB cap, JSON parse guard, coordinate range check, 250-record limit, 80-char name limit, duplicate skipping. |
 | DOM safety | User data renders via `textContent`, attribute assignment, explicit element creation; no `innerHTML`. |
@@ -476,7 +478,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Status toast uses `aria-live="polite"`.
 
 ### Testing
-- **Unit (Vitest + jsdom):** 74 tests across 9 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
+- **Unit (Vitest + jsdom):** 81 tests across 12 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
 - **E2E (Playwright + Firefox):** 12 tests covering page titles, DOM structure, menu interaction, and navigation. Chromium excluded (missing `libnspr4.so` on this WSL2 host).
 
 ### Offline Support
@@ -506,6 +508,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Add analytics, tracking, or telemetry.
 - Auto-prompt for geolocation on page load.
 - Store user data outside the browser. Non-sensitive UI state may use `localStorage` (current keys: `ios-hint-snoozed-until`, `maphop-base-layer`, `maphop-favorites-overlay`).
+- Hardcode third-party API keys in source control. Browser-exposed tile keys must come from env/host secrets and be provider-restricted because users can still inspect them in deployed builds.
 
 ---
 
@@ -514,7 +517,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Criterion | Measurement |
 |-----------|-------------|
 | Map loads | Default base layer renders within 3s on broadband |
-| Base map switching | All 7 providers load or gracefully fall back |
+| Base map switching | All built-in providers, plus optional `outdoors` when configured, load or gracefully fall back |
 | Base map preference persists | Last-used restored on reload; falls back to Bergfex OSM when storage unavailable |
 | Location tracking | Accuracy circle, heading cone, and point render on activation |
 | Idle timeout | Tracking stops after 15 minutes of inactivity |
@@ -533,7 +536,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Attribution | © panel shows correct provider credit; terrain suffix syncs with terrain state |
 | Compass | Appears on rotation or tilt; needle tracks north; tap resets bearing + pitch to 0° |
 | Architecture navigable | `doc/architecture/code-map.md` sufficient to locate owning module without reading `maphop.js` |
-| Unit tests pass | `npm test` exits 0, all 74 tests green |
+| Unit tests pass | `npm test` exits 0, all 81 tests green |
 | E2E tests pass | `npm run test:e2e` exits 0, all 12 tests green |
 
 ---
@@ -544,7 +547,7 @@ Not committed work items — known gaps and potential directions:
 
 - **Route/track recording** — leverage existing geolocation infrastructure for GPS tracks.
 - **Favorite categories/tags** — organize beyond a flat chronological list.
-- **Custom tile provider configuration** — user-defined tile URLs beyond the built-in 7.
+- **Custom tile provider configuration** — user-defined tile URLs beyond the built-in maps and optional Thunderforest layer.
 - **Search/geocoding** — address lookup (e.g., Nominatim).
 - **Distance measurement** — tap-to-measure between two points.
 - **Dark/light theme toggle** — current dark theme is hardcoded.
