@@ -134,3 +134,32 @@ jobs:
         env:
           FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+
+      # ── Tag and GitHub release ───────────────────────────────────────────────
+      # Runs after a successful deploy. Extracts the matching CHANGELOG section
+      # as release notes, tags the bump commit, and publishes as the latest release.
+      - name: Tag and publish GitHub release
+        if: env.SKIP_DEPLOY != 'true'
+        run: |
+          export VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+
+          NOTES=$(python3 - <<'PYEOF'
+          import re, os
+          ver = os.environ['VERSION']
+          text = open('CHANGELOG.md').read()
+          m = re.search(
+              r'## \[' + re.escape(ver) + r'\][^\n]*\n(.*?)(?=\n## \[|\Z)',
+              text, re.DOTALL
+          )
+          print(m.group(1).strip() if m else f'Release {ver}')
+          PYEOF
+          )
+
+          git tag "$TAG" || true
+          git push origin "$TAG" || true
+          gh release view "$TAG" &>/dev/null \
+            && gh release edit "$TAG" --latest \
+            || gh release create "$TAG" --latest --title "Release $TAG" --notes "$NOTES"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
