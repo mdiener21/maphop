@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+
+## [1.5.2] - 2026-05-12
+
+## Changed
+
+- CSP updated on all three pages (`index.html`, `settings.html`, `impressum.html`) to allow `https://analytics.gomogi.com` in `script-src` and `connect-src`, unblocking Umami's `/api/send` beacon.
+- Umami script tag added to `impressum.html` (was missing while the CSP fix was applied).
 
 ## [1.5.1] - 2026-05-12
 

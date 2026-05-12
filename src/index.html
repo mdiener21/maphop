@@ -12,7 +12,7 @@
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'none';
-        script-src 'self' blob:;
+        script-src 'self' blob: https://analytics.gomogi.com;
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: blob:
             https://tiles.bergfex.at
@@ -24,7 +24,7 @@
             https://mapsneu.wien.gv.at
             https://tiles.openfreemap.org
             https://tiles.mapterhorn.com;
-        connect-src 'self' blob:
+        connect-src 'self' blob: https://analytics.gomogi.com
             https://tiles.bergfex.at
             https://tile.openstreetmap.org
             https://*.tile.opentopomap.org
