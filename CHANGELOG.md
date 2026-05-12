@@ -2,8 +2,14 @@
 
 ## [Unreleased]
 
+
+## [1.5.1] - 2026-05-12
+
 ### Added
 - Optional Thunderforest Transport base map
+
+### Changed
+- Impressum: corrected "Cookies und Tracking" section — Umami Analytics is used (privacy-friendly, no cookies, no personal data) and is now disclosed; no-contact-form statement added; GDPR rights paragraph updated; date updated to Mai 2026.
 
 ## [1.5.0] - 2026-04-05
 
