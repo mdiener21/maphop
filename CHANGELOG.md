@@ -4,7 +4,11 @@
 
 ### Added
 
+- CI/CD auto version bump: every push to main increments the patch version automatically; manual `workflow_dispatch` lets you choose patch / minor / major via a dropdown. The bump commit also renames `[Unreleased]` to the new version in CHANGELOG.md and inserts a fresh empty `[Unreleased]` section.
+
 ### Changed
+
+- meta mobile-web-app-capable
 
 
 ## [1.5.2] - 2026-05-12

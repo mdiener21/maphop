@@ -55,8 +55,23 @@ jobs:
         if: "github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore: bump version')"
         run: |
           npm version patch --no-git-tag-version
-          NEW_VERSION=$(node -p "require('./package.json').version")
-          git add package.json package-lock.json
+          export NEW_VERSION=$(node -p "require('./package.json').version")
+          export TODAY=$(date +%Y-%m-%d)
+          python3 - <<'PYEOF'
+          import os
+          v, d = os.environ['NEW_VERSION'], os.environ['TODAY']
+          new_block = (
+              '## [Unreleased]\n\n'
+              '### Added\n\n'
+              '### Changed\n\n'
+              '### Fixed\n\n'
+              '### Removed\n\n'
+          )
+          path = 'CHANGELOG.md'
+          text = open(path).read()
+          open(path, 'w').write(text.replace('## [Unreleased]', new_block + f'## [{v}] - {d}', 1))
+          PYEOF
+          git add package.json package-lock.json CHANGELOG.md
           git commit -m "chore: bump version to v$NEW_VERSION"
           git push
           echo "SKIP_DEPLOY=true" >> $GITHUB_ENV
@@ -68,8 +83,23 @@ jobs:
         if: "github.event_name == 'workflow_dispatch'"
         run: |
           npm version ${{ github.event.inputs.bump_type }} --no-git-tag-version
-          NEW_VERSION=$(node -p "require('./package.json').version")
-          git add package.json package-lock.json
+          export NEW_VERSION=$(node -p "require('./package.json').version")
+          export TODAY=$(date +%Y-%m-%d)
+          python3 - <<'PYEOF'
+          import os
+          v, d = os.environ['NEW_VERSION'], os.environ['TODAY']
+          new_block = (
+              '## [Unreleased]\n\n'
+              '### Added\n\n'
+              '### Changed\n\n'
+              '### Fixed\n\n'
+              '### Removed\n\n'
+          )
+          path = 'CHANGELOG.md'
+          text = open(path).read()
+          open(path, 'w').write(text.replace('## [Unreleased]', new_block + f'## [{v}] - {d}', 1))
+          PYEOF
+          git add package.json package-lock.json CHANGELOG.md
           git commit -m "chore: bump version to v$NEW_VERSION [skip ci]"
           git push
 
