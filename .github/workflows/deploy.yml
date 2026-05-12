@@ -1,27 +1,93 @@
 name: Build and Deploy
 
+# Automatic flow (push to main):
+#   1. Regular commit → patch bump committed back → triggers a second run → build + deploy
+#   2. Bump commit (prefixed "chore: bump version") → build + deploy only
+#
+# Manual flow (workflow_dispatch):
+#   Choose patch / minor / major → bump committed with [skip ci] → build + deploy in same run
+#
+# Requires a GH_PAT secret (classic PAT with "repo" scope, or fine-grained with
+# "Contents: write"). The token owner must be allowed to bypass branch-protection
+# push restrictions on main (Settings → Branches → add bypass exception for that user).
+
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: false
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 jobs:
-  deploy:
+  version-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          # PAT needed so the bump commit can push through branch protection.
+          token: ${{ secrets.GH_PAT }}
+          fetch-depth: 0
 
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
 
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # ── Auto patch bump ──────────────────────────────────────────────────────
+      # Runs on regular pushes only. Bumps patch, commits, and pushes — which
+      # triggers a second workflow run that handles the actual build + deploy.
+      - name: Auto patch bump
+        if: "github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore: bump version')"
+        run: |
+          npm version patch --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to v$NEW_VERSION"
+          git push
+          echo "SKIP_DEPLOY=true" >> $GITHUB_ENV
+
+      # ── Manual bump (workflow_dispatch) ─────────────────────────────────────
+      # Bumps to the chosen type. Uses [skip ci] so the resulting push does not
+      # trigger a redundant second deploy run.
+      - name: Manual version bump
+        if: "github.event_name == 'workflow_dispatch'"
+        run: |
+          npm version ${{ github.event.inputs.bump_type }} --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to v$NEW_VERSION [skip ci]"
+          git push
+
+      # ── Build & deploy ───────────────────────────────────────────────────────
+      # Skipped after an auto patch bump (the next triggered run will deploy).
+      # Runs on bump commits and manual dispatches.
       - run: npm ci
+        if: env.SKIP_DEPLOY != 'true'
+
       - run: npm run build
+        if: env.SKIP_DEPLOY != 'true'
 
       - name: Install lftp
+        if: env.SKIP_DEPLOY != 'true'
         run: sudo apt-get update && sudo apt-get install -y lftp ca-certificates
 
       - name: Deploy via lftp
+        if: env.SKIP_DEPLOY != 'true'
         run: |
           lftp -c "
             set net:max-retries 3;
