@@ -1,7 +1,8 @@
 # Maphop
 
 <p align="center">
-  <img src="src/images/maphop-logo-192px.png" alt="Maphop logo" width="96">
+<img width="192" height="192" alt="maphop-logo-192px-v3" src="https://github.com/user-attachments/assets/f8867a31-bd74-4274-b0ba-dbc28559b3e6" />
+
 </p>
 
 <p align="center">
