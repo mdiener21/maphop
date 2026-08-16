@@ -13,13 +13,14 @@ function createStorage() {
     };
 }
 
-function createClient({ isValid = false } = {}) {
+function createClient({ isValid = false, userId = 'user-1' } = {}) {
     const authWithPassword = vi.fn().mockResolvedValue({ token: 'token' });
     const create = vi.fn().mockResolvedValue({ id: 'record-id' });
 
     return {
         authStore: {
             isValid,
+            record: { id: userId },
             clear: vi.fn()
         },
         collection: vi.fn((name) => {
@@ -64,8 +65,9 @@ describe('createPocketBaseFavoriteBody', () => {
             elevationMeters: 502,
             elevationSource: 'device',
             elevationAccuracyMeters: 12
-        }, 'device-1')).toEqual({
+        }, 'device-1', 'user-1')).toEqual({
             name: 'Home',
+            user: 'user-1',
             deviceId: 'device-1',
             geom: { lon: 14.271117, lat: 46.5953463 },
             elevation: 502,
@@ -82,10 +84,11 @@ describe('createPocketBaseFavoriteBody', () => {
             latitude: 46.5953463,
             elevationSource: 'device',
             elevationAccuracyMeters: 12
-        }, 'device-1');
+        }, 'device-1', 'user-1');
 
         expect(body).toEqual({
             name: 'Home',
+            user: 'user-1',
             deviceId: 'device-1',
             geom: { lon: 14.271117, lat: 46.5953463 },
             deleted: false
@@ -128,6 +131,7 @@ describe('createFavoriteCloudStore', () => {
 
         expect(client.create).toHaveBeenCalledWith(expect.objectContaining({
             name: 'Home',
+            user: 'user-1',
             deviceId: 'device-1',
             geom: { lon: 14.271117, lat: 46.5953463 },
             elevation: 502,
@@ -152,6 +156,7 @@ describe('createFavoriteCloudStore', () => {
         expect(result).toEqual({ skipped: false, record: { id: 'record-id' } });
         expect(storage.setItem).not.toHaveBeenCalled();
         expect(client.create).toHaveBeenCalledWith(expect.objectContaining({
+            user: 'user-1',
             deviceId: 'device-existing'
         }));
     });

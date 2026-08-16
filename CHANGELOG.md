@@ -6,6 +6,8 @@
 
 ### Changed
 
+- PocketBase favorite backup payloads now include the authenticated `user` relation.
+
 ### Fixed
 
 ### Removed

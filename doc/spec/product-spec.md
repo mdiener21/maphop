@@ -350,6 +350,7 @@ Optional Settings-page feature for authenticated users. The local IndexedDB favo
 ```json
 {
   "name": "My Place",
+  "user": "pocketbase-user-id",
   "deviceId": "local-device-uuid",
   "geom": { "lon": 14.271117, "lat": 46.5953463 },
   "elevation": 502,
@@ -361,7 +362,7 @@ Optional Settings-page feature for authenticated users. The local IndexedDB favo
 
 - Settings page shows a simple PocketBase sign-in control. The first implementation may use email/password inputs plus a single authenticate button; credentials are sent to PocketBase via `users.authWithPassword()` and are not stored by Maphop.
 - After successful auth, the app creates or reuses a random local device ID in `localStorage` and displays that the device is registered.
-- When a favorite is saved locally and PocketBase auth is valid, the app creates one `maphop_favourites` record using the body shape above.
+- When a favorite is saved locally and PocketBase auth is valid, the app creates one `maphop_favourites` record using the body shape above and sets `user` to `pb.authStore.record.id`.
 - If PocketBase is unreachable, auth fails, or remote create fails, local save still succeeds and a user-facing status notes that cloud backup failed.
 - Logout clears the PocketBase auth store; it does not delete local favorites or the local device ID.
 

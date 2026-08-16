@@ -24,9 +24,10 @@ export function getOrCreateDeviceId(storage = globalThis.localStorage, cryptoApi
     return deviceId;
 }
 
-export function createPocketBaseFavoriteBody(favorite, deviceId) {
+export function createPocketBaseFavoriteBody(favorite, deviceId, userId) {
     const body = {
         name: favorite.name,
+        user: userId,
         deviceId,
         geom: {
             lon: favorite.longitude,
@@ -81,7 +82,7 @@ export function createFavoriteCloudStore({
         }
 
         const deviceId = getOrCreateDeviceId(storage, cryptoApi);
-        const body = createPocketBaseFavoriteBody(favorite, deviceId);
+        const body = createPocketBaseFavoriteBody(favorite, deviceId, client.authStore.record?.id);
         const record = await client.collection(favoriteCollectionName).create(body);
         return { skipped: false, record };
     }
