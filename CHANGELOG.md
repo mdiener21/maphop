@@ -17,6 +17,26 @@
 
 ### Removed
 
+## [1.6.2] - 2026-08-16
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.6.1] - 2026-08-16
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
 ## [1.6.0] - 2026-08-16
 
 ### Added
