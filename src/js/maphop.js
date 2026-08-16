@@ -95,7 +95,8 @@ const favoritesPanel = createFavoritesPanel({
     favoriteNameModalBackdrop: dom.favoriteNameModalBackdrop,
     favoriteNameForm: dom.favoriteNameForm,
     favoriteNameInput: dom.favoriteNameInput,
-    cancelFavoriteNameButton: dom.cancelFavoriteNameButton
+    cancelFavoriteNameButton: dom.cancelFavoriteNameButton,
+    getDeviceElevationFix: () => tracker.lastElevationFix
 });
 
 const baseLayerController = createBaseLayerController({

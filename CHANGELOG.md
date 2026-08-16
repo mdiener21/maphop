@@ -10,6 +10,16 @@
 
 ### Removed
 
+## [1.6.0] - 2026-08-16
+
+### Added
+
+- Favorite elevation capture on save.
+
+### Changed
+
+- Favorites import/export preserves elevation metadata.
+
 ## [1.5.7] - 2026-05-16
 
 ### Added
@@ -196,7 +206,9 @@
 - Left-aligned the `Maphop` header title within the open menu
 - Updated the Vite build config to emit both the main app page and `src/impressum.html`
 
-[Unreleased]: https://github.com/mdiener21/maphop/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/mdiener21/maphop/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/mdiener21/maphop/compare/v1.5.7...v1.6.0
+[1.5.7]: https://github.com/mdiener21/maphop/compare/v1.5.6...v1.5.7
 [1.5.0]: https://github.com/mdiener21/maphop/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/mdiener21/maphop/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/mdiener21/maphop/compare/v1.2.0...v1.3.0

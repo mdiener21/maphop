@@ -1,6 +1,6 @@
 # Product Spec: Maphop
 
-**v1.10 · 2026-04-05 · Status: Active**
+**v1.11 · 2026-08-16 · Status: Active**
 
 Local-first, privacy-first PWA map viewer. No accounts, no server-side state, all user data on-device.
 
@@ -25,7 +25,8 @@ Local-first, privacy-first PWA map viewer. No accounts, no server-side state, al
 | Storage | IndexedDB (`personal-map-db`) | Favorites persistence |
 | Offline | Service Worker | App shell caching |
 | Geolocation | Geolocation API | Opt-in position tracking |
-| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 81 tests |
+| Elevation lookup | Open-Meteo Elevation API | Optional online fallback/comparison for favorite elevation |
+| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 93 tests |
 | E2E tests | Playwright ^1.58.2 (Firefox) | 12 tests |
 
 ---
@@ -48,6 +49,7 @@ src/
 │   ├── maphop.js           Map page bootstrap and dependency wiring
 │   ├── location-tracker.js Geolocation state, geo-math, overlay rendering
 │   ├── favorite-store.js   IndexedDB CRUD for favorites
+│   ├── favorite-elevation.js Device/Open-Meteo elevation choice rules
 │   ├── favorite-transfer.js JSON import/export validation
 │   ├── settings.js         Settings page behavior
 │   ├── page-shell.js       Shared page title and version wiring
@@ -71,7 +73,7 @@ src/
 └── manifest.webmanifest    PWA manifest (standalone, portrait, scope /)
 
 tests/
-├── unit/                   Vitest + jsdom (81 tests across 12 files)
+├── unit/                   Vitest + jsdom (93 tests across 13 files)
 └── e2e/app.spec.js         Playwright Firefox (12 tests)
 
 doc/
@@ -99,6 +101,7 @@ doc/
 | `attribution-controller.js` | Render attribution from structured metadata; DOM node creation only |
 | `location-tracker.js` | Geolocation state, follow mode, idle timeout, location overlay rendering |
 | `favorites-panel.js` | Favorites list, crosshair selection, naming modal, share/save/delete, map navigation |
+| `favorite-elevation.js` | Device/Open-Meteo elevation selection for saved favorites |
 | `favorites-overlay.js` | GeoJSON source/layer, pin image, hover popup, toggle state, style-reload restore |
 | `menu-controller.js` | Menu visibility and section expansion state |
 | `share-location.js` | Build share URLs; parse incoming `lat`/`lng`/`z` query params |
@@ -187,17 +190,18 @@ Opt-in via the **Location section** (accordion, default closed) in the control m
 | Database | `personal-map-db` |
 | Object store | `favoriteLocations` |
 | Key | Auto-increment |
-| Fields | `name`, `longitude`, `latitude`, `createdAt` |
+| Fields | `name`, `longitude`, `latitude`, `createdAt`, optional `elevationMeters`, `elevationSource`, `elevationAccuracyMeters` |
 | Coordinate display | 5 decimal places |
 | Sort order | Newest-first |
 
 - **Add**: "Add Favorite" closes menu, enters crosshair selection mode over the live map. User pans/zooms; map center under crosshair is the target. "Save This Spot" captures center and opens naming modal (default name = current date). Confirm stores to IndexedDB; toast confirms. Cancel / `Escape` / backdrop click aborts.
+- **Elevation on save**: saved favorites include best-guess elevation in meters when available. If the device provides altitude and the selected point is within the latest GPS accuracy radius (minimum 30m) of the latest GPS fix, prefer the device value. When online, call `https://api.open-meteo.com/v1/elevation?latitude={latitude}&longitude={longitude}` for the selected coordinates. If both values exist and differ by more than `max(30m, deviceAltitudeAccuracy || 0)`, ask the user which value to save; default/recommended choice remains the device value. If the device value is unavailable or ineligible, use Open-Meteo when available. If the lookup fails or the app is offline, save the favorite without elevation rather than blocking the save.
 - **Navigate**: tapping a favorite eases to coordinates (650ms `easeTo`) and closes menu.
 - **Delete**: inline trash icon removes entry and refreshes list.
 - **Share**: share button generates a deep link; native share sheet when available, otherwise copies to clipboard.
 - **Shared location receiver**: opening Maphop with valid `lat`+`lng` params centers the map, places a pin, and shows the shared location banner (§4.9).
 - **Overlay**: "Show on Map" toggle displays favorites as pin markers on the live map (§4.8).
-- No network requests for any favorites operation.
+- Favorites remain local-first; the only favorites network request is the user-initiated Open-Meteo elevation lookup during save.
 
 ### 4.6 Settings & Favorites Transfer
 
@@ -217,7 +221,13 @@ Opt-in via the **Location section** (accordion, default closed) in the control m
   "features": [{
     "type": "Feature",
     "geometry": { "type": "Point", "coordinates": [longitude, latitude] },
-    "properties": { "name": "My Place", "createdAt": 1712345678901 }
+    "properties": {
+      "name": "My Place",
+      "createdAt": 1712345678901,
+      "elevationMeters": 502,
+      "elevationSource": "device",
+      "elevationAccuracyMeters": 12
+    }
   }]
 }
 ```
@@ -231,7 +241,8 @@ Opt-in via the **Location section** (accordion, default closed) in the control m
 | Raw JSON array | Top-level array of objects |
 
 - Export: timestamped `.geojson`, valid GeoJSON, loadable in QGIS / geojson.io.
-- Import: validates structure and coordinate ranges; skips duplicates already in IndexedDB; rejects invalid/oversized/malformed files with user-facing status.
+- Export includes elevation metadata in GeoJSON feature properties when stored.
+- Import: validates structure and coordinate ranges; accepts optional numeric elevation metadata; skips duplicates already in IndexedDB; rejects invalid/oversized/malformed files with user-facing status.
 - Settings page shows current favorites count and refreshes after import.
 
 ### 4.7 Progressive Web App
@@ -344,6 +355,7 @@ Pan to POI → menu → "Add Favorite"
   → menu closes, crosshair appears
   → pan/zoom until target is under crosshair
   → "Save This Spot" → naming modal → confirm
+  → online elevation lookup runs; if device and Open-Meteo strongly disagree, choose value
   → toast: "Saved [name]."
   → later: menu → Favorites → tap entry → map eases there, menu closes
 ```
@@ -448,7 +460,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 
 ### Privacy
 - No accounts or server-side user state.
-- Geolocation opt-in; never transmitted to any server.
+- Geolocation opt-in; selected favorite coordinates are sent to Open-Meteo only during user-initiated favorite save elevation lookup.
 - Menu displays: *"Remote map providers can infer your nearby area from the tiles your device requests."*
 - No analytics or tracking scripts.
 
@@ -466,7 +478,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 
 | Mechanism | Implementation |
 |-----------|---------------|
-| Content Security Policy | `<meta>` on all pages; `index.html` allowlists all built-in tile providers, optional `api.thunderforest.com`, and `tiles.mapterhorn.com` in `connect-src`/`img-src`; MapLibre blob workers via `worker-src blob: child-src blob:`. Secondary pages use tighter policy. |
+| Content Security Policy | `<meta>` on all pages; `index.html` allowlists all built-in tile providers, optional `api.thunderforest.com`, `tiles.mapterhorn.com`, and `api.open-meteo.com` in `connect-src`/`img-src` as needed; MapLibre blob workers via `worker-src blob: child-src blob:`. Secondary pages use tighter policy. |
 | Referrer Policy | `strict-origin-when-cross-origin` on `index.html`; secondary pages use `no-referrer`. |
 | HTTP security headers | `_headers`: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy: geolocation=(self)`, `X-XSS-Protection: 0`. |
 | Input validation | Import: 64 KB cap, JSON parse guard, coordinate range check, 250-record limit, 80-char name limit, duplicate skipping. |
@@ -478,20 +490,22 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Status toast uses `aria-live="polite"`.
 
 ### Testing
-- **Unit (Vitest + jsdom):** 81 tests across 12 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
+- **Unit (Vitest + jsdom):** 93 tests across 13 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
 - **E2E (Playwright + Firefox):** 12 tests covering page titles, DOM structure, menu interaction, and navigation. Chromium excluded (missing `libnspr4.so` on this WSL2 host).
 
 ### Offline Support
 - Service worker caches app shell for offline launch.
 - Previously loaded tiles remain in browser cache.
 - Favorites and geolocation work fully offline.
+- Favorite saves work offline; elevation is omitted when no device-eligible value or network lookup is available.
 
 ---
 
 ## Constraints
 
 ### Always
-- All user data stays on-device.
+- Stored favorites data stays on-device.
+- Favorite elevation lookup may send selected coordinates to Open-Meteo only after the user explicitly saves a favorite.
 - Base map switch failures revert to the previous working layer.
 - Geolocation tracking stops on background/unload.
 - `CHANGELOG.md` and this spec updated together for shipped changes.
@@ -522,6 +536,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Location tracking | Accuracy circle, heading cone, and point render on activation |
 | Idle timeout | Tracking stops after 15 minutes of inactivity |
 | Favorites CRUD | Save, list, navigate-to, and delete all work with toast feedback |
+| Favorite elevation | Save includes best-guess elevation when device or Open-Meteo data is available; large disagreements prompt user choice; export/import preserve elevation metadata |
 | Favorites sharing | Share produces a deep link opening Maphop at saved coordinates |
 | Shared location receiver | Pin + banner on shared link load; "Add to Favorites" saves; dismiss removes pin/banner |
 | Favorites backup | Export produces valid GeoJSON; import accepts all 3 formats; duplicates skipped |
@@ -536,7 +551,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Attribution | © panel shows correct provider credit; terrain suffix syncs with terrain state |
 | Compass | Appears on rotation or tilt; needle tracks north; tap resets bearing + pitch to 0° |
 | Architecture navigable | `doc/architecture/code-map.md` sufficient to locate owning module without reading `maphop.js` |
-| Unit tests pass | `npm test` exits 0, all 81 tests green |
+| Unit tests pass | `npm test` exits 0, all 93 tests green |
 | E2E tests pass | `npm run test:e2e` exits 0, all 12 tests green |
 
 ---

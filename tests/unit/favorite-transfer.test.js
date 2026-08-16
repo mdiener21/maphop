@@ -62,6 +62,34 @@ describe('setupFavoriteTransfer — export', () => {
         expect(setStatus).toHaveBeenCalledWith('Favorites exported as GeoJSON.');
         appendSpy.mockRestore();
     });
+
+    it('includes elevation metadata in GeoJSON properties when present', async () => {
+        const favorites = [{
+            name: 'Home',
+            longitude: 13.4,
+            latitude: 48.2,
+            createdAt: 1000,
+            elevationMeters: 502,
+            elevationSource: 'device',
+            elevationAccuracyMeters: 12
+        }];
+        const appendSpy = vi.spyOn(document.body, 'append').mockImplementation(() => {});
+        const { exportButton } = wireUp({
+            onExportFavorites: vi.fn().mockResolvedValue(favorites),
+        });
+
+        exportButton.click();
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        const blob = global.URL.createObjectURL.mock.calls.at(-1)[0];
+        const payload = JSON.parse(await blob.text());
+        expect(payload.features[0].properties).toMatchObject({
+            elevationMeters: 502,
+            elevationSource: 'device',
+            elevationAccuracyMeters: 12
+        });
+        appendSpy.mockRestore();
+    });
 });
 
 describe('setupFavoriteTransfer — import file validation', () => {
@@ -150,6 +178,33 @@ describe('setupFavoriteTransfer — import payload validation', () => {
         const payload = JSON.stringify([{ name: 'X', longitude: 10, latitude: 100 }]);
         await simulateFileImport(importInput, makeFile(payload));
         expect(setStatus).toHaveBeenCalledWith('Imported favorite latitude is invalid.');
+    });
+
+    it('imports elevation metadata from GeoJSON feature properties', async () => {
+        const payload = JSON.stringify({
+            type: 'FeatureCollection',
+            features: [{
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [13.4, 48.2] },
+                properties: {
+                    name: 'Home',
+                    createdAt: 1000,
+                    elevationMeters: 502,
+                    elevationSource: 'open-meteo',
+                    elevationAccuracyMeters: 12
+                }
+            }]
+        });
+        const onImportFavorites = vi.fn().mockResolvedValue({ importedCount: 1, skippedCount: 0 });
+        const { importInput } = wireUp({ onImportFavorites });
+
+        await simulateFileImport(importInput, makeFile(payload, 'favorites.geojson', 'application/geo+json'));
+
+        expect(onImportFavorites).toHaveBeenCalledWith([expect.objectContaining({
+            elevationMeters: 502,
+            elevationSource: 'open-meteo',
+            elevationAccuracyMeters: 12
+        })]);
     });
 });
 

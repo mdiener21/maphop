@@ -128,6 +128,7 @@ export class LocationTracker {
         this._hasCenteredOnPosition = false;
         this._following = true;
         this._lastLngLat = null;
+        this._lastElevationFix = null;
         this._previousFix = null;
         this._trackingIdleTimeoutId = null;
         this._currentFeatureCollection = createEmptyLocationFeatureCollection();
@@ -139,6 +140,10 @@ export class LocationTracker {
 
     get lastLngLat() {
         return this._lastLngLat;
+    }
+
+    get lastElevationFix() {
+        return this._lastElevationFix;
     }
 
     get following() {
@@ -166,6 +171,7 @@ export class LocationTracker {
         this._hasCenteredOnPosition = false;
         this._following = true;
         this._lastLngLat = null;
+        this._lastElevationFix = null;
         this._onTrackingStateChange(true);
         this._onStatus("Requesting your current position...");
         this._scheduleIdleTimeout();
@@ -194,6 +200,7 @@ export class LocationTracker {
     clearLocation() {
         this._currentFeatureCollection = createEmptyLocationFeatureCollection();
         this._previousFix = null;
+        this._lastElevationFix = null;
         this._syncOverlay();
     }
 
@@ -333,6 +340,13 @@ export class LocationTracker {
         this._currentFeatureCollection = { type: "FeatureCollection", features };
         this._syncOverlay();
         this._lastLngLat = lngLat;
+        this._lastElevationFix = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            altitude: position.coords.altitude,
+            altitudeAccuracy: position.coords.altitudeAccuracy
+        };
 
         if (!this._hasCenteredOnPosition) {
             const bounds = accuracyPolygon.reduce((lngLatBounds, coordinate) => {

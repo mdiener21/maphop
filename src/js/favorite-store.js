@@ -68,6 +68,21 @@ function createFavoriteSignature(favorite) {
     ].join("|");
 }
 
+function addElevationFields(target, favorite) {
+    if (!Number.isFinite(favorite.elevationMeters)) {
+        return target;
+    }
+
+    target.elevationMeters = favorite.elevationMeters;
+    target.elevationSource = typeof favorite.elevationSource === "string" ? favorite.elevationSource : "unknown";
+
+    if (Number.isFinite(favorite.elevationAccuracyMeters)) {
+        target.elevationAccuracyMeters = favorite.elevationAccuracyMeters;
+    }
+
+    return target;
+}
+
 export function isFavoritesStorageAvailable() {
     return "indexedDB" in window;
 }
@@ -87,12 +102,12 @@ export async function readFavorites() {
 }
 
 export async function getFavoritesForExport() {
-    return (await readFavorites()).map((favorite) => ({
+    return (await readFavorites()).map((favorite) => addElevationFields({
         name: favorite.name,
         longitude: favorite.longitude,
         latitude: favorite.latitude,
         createdAt: favorite.createdAt
-    }));
+    }, favorite));
 }
 
 export async function saveFavorite(favorite) {
@@ -104,12 +119,12 @@ export async function saveFavorite(favorite) {
         transaction.oncomplete = () => resolve();
         transaction.onerror = () => reject(transaction.error);
 
-        store.add({
+        store.add(addElevationFields({
             name: favorite.name,
             longitude: favorite.longitude,
             latitude: favorite.latitude,
             createdAt: favorite.createdAt ?? Date.now()
-        });
+        }, favorite));
     });
 }
 
@@ -139,12 +154,12 @@ export async function importFavorites(favorites) {
         }
 
         queuedSignatures.add(signature);
-        uniqueFavorites.push({
+        uniqueFavorites.push(addElevationFields({
             name: favorite.name,
             longitude: favorite.longitude,
             latitude: favorite.latitude,
             createdAt: favorite.createdAt
-        });
+        }, favorite));
     });
 
     if (uniqueFavorites.length === 0) {

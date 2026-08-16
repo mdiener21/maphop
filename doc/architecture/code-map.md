@@ -27,6 +27,7 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Status toast behavior | `src/js/map/status-toast.js` |
 | Service worker registration gate | `src/js/map/service-worker.js` |
 | Geolocation state, follow mode, idle timeout, and overlay drawing | `src/js/location-tracker.js` |
+| Favorite elevation selection from device/Open-Meteo data | `src/js/favorite-elevation.js` |
 
 ## Data and Persistence
 
@@ -34,6 +35,7 @@ This file is the low-context index for the codebase. Use it to find the right mo
 |--------|--------|
 | IndexedDB favorites CRUD | `src/js/favorite-store.js` |
 | Favorites JSON export/import validation | `src/js/favorite-transfer.js` |
+| Favorite elevation lookup and source-choice rules | `src/js/favorite-elevation.js` |
 
 ## Tests
 
@@ -47,6 +49,7 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Shared location URL helpers | `tests/unit/share-location.test.js` |
 | Favorites store | `tests/unit/favorite-store.test.js` |
 | Favorites transfer | `tests/unit/favorite-transfer.test.js` |
+| Favorite elevation | `tests/unit/favorite-elevation.test.js` |
 | Location tracker | `tests/unit/location-tracker.test.js` |
 | Basic browser flows | `tests/e2e/app.spec.js` |
 

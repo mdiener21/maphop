@@ -43,6 +43,7 @@ function normalizeFavoriteRecord(record) {
     const longitude = isGeoJsonFeature ? Number(record.geometry.coordinates[0]) : Number(record.longitude);
     const latitude = isGeoJsonFeature ? Number(record.geometry.coordinates[1]) : Number(record.latitude);
     const createdAt = Number(isGeoJsonFeature ? record.properties?.createdAt : record.createdAt);
+    const elevationSourceRecord = isGeoJsonFeature ? record.properties : record;
 
     if (!name) {
         throw new Error("Each imported favorite needs a name.");
@@ -60,12 +61,29 @@ function normalizeFavoriteRecord(record) {
         throw new Error("Imported favorite latitude is invalid.");
     }
 
-    return {
+    const favorite = {
         name,
         longitude,
         latitude,
         createdAt: Number.isFinite(createdAt) && createdAt > 0 ? Math.trunc(createdAt) : Date.now()
     };
+
+    return addElevationMetadata(favorite, elevationSourceRecord);
+}
+
+function addElevationMetadata(target, favorite) {
+    if (!Number.isFinite(favorite?.elevationMeters)) {
+        return target;
+    }
+
+    target.elevationMeters = favorite.elevationMeters;
+    target.elevationSource = typeof favorite.elevationSource === "string" ? favorite.elevationSource : "unknown";
+
+    if (Number.isFinite(favorite.elevationAccuracyMeters)) {
+        target.elevationAccuracyMeters = favorite.elevationAccuracyMeters;
+    }
+
+    return target;
 }
 
 function createExportPayload(favorites) {
@@ -77,10 +95,10 @@ function createExportPayload(favorites) {
                 type: "Point",
                 coordinates: [favorite.longitude, favorite.latitude]
             },
-            properties: {
+            properties: addElevationMetadata({
                 name: favorite.name,
                 createdAt: favorite.createdAt
-            }
+            }, favorite)
         }))
     };
 }

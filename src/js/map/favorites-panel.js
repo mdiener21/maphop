@@ -4,6 +4,7 @@ import {
     readFavorites,
     saveFavorite
 } from "../favorite-store.js";
+import { fetchOpenMeteoElevation, resolveFavoriteElevation } from "../favorite-elevation.js";
 import { buildSharedLocationUrl } from "./share-location.js";
 
 const MSG_INDEXEDDB_UNAVAILABLE = "IndexedDB is not available in this browser.";
@@ -14,6 +15,28 @@ function formatFavoriteCoordinates(longitude, latitude) {
 
 function getSuggestedFavoriteName() {
     return "Favorite " + new Date().toLocaleDateString();
+}
+
+function formatElevationMeters(elevationMeters) {
+    return Math.round(elevationMeters) + " m";
+}
+
+function chooseElevationValue({ deviceElevation, openMeteoElevation }) {
+    if (!window.confirm) {
+        return deviceElevation;
+    }
+
+    const deviceAccuracy = Number.isFinite(deviceElevation.elevationAccuracyMeters)
+        ? ` (accuracy +/- ${Math.round(deviceElevation.elevationAccuracyMeters)} m)`
+        : "";
+    const useDevice = window.confirm(
+        "Elevation sources disagree.\n\n" +
+        `Device GPS: ${formatElevationMeters(deviceElevation.elevationMeters)}${deviceAccuracy}\n` +
+        `Open-Meteo: ${formatElevationMeters(openMeteoElevation.elevationMeters)}\n\n` +
+        "Use device GPS elevation? Press Cancel to use Open-Meteo."
+    );
+
+    return useDevice ? deviceElevation : openMeteoElevation;
 }
 
 function createTrashIcon() {
@@ -71,7 +94,10 @@ export function createFavoritesPanel({
     favoriteNameModalBackdrop,
     favoriteNameForm,
     favoriteNameInput,
-    cancelFavoriteNameButton
+    cancelFavoriteNameButton,
+    getDeviceElevationFix = () => null,
+    fetchElevation = fetchOpenMeteoElevation,
+    chooseElevation = chooseElevationValue
 }) {
     let pendingFavoriteCoordinates = null;
     let selectionActive = false;
@@ -332,11 +358,26 @@ export function createFavoritesPanel({
         favoriteNameInput.setCustomValidity("");
 
         try {
+            const elevation = await resolveFavoriteElevation({
+                latitude: pendingFavoriteCoordinates.latitude,
+                longitude: pendingFavoriteCoordinates.longitude,
+                deviceFix: getDeviceElevationFix(),
+                fetchElevation: (coordinates) => {
+                    if (navigator.onLine === false) {
+                        return null;
+                    }
+
+                    return fetchElevation(coordinates);
+                },
+                chooseElevation
+            });
+
             await saveFavorite({
                 name: trimmedName,
                 longitude: pendingFavoriteCoordinates.longitude,
                 latitude: pendingFavoriteCoordinates.latitude,
-                createdAt: Date.now()
+                createdAt: Date.now(),
+                ...(elevation ?? {})
             });
 
             await loadFavorites();

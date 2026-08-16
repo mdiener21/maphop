@@ -39,6 +39,20 @@ describe('saveFavorite', () => {
         expect(favorites[0]).toMatchObject({ name: 'Test Place', longitude: 13.4050, latitude: 48.2093 });
     });
 
+    it('persists optional elevation metadata', async () => {
+        await store.saveFavorite(sample({
+            elevationMeters: 502,
+            elevationSource: 'device',
+            elevationAccuracyMeters: 12
+        }));
+        const favorites = await store.readFavorites();
+        expect(favorites[0]).toMatchObject({
+            elevationMeters: 502,
+            elevationSource: 'device',
+            elevationAccuracyMeters: 12
+        });
+    });
+
     it('assigns an auto-increment id to each saved favorite', async () => {
         await store.saveFavorite(sample({ name: 'A' }));
         await store.saveFavorite(sample({ name: 'B' }));
@@ -116,6 +130,22 @@ describe('importFavorites', () => {
         ]);
         expect(result).toEqual({ importedCount: 1, skippedCount: 1 });
     });
+
+    it('imports optional elevation metadata', async () => {
+        await store.importFavorites([
+            sample({
+                elevationMeters: 502,
+                elevationSource: 'open-meteo',
+                elevationAccuracyMeters: 12
+            })
+        ]);
+        const favorites = await store.readFavorites();
+        expect(favorites[0]).toMatchObject({
+            elevationMeters: 502,
+            elevationSource: 'open-meteo',
+            elevationAccuracyMeters: 12
+        });
+    });
 });
 
 describe('getFavoritesForExport', () => {
@@ -126,5 +156,19 @@ describe('getFavoritesForExport', () => {
         const keys = Object.keys(exported[0]);
         expect(keys).toEqual(expect.arrayContaining(['name', 'longitude', 'latitude', 'createdAt']));
         expect(keys).not.toContain('id');
+    });
+
+    it('includes optional elevation metadata', async () => {
+        await store.saveFavorite(sample({
+            elevationMeters: 502,
+            elevationSource: 'device',
+            elevationAccuracyMeters: 12
+        }));
+        const exported = await store.getFavoritesForExport();
+        expect(exported[0]).toMatchObject({
+            elevationMeters: 502,
+            elevationSource: 'device',
+            elevationAccuracyMeters: 12
+        });
     });
 });
