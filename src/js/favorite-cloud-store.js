@@ -87,11 +87,45 @@ export function createFavoriteCloudStore({
         return { skipped: false, record };
     }
 
+    async function deleteFavorite(pocketBaseId) {
+        if (!isAuthenticated() || !pocketBaseId) {
+            return { skipped: true };
+        }
+
+        await client.collection(favoriteCollectionName).delete(pocketBaseId);
+        return { skipped: false };
+    }
+
+    async function uploadMissingFavorites(favorites, markUploaded) {
+        let uploadedCount = 0;
+        let skippedCount = 0;
+
+        for (const favorite of favorites) {
+            if (favorite.pocketBaseId) {
+                skippedCount += 1;
+                continue;
+            }
+
+            const result = await saveFavorite(favorite);
+            if (result.skipped || !result.record?.id) {
+                skippedCount += 1;
+                continue;
+            }
+
+            await markUploaded(favorite.id, result.record.id);
+            uploadedCount += 1;
+        }
+
+        return { uploadedCount, skippedCount };
+    }
+
     return {
         authenticate,
+        deleteFavorite,
         getDeviceId,
         isAuthenticated,
         logout,
-        saveFavorite
+        saveFavorite,
+        uploadMissingFavorites
     };
 }

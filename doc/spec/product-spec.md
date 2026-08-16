@@ -1,6 +1,6 @@
 # Product Spec: Maphop
 
-**v1.12 · 2026-08-16 · Status: Active**
+**v1.13 · 2026-08-16 · Status: Active**
 
 Local-first, privacy-first PWA map viewer. No accounts required; optional PocketBase sign-in can back up favorites to a user-controlled backend.
 
@@ -27,7 +27,7 @@ Local-first, privacy-first PWA map viewer. No accounts required; optional Pocket
 | Geolocation | Geolocation API | Opt-in position tracking |
 | Elevation lookup | Open-Meteo Elevation API | Optional online fallback/comparison for favorite elevation |
 | Optional cloud backup | PocketBase JS SDK ^0.27.3 + `https://pb.kanvana.com` | Authenticated favorite backup to `maphop_favourites` |
-| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 101 tests |
+| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 108 tests |
 | E2E tests | Playwright ^1.58.2 (Firefox) | 12 tests |
 
 ---
@@ -75,7 +75,7 @@ src/
 └── manifest.webmanifest    PWA manifest (standalone, portrait, scope /)
 
 tests/
-├── unit/                   Vitest + jsdom (101 tests across 14 files)
+├── unit/                   Vitest + jsdom (108 tests across 15 files)
 └── e2e/app.spec.js         Playwright Firefox (12 tests)
 
 doc/
@@ -193,7 +193,7 @@ Opt-in via the **Location section** (accordion, default closed) in the control m
 | Database | `personal-map-db` |
 | Object store | `favoriteLocations` |
 | Key | Auto-increment |
-| Fields | `name`, `longitude`, `latitude`, `createdAt`, optional `elevationMeters`, `elevationSource`, `elevationAccuracyMeters` |
+| Fields | `name`, `longitude`, `latitude`, `createdAt`, optional `elevationMeters`, `elevationSource`, `elevationAccuracyMeters`, `pocketBaseId` |
 | Coordinate display | 5 decimal places |
 | Sort order | Newest-first |
 
@@ -336,7 +336,7 @@ Toggle in the Location section, below the tile-provider privacy note.
 
 ### 4.12 PocketBase Favorite Backup
 
-Optional Settings-page feature for authenticated users. The local IndexedDB favorite remains the source of truth for map behavior; PocketBase backup is best-effort and must not block local saves.
+Optional Settings-page feature for authenticated users. Before auth, IndexedDB is the source of truth. After auth, PocketBase is the write source and IndexedDB is a local cache for map rendering.
 
 | Property | Value |
 |----------|-------|
@@ -360,10 +360,11 @@ Optional Settings-page feature for authenticated users. The local IndexedDB favo
 }
 ```
 
-- Settings page shows a simple PocketBase sign-in control. The first implementation may use email/password inputs plus a single authenticate button; credentials are sent to PocketBase via `users.authWithPassword()` and are not stored by Maphop.
-- After successful auth, the app creates or reuses a random local device ID in `localStorage` and displays that the device is registered.
-- When a favorite is saved locally and PocketBase auth is valid, the app creates one `maphop_favourites` record using the body shape above and sets `user` to `pb.authStore.record.id`.
-- If PocketBase is unreachable, auth fails, or remote create fails, local save still succeeds and a user-facing status notes that cloud backup failed.
+- Settings page shows a simple PocketBase sign-in control. The first implementation uses email/password inputs plus a single authenticate button; credentials are sent to PocketBase via `users.authWithPassword()`, the password field is cleared after every attempt, auth errors are shown generically, and raw auth failures are not logged to the console. Auth controls are disabled while a login request is in flight to prevent duplicate submissions.
+- After successful auth, the app creates or reuses a random local device ID in `localStorage`, uploads local favorites missing `pocketBaseId`, stores each returned PocketBase record id locally, and displays that the device is registered.
+- When PocketBase auth is valid, new favorites create a `maphop_favourites` record first, then cache locally with the returned `pocketBaseId`.
+- When PocketBase auth is valid and a favorite has `pocketBaseId`, delete calls the PocketBase delete API first, then removes the local cached favorite.
+- If PocketBase create/delete fails after auth, the local cache is left unchanged and a user-facing status explains the remote operation failed.
 - Logout clears the PocketBase auth store; it does not delete local favorites or the local device ID.
 
 ---
@@ -438,8 +439,9 @@ Settings → review count → "Export favorites JSON" → file downloads immedia
 ```
 Settings → enter PocketBase email/password → Authenticate
   → auth succeeds → app creates/reuses local device ID
-  → save favorite on map → local IndexedDB save succeeds
-  → if auth is valid, one maphop_favourites record is created in PocketBase
+  → first login uploads local favorites without pocketBaseId and caches returned ids
+  → save favorite on map → PocketBase create succeeds → local cache row saved
+  → delete favorite → PocketBase delete succeeds → local cache row removed
 ```
 
 ### Flow 10: View Favorites on Map
@@ -524,6 +526,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Mechanism | Implementation |
 |-----------|---------------|
 | Content Security Policy | `<meta>` on all pages; `index.html` allowlists all built-in tile providers, optional `api.thunderforest.com`, `tiles.mapterhorn.com`, `api.open-meteo.com`, and `pb.kanvana.com` in `connect-src`/`img-src` as needed; `settings.html` allows `https://pb.kanvana.com` in `connect-src`; MapLibre blob workers via `worker-src blob: child-src blob:`. Secondary pages otherwise use tighter policy. |
+| Settings auth hardening | `settings.html` uses `form-action 'self'`, `Referrer-Policy: no-referrer`, password clearing after every auth attempt, generic failure messages, no raw auth-error logging, and disabled controls during login. PocketBase server must enforce HTTPS, exact CORS origins, auth rate limiting, password policy, and per-user collection rules. |
 | Referrer Policy | `strict-origin-when-cross-origin` on `index.html`; secondary pages use `no-referrer`. |
 | HTTP security headers | `_headers`: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy: geolocation=(self)`, `X-XSS-Protection: 0`. |
 | Input validation | Import: 64 KB cap, JSON parse guard, coordinate range check, 250-record limit, 80-char name limit, duplicate skipping. |
@@ -535,7 +538,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Status toast uses `aria-live="polite"`.
 
 ### Testing
-- **Unit (Vitest + jsdom):** 101 tests across 14 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
+- **Unit (Vitest + jsdom):** 108 tests across 15 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
 - **E2E (Playwright + Firefox):** 12 tests covering page titles, DOM structure, menu interaction, and navigation. Chromium excluded (missing `libnspr4.so` on this WSL2 host).
 
 ### Offline Support
@@ -543,7 +546,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Previously loaded tiles remain in browser cache.
 - Favorites and geolocation work fully offline.
 - Favorite saves work offline; elevation is omitted when no device-eligible value or network lookup is available.
-- PocketBase backup is online-only and best-effort; local favorite saves never depend on PocketBase availability.
+- PocketBase-managed favorites are online-only after auth; unauthenticated local favorite saves remain offline-capable.
 
 ---
 
@@ -589,6 +592,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Shared location receiver | Pin + banner on shared link load; "Add to Favorites" saves; dismiss removes pin/banner |
 | Favorites backup | Export produces valid GeoJSON; import accepts all 3 formats; duplicates skipped |
 | PocketBase backup | Authenticated Settings user gets a stable local device ID; each new local favorite creates one `maphop_favourites` record when online/authenticated; local saves continue when backup fails |
+| PocketBase-managed writes | After auth, first login uploads local favorites once; new saves and deletes use PocketBase first and update IndexedDB only after API success |
 | Favorites overlay | Pins toggle on/off; hover shows name popup; survives style switch; state persists |
 | Offline launch | App shell loads without network after first visit |
 | PWA installable | Passes Lighthouse PWA installability checks |
@@ -600,7 +604,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Attribution | © panel shows correct provider credit; terrain suffix syncs with terrain state |
 | Compass | Appears on rotation or tilt; needle tracks north; tap resets bearing + pitch to 0° |
 | Architecture navigable | `doc/architecture/code-map.md` sufficient to locate owning module without reading `maphop.js` |
-| Unit tests pass | `npm test` exits 0, all 101 tests green |
+| Unit tests pass | `npm test` exits 0, all 108 tests green |
 | E2E tests pass | `npm run test:e2e` exits 0, all 12 tests green |
 
 ---

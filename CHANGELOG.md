@@ -7,6 +7,9 @@
 ### Changed
 
 - PocketBase favorite backup payloads now include the authenticated `user` relation.
+- Product spec updated (v1.13): PocketBase first-login upload, remote-first saves, and delete API behavior after auth.
+- PocketBase-authenticated favorites now upload existing local records on login, save remotely before local cache writes, and delete remote records before local cache removal.
+- Product spec updated: Settings PocketBase login hardening covers password clearing, duplicate-submit prevention, generic auth failures, no raw auth-error logging, CSP `form-action`, and server-side expectations.
 
 ### Fixed
 

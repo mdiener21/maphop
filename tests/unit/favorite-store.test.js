@@ -53,6 +53,12 @@ describe('saveFavorite', () => {
         });
     });
 
+    it('persists optional PocketBase record id', async () => {
+        await store.saveFavorite(sample({ pocketBaseId: 'pb-record-1' }));
+        const favorites = await store.readFavorites();
+        expect(favorites[0]).toMatchObject({ pocketBaseId: 'pb-record-1' });
+    });
+
     it('assigns an auto-increment id to each saved favorite', async () => {
         await store.saveFavorite(sample({ name: 'A' }));
         await store.saveFavorite(sample({ name: 'B' }));
@@ -88,6 +94,18 @@ describe('deleteFavoriteById', () => {
         const remaining = await store.readFavorites();
         expect(remaining).toHaveLength(1);
         expect(remaining[0].name).toBe('Keep');
+    });
+});
+
+describe('updateFavoritePocketBaseId', () => {
+    it('stores a PocketBase record id for an existing favorite', async () => {
+        await store.saveFavorite(sample());
+        const [favorite] = await store.readFavorites();
+
+        await store.updateFavoritePocketBaseId(favorite.id, 'pb-record-1');
+
+        const [updatedFavorite] = await store.readFavorites();
+        expect(updatedFavorite).toMatchObject({ pocketBaseId: 'pb-record-1' });
     });
 });
 

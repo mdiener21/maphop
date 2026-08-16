@@ -4,7 +4,8 @@ import {
     getFavoritesForExport,
     importFavorites,
     isFavoritesStorageAvailable,
-    readFavorites
+    readFavorites,
+    updateFavoritePocketBaseId
 } from "./favorite-store.js";
 import { initializePageShell } from "./page-shell.js";
 
@@ -16,6 +17,7 @@ const settingsStatusElement = document.getElementById("settingsStatus");
 const pocketBaseAuthForm = document.getElementById("pocketBaseAuthForm");
 const pocketBaseEmailInput = document.getElementById("pocketBaseEmailInput");
 const pocketBasePasswordInput = document.getElementById("pocketBasePasswordInput");
+const pocketBaseAuthButton = document.getElementById("pocketBaseAuthButton");
 const pocketBaseLogoutButton = document.getElementById("pocketBaseLogoutButton");
 const pocketBaseAuthState = document.getElementById("pocketBaseAuthState");
 const pocketBaseDeviceId = document.getElementById("pocketBaseDeviceId");
@@ -48,6 +50,13 @@ function refreshPocketBaseState() {
     pocketBaseDeviceId.textContent = favoriteCloudStore.getDeviceId() ?? "Not registered";
 }
 
+function setPocketBaseAuthBusy(isBusy) {
+    pocketBaseEmailInput.disabled = isBusy;
+    pocketBasePasswordInput.disabled = isBusy;
+    pocketBaseAuthButton.disabled = isBusy;
+    pocketBaseLogoutButton.disabled = isBusy;
+}
+
 async function authenticatePocketBase(event) {
     event.preventDefault();
 
@@ -59,15 +68,23 @@ async function authenticatePocketBase(event) {
         return;
     }
 
+    setPocketBaseAuthBusy(true);
+
     try {
         const { deviceId } = await favoriteCloudStore.authenticate(email, password);
-        pocketBasePasswordInput.value = "";
+        const favorites = await readFavorites();
+        const syncResult = await favoriteCloudStore.uploadMissingFavorites(favorites, updateFavoritePocketBaseId);
         refreshPocketBaseState();
-        setStatus("PocketBase authenticated. Device registered: " + deviceId + ".");
-    } catch (error) {
+        setStatus(
+            "PocketBase authenticated. Device registered: " + deviceId +
+            `. Uploaded ${syncResult.uploadedCount} local favorites.`
+        );
+    } catch {
         refreshPocketBaseState();
         setStatus("PocketBase authentication failed.");
-        console.error(error);
+    } finally {
+        pocketBasePasswordInput.value = "";
+        setPocketBaseAuthBusy(false);
     }
 }
 

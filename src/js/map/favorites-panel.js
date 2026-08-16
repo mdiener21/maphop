@@ -160,13 +160,17 @@ export function createFavoritesPanel({
         }
     }
 
-    async function deleteFavorite(id, name) {
+    async function deleteFavorite(id, name, pocketBaseId) {
         if (!isFavoritesStorageAvailable()) {
             onStatus(MSG_INDEXEDDB_UNAVAILABLE);
             return;
         }
 
         try {
+            if (cloudStore?.isAuthenticated() && pocketBaseId) {
+                await cloudStore.deleteFavorite(pocketBaseId);
+            }
+
             await deleteFavoriteById(id);
             await loadFavorites();
             onStatus("Deleted " + name + ".");
@@ -263,7 +267,7 @@ export function createFavoritesPanel({
             deleteButton.append(createTrashIcon());
             deleteButton.addEventListener("click", async (event) => {
                 event.stopPropagation();
-                await deleteFavorite(favorite.id, favorite.name);
+                await deleteFavorite(favorite.id, favorite.name, favorite.pocketBaseId);
             });
 
             const shareButton = document.createElement("button");
@@ -381,30 +385,20 @@ export function createFavoritesPanel({
                 ...(elevation ?? {})
             };
 
+            if (cloudStore?.isAuthenticated()) {
+                const result = await cloudStore.saveFavorite(favorite);
+                if (result.record?.id) {
+                    favorite.pocketBaseId = result.record.id;
+                }
+            }
+
             await saveFavorite(favorite);
 
             await loadFavorites();
             finishFavoriteFlow();
             onStatus("Saved " + trimmedName + ".");
-            backupFavoriteToCloud(favorite, trimmedName);
         } catch (error) {
             onStatus("Unable to save favorite location.");
-            console.error(error);
-        }
-    }
-
-    async function backupFavoriteToCloud(favorite, name) {
-        if (!cloudStore?.isAuthenticated()) {
-            return;
-        }
-
-        try {
-            const result = await cloudStore.saveFavorite(favorite);
-            if (!result.skipped) {
-                onStatus("Backed up " + name + " to PocketBase.");
-            }
-        } catch (error) {
-            onStatus("Saved locally. PocketBase backup failed.");
             console.error(error);
         }
     }

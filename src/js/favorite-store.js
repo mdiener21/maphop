@@ -83,6 +83,23 @@ function addElevationFields(target, favorite) {
     return target;
 }
 
+function addPocketBaseFields(target, favorite) {
+    if (typeof favorite.pocketBaseId === "string" && favorite.pocketBaseId) {
+        target.pocketBaseId = favorite.pocketBaseId;
+    }
+
+    return target;
+}
+
+function createFavoriteRecord(favorite) {
+    return addPocketBaseFields(addElevationFields({
+        name: favorite.name,
+        longitude: favorite.longitude,
+        latitude: favorite.latitude,
+        createdAt: favorite.createdAt ?? Date.now()
+    }, favorite), favorite);
+}
+
 export function isFavoritesStorageAvailable() {
     return "indexedDB" in window;
 }
@@ -119,12 +136,30 @@ export async function saveFavorite(favorite) {
         transaction.oncomplete = () => resolve();
         transaction.onerror = () => reject(transaction.error);
 
-        store.add(addElevationFields({
-            name: favorite.name,
-            longitude: favorite.longitude,
-            latitude: favorite.latitude,
-            createdAt: favorite.createdAt ?? Date.now()
-        }, favorite));
+        store.add(createFavoriteRecord(favorite));
+    });
+}
+
+export async function updateFavoritePocketBaseId(id, pocketBaseId) {
+    const database = await getFavoritesDb();
+    await new Promise((resolve, reject) => {
+        const transaction = database.transaction(favoriteStoreName, "readwrite");
+        const store = transaction.objectStore(favoriteStoreName);
+        const request = store.get(id);
+
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+
+        request.onsuccess = () => {
+            if (!request.result) {
+                return;
+            }
+
+            store.put({
+                ...request.result,
+                pocketBaseId
+            });
+        };
     });
 }
 
@@ -154,12 +189,12 @@ export async function importFavorites(favorites) {
         }
 
         queuedSignatures.add(signature);
-        uniqueFavorites.push(addElevationFields({
+        uniqueFavorites.push(addPocketBaseFields(addElevationFields({
             name: favorite.name,
             longitude: favorite.longitude,
             latitude: favorite.latitude,
             createdAt: favorite.createdAt
-        }, favorite));
+        }, favorite), favorite));
     });
 
     if (uniqueFavorites.length === 0) {

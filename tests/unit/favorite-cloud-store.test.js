@@ -16,6 +16,7 @@ function createStorage() {
 function createClient({ isValid = false, userId = 'user-1' } = {}) {
     const authWithPassword = vi.fn().mockResolvedValue({ token: 'token' });
     const create = vi.fn().mockResolvedValue({ id: 'record-id' });
+    const deleteRecord = vi.fn().mockResolvedValue(true);
 
     return {
         authStore: {
@@ -29,13 +30,14 @@ function createClient({ isValid = false, userId = 'user-1' } = {}) {
             }
 
             if (name === 'maphop_favourites') {
-                return { create };
+                return { create, delete: deleteRecord };
             }
 
             throw new Error(`Unexpected collection ${name}`);
         }),
         authWithPassword,
-        create
+        create,
+        deleteRecord
     };
 }
 
@@ -169,5 +171,38 @@ describe('createFavoriteCloudStore', () => {
 
         expect(result).toEqual({ skipped: true });
         expect(client.create).not.toHaveBeenCalled();
+    });
+
+    it('deletes a remote favorite record when authenticated', async () => {
+        const client = createClient({ isValid: true });
+        const cloudStore = createFavoriteCloudStore({ client, storage: createStorage() });
+
+        await cloudStore.deleteFavorite('record-id');
+
+        expect(client.deleteRecord).toHaveBeenCalledWith('record-id');
+    });
+
+    it('uploads local favorites that do not already have a PocketBase id', async () => {
+        const client = createClient({ isValid: true });
+        client.create
+            .mockResolvedValueOnce({ id: 'record-a' })
+            .mockResolvedValueOnce({ id: 'record-c' });
+        const cloudStore = createFavoriteCloudStore({
+            client,
+            storage: createStorage(),
+            cryptoApi: { randomUUID: () => 'device-1' }
+        });
+        const markUploaded = vi.fn().mockResolvedValue(undefined);
+
+        const result = await cloudStore.uploadMissingFavorites([
+            { id: 1, name: 'A', longitude: 14.1, latitude: 46.1 },
+            { id: 2, name: 'B', longitude: 14.2, latitude: 46.2, pocketBaseId: 'existing' },
+            { id: 3, name: 'C', longitude: 14.3, latitude: 46.3 }
+        ], markUploaded);
+
+        expect(client.create).toHaveBeenCalledTimes(2);
+        expect(markUploaded).toHaveBeenCalledWith(1, 'record-a');
+        expect(markUploaded).toHaveBeenCalledWith(3, 'record-c');
+        expect(result).toEqual({ uploadedCount: 2, skippedCount: 1 });
     });
 });
