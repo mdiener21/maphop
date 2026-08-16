@@ -4,6 +4,16 @@
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.6.3] - 2026-08-16
+
+### Added
+
 - Product spec updated (v1.12): planned optional PocketBase favorite backup with Settings auth, local device ID, and `maphop_favourites` remote create shape.
 - Optional PocketBase favorite backup with Settings authentication and local device ID registration.
 
