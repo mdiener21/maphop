@@ -35,6 +35,8 @@
 
 ### Fixed
 
+- Map page CSP now allows Open-Meteo elevation and PocketBase favorite backup requests.
+
 ### Removed
 
 ## [1.6.1] - 2026-08-16

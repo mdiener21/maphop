@@ -45,4 +45,12 @@ describe("OpenStreetMap policy compliance", () => {
         expect(indexHtml).toContain('data-layer-key="transport"');
         expect(indexHtml).toContain("Transport");
     });
+
+    it("allows favorite-save network calls from the map page CSP", () => {
+        const indexHtml = readProjectFile("src/index.html");
+        const connectSrc = indexHtml.match(/connect-src[^;]+;/)?.[0] ?? "";
+
+        expect(connectSrc).toContain("https://api.open-meteo.com");
+        expect(connectSrc).toContain("https://pb.kanvana.com");
+    });
 });
