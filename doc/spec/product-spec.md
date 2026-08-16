@@ -1,8 +1,8 @@
 # Product Spec: Maphop
 
-**v1.11 · 2026-08-16 · Status: Active**
+**v1.12 · 2026-08-16 · Status: Active**
 
-Local-first, privacy-first PWA map viewer. No accounts, no server-side state, all user data on-device.
+Local-first, privacy-first PWA map viewer. No accounts required; optional PocketBase sign-in can back up favorites to a user-controlled backend.
 
 **Rule:** Update this spec and `CHANGELOG.md` together whenever shipped behavior, architecture, UX, or constraints change.
 
@@ -26,7 +26,8 @@ Local-first, privacy-first PWA map viewer. No accounts, no server-side state, al
 | Offline | Service Worker | App shell caching |
 | Geolocation | Geolocation API | Opt-in position tracking |
 | Elevation lookup | Open-Meteo Elevation API | Optional online fallback/comparison for favorite elevation |
-| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 93 tests |
+| Optional cloud backup | PocketBase JS SDK ^0.27.3 + `https://pb.kanvana.com` | Authenticated favorite backup to `maphop_favourites` |
+| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 101 tests |
 | E2E tests | Playwright ^1.58.2 (Firefox) | 12 tests |
 
 ---
@@ -50,6 +51,7 @@ src/
 │   ├── location-tracker.js Geolocation state, geo-math, overlay rendering
 │   ├── favorite-store.js   IndexedDB CRUD for favorites
 │   ├── favorite-elevation.js Device/Open-Meteo elevation choice rules
+│   ├── favorite-cloud-store.js PocketBase auth/device ID and remote favorite create
 │   ├── favorite-transfer.js JSON import/export validation
 │   ├── settings.js         Settings page behavior
 │   ├── page-shell.js       Shared page title and version wiring
@@ -73,7 +75,7 @@ src/
 └── manifest.webmanifest    PWA manifest (standalone, portrait, scope /)
 
 tests/
-├── unit/                   Vitest + jsdom (93 tests across 13 files)
+├── unit/                   Vitest + jsdom (101 tests across 14 files)
 └── e2e/app.spec.js         Playwright Firefox (12 tests)
 
 doc/
@@ -102,6 +104,7 @@ doc/
 | `location-tracker.js` | Geolocation state, follow mode, idle timeout, location overlay rendering |
 | `favorites-panel.js` | Favorites list, crosshair selection, naming modal, share/save/delete, map navigation |
 | `favorite-elevation.js` | Device/Open-Meteo elevation selection for saved favorites |
+| `favorite-cloud-store.js` | PocketBase client, auth state, local device ID, and remote favorite creation |
 | `favorites-overlay.js` | GeoJSON source/layer, pin image, hover popup, toggle state, style-reload restore |
 | `menu-controller.js` | Menu visibility and section expansion state |
 | `share-location.js` | Build share URLs; parse incoming `lat`/`lng`/`z` query params |
@@ -201,7 +204,7 @@ Opt-in via the **Location section** (accordion, default closed) in the control m
 - **Share**: share button generates a deep link; native share sheet when available, otherwise copies to clipboard.
 - **Shared location receiver**: opening Maphop with valid `lat`+`lng` params centers the map, places a pin, and shows the shared location banner (§4.9).
 - **Overlay**: "Show on Map" toggle displays favorites as pin markers on the live map (§4.8).
-- Favorites remain local-first; the only favorites network request is the user-initiated Open-Meteo elevation lookup during save.
+- Favorites remain local-first by default; authenticated users can additionally back up favorites to PocketBase (§4.12).
 
 ### 4.6 Settings & Favorites Transfer
 
@@ -331,6 +334,37 @@ Toggle in the Location section, below the tile-provider privacy note.
 - Listens to both MapLibre `rotate` and `pitch` events via shared `updateCompassButton()`.
 - Resets **both** bearing and pitch in one animation, then hides.
 
+### 4.12 PocketBase Favorite Backup
+
+Optional Settings-page feature for authenticated users. The local IndexedDB favorite remains the source of truth for map behavior; PocketBase backup is best-effort and must not block local saves.
+
+| Property | Value |
+|----------|-------|
+| PocketBase URL | `https://pb.kanvana.com` |
+| Auth collection | `users` |
+| Favorite collection | `maphop_favourites` |
+| Local device ID key | `maphop-pocketbase-device-id` |
+| Remote coordinate field | `geom: { lon, lat }` |
+
+**Remote create body:**
+```json
+{
+  "name": "My Place",
+  "deviceId": "local-device-uuid",
+  "geom": { "lon": 14.271117, "lat": 46.5953463 },
+  "elevation": 502,
+  "elevation_source": "device",
+  "elevation_accuracy": 12,
+  "deleted": false
+}
+```
+
+- Settings page shows a simple PocketBase sign-in control. The first implementation may use email/password inputs plus a single authenticate button; credentials are sent to PocketBase via `users.authWithPassword()` and are not stored by Maphop.
+- After successful auth, the app creates or reuses a random local device ID in `localStorage` and displays that the device is registered.
+- When a favorite is saved locally and PocketBase auth is valid, the app creates one `maphop_favourites` record using the body shape above.
+- If PocketBase is unreachable, auth fails, or remote create fails, local save still succeeds and a user-facing status notes that cloud backup failed.
+- Logout clears the PocketBase auth store; it does not delete local favorites or the local device ID.
+
 ---
 
 ## User Flows
@@ -399,6 +433,14 @@ Settings → review count → "Export favorites JSON" → file downloads immedia
   → OR "Import favorites JSON" → pick file → validates → imports unique → count refreshes
 ```
 
+### Flow 9b: PocketBase Favorite Backup
+```
+Settings → enter PocketBase email/password → Authenticate
+  → auth succeeds → app creates/reuses local device ID
+  → save favorite on map → local IndexedDB save succeeds
+  → if auth is valid, one maphop_favourites record is created in PocketBase
+```
+
 ### Flow 10: View Favorites on Map
 ```
 Menu → Favorites → "Show on Map" toggle ON → pins appear on map
@@ -451,6 +493,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Shared location banner | max 440px, top-center | Glass panel; pin icon + text + Add to Favorites + Dismiss |
 | Install banner (Android) | max 440px, bottom-center | Glass panel; Install + Dismiss; `beforeinstallprompt` |
 | Install hint (iOS) | max 440px, bottom-center | Glass panel; Share instruction + Dismiss; 7-day snooze |
+| PocketBase auth controls | Settings card | Email/password inputs, authenticate button, logout button, auth/device status |
 
 **Breakpoints:** Default mobile-first (260px menu); 700px+ → 280px menu.
 
@@ -459,8 +502,9 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 ## Non-Functional Requirements
 
 ### Privacy
-- No accounts or server-side user state.
+- No accounts required; PocketBase auth is opt-in for cloud favorite backup.
 - Geolocation opt-in; selected favorite coordinates are sent to Open-Meteo only during user-initiated favorite save elevation lookup.
+- If PocketBase backup is enabled, saved favorite name, coordinates, optional elevation, device ID, and authenticated user context are sent to `https://pb.kanvana.com`.
 - Menu displays: *"Remote map providers can infer your nearby area from the tiles your device requests."*
 - No analytics or tracking scripts.
 
@@ -468,7 +512,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 
 | Metric | Target |
 |--------|--------|
-| Runtime dependencies | 2 (MapLibre GL JS, PMTiles) |
+| Runtime dependencies | 3 (MapLibre GL JS, PMTiles, PocketBase) |
 | Base map switch timeout | 12 seconds max |
 | Favorite navigation animation | 650ms |
 | Toast display duration | 2.8 seconds |
@@ -478,7 +522,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 
 | Mechanism | Implementation |
 |-----------|---------------|
-| Content Security Policy | `<meta>` on all pages; `index.html` allowlists all built-in tile providers, optional `api.thunderforest.com`, `tiles.mapterhorn.com`, and `api.open-meteo.com` in `connect-src`/`img-src` as needed; MapLibre blob workers via `worker-src blob: child-src blob:`. Secondary pages use tighter policy. |
+| Content Security Policy | `<meta>` on all pages; `index.html` allowlists all built-in tile providers, optional `api.thunderforest.com`, `tiles.mapterhorn.com`, `api.open-meteo.com`, and `pb.kanvana.com` in `connect-src`/`img-src` as needed; `settings.html` allows `https://pb.kanvana.com` in `connect-src`; MapLibre blob workers via `worker-src blob: child-src blob:`. Secondary pages otherwise use tighter policy. |
 | Referrer Policy | `strict-origin-when-cross-origin` on `index.html`; secondary pages use `no-referrer`. |
 | HTTP security headers | `_headers`: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy: geolocation=(self)`, `X-XSS-Protection: 0`. |
 | Input validation | Import: 64 KB cap, JSON parse guard, coordinate range check, 250-record limit, 80-char name limit, duplicate skipping. |
@@ -490,7 +534,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Status toast uses `aria-live="polite"`.
 
 ### Testing
-- **Unit (Vitest + jsdom):** 93 tests across 13 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
+- **Unit (Vitest + jsdom):** 101 tests across 14 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
 - **E2E (Playwright + Firefox):** 12 tests covering page titles, DOM structure, menu interaction, and navigation. Chromium excluded (missing `libnspr4.so` on this WSL2 host).
 
 ### Offline Support
@@ -498,14 +542,16 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Previously loaded tiles remain in browser cache.
 - Favorites and geolocation work fully offline.
 - Favorite saves work offline; elevation is omitted when no device-eligible value or network lookup is available.
+- PocketBase backup is online-only and best-effort; local favorite saves never depend on PocketBase availability.
 
 ---
 
 ## Constraints
 
 ### Always
-- Stored favorites data stays on-device.
+- Stored favorites data stays on-device unless the user explicitly signs in to PocketBase backup.
 - Favorite elevation lookup may send selected coordinates to Open-Meteo only after the user explicitly saves a favorite.
+- PocketBase backup may send saved favorite data to `https://pb.kanvana.com` only after explicit user authentication.
 - Base map switch failures revert to the previous working layer.
 - Geolocation tracking stops on background/unload.
 - `CHANGELOG.md` and this spec updated together for shipped changes.
@@ -515,13 +561,14 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Adding new tile providers (affects privacy, reliability, attribution).
 - Changing the deployment path (requires Vite config + manifest + SW updates together).
 - Adding any external network dependency beyond tile providers.
+- Adding or changing cloud backup providers or PocketBase collection schema.
 
 ### Never
-- Send location data to a server.
-- Require user accounts or authentication.
+- Send location data to a server without explicit user action/authentication.
+- Require user accounts or authentication for core map, local favorites, import/export, or offline use.
 - Add analytics, tracking, or telemetry.
 - Auto-prompt for geolocation on page load.
-- Store user data outside the browser. Non-sensitive UI state may use `localStorage` (current keys: `ios-hint-snoozed-until`, `maphop-base-layer`, `maphop-favorites-overlay`).
+- Store user data outside the browser unless the user explicitly enables PocketBase backup. Non-sensitive UI state may use `localStorage` (current keys: `ios-hint-snoozed-until`, `maphop-base-layer`, `maphop-favorites-overlay`, `maphop-pocketbase-device-id`).
 - Hardcode third-party API keys in source control. Browser-exposed tile keys must come from env/host secrets and be provider-restricted because users can still inspect them in deployed builds.
 
 ---
@@ -540,6 +587,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Favorites sharing | Share produces a deep link opening Maphop at saved coordinates |
 | Shared location receiver | Pin + banner on shared link load; "Add to Favorites" saves; dismiss removes pin/banner |
 | Favorites backup | Export produces valid GeoJSON; import accepts all 3 formats; duplicates skipped |
+| PocketBase backup | Authenticated Settings user gets a stable local device ID; each new local favorite creates one `maphop_favourites` record when online/authenticated; local saves continue when backup fails |
 | Favorites overlay | Pins toggle on/off; hover shows name popup; survives style switch; state persists |
 | Offline launch | App shell loads without network after first visit |
 | PWA installable | Passes Lighthouse PWA installability checks |
@@ -551,7 +599,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Attribution | © panel shows correct provider credit; terrain suffix syncs with terrain state |
 | Compass | Appears on rotation or tilt; needle tracks north; tap resets bearing + pitch to 0° |
 | Architecture navigable | `doc/architecture/code-map.md` sufficient to locate owning module without reading `maphop.js` |
-| Unit tests pass | `npm test` exits 0, all 93 tests green |
+| Unit tests pass | `npm test` exits 0, all 101 tests green |
 | E2E tests pass | `npm run test:e2e` exits 0, all 12 tests green |
 
 ---

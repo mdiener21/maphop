@@ -66,6 +66,40 @@
     margin: 18px 0 20px;
 }
 
+.settings-actions-inline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cloud-auth-form {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.settings-field {
+    display: grid;
+    gap: 7px;
+    color: var(--app-text-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.settings-field input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid rgba(237, 244, 239, 0.14);
+    border-radius: 14px;
+    background: rgba(7, 12, 14, 0.42);
+    color: var(--app-text);
+    font: inherit;
+    font-size: 1rem;
+    letter-spacing: normal;
+    padding: 13px 14px;
+    text-transform: none;
+}
+
 .primary-button,
 .secondary-button {
     appearance: none;
@@ -115,6 +149,11 @@
     margin: 0;
     font-size: 1rem;
     font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.settings-stats-cloud {
+    margin-top: 18px;
 }
 
 .placeholder-stack {
@@ -151,6 +190,10 @@
     }
 
     .settings-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-actions-inline {
         grid-template-columns: 1fr;
     }
 }

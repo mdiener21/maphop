@@ -4,9 +4,16 @@
 
 ### Added
 
+- Product spec updated (v1.12): planned optional PocketBase favorite backup with Settings auth, local device ID, and `maphop_favourites` remote create shape.
+- Optional PocketBase favorite backup with Settings authentication and local device ID registration.
+
 ### Changed
 
+- Favorite saves now back up to PocketBase when a valid auth session exists.
+
 ### Fixed
+
+- PocketBase backup payloads no longer include partial elevation metadata without an elevation value.
 
 ### Removed
 

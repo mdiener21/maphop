@@ -12,7 +12,7 @@
         script-src 'self' https://analytics.gomogi.com;
         style-src 'self' 'unsafe-inline';
         img-src 'self' data:;
-        connect-src 'self' https://analytics.gomogi.com;
+        connect-src 'self' https://analytics.gomogi.com https://pb.kanvana.com;
         font-src 'self' data:;
         manifest-src 'self';
         object-src 'none';
@@ -95,6 +95,39 @@
                             <span>Planned</span>
                         </div>
                     </div>
+                </section>
+
+                <section class="settings-card settings-card-wide" aria-labelledby="cloud-backup-heading">
+                    <p class="card-kicker">Cloud backup</p>
+                    <h2 id="cloud-backup-heading">PocketBase favorites backup</h2>
+                    <p class="card-copy">
+                        Sign in to pb.kanvana.com to register this browser as a device and back up newly saved favorites.
+                        Local favorites continue to work without sign-in.
+                    </p>
+                    <form class="cloud-auth-form" id="pocketBaseAuthForm">
+                        <label class="settings-field">
+                            <span>Email</span>
+                            <input id="pocketBaseEmailInput" name="email" type="email" autocomplete="username" required>
+                        </label>
+                        <label class="settings-field">
+                            <span>Password</span>
+                            <input id="pocketBasePasswordInput" name="password" type="password" autocomplete="current-password" required>
+                        </label>
+                        <div class="settings-actions settings-actions-inline">
+                            <button class="primary-button" id="pocketBaseAuthButton" type="submit">Authenticate device</button>
+                            <button class="secondary-button" id="pocketBaseLogoutButton" type="button">Logout</button>
+                        </div>
+                    </form>
+                    <dl class="settings-stats settings-stats-cloud">
+                        <div>
+                            <dt>PocketBase auth</dt>
+                            <dd id="pocketBaseAuthState">Signed out</dd>
+                        </div>
+                        <div>
+                            <dt>Device ID</dt>
+                            <dd id="pocketBaseDeviceId">Not registered</dd>
+                        </div>
+                    </dl>
                 </section>
 
                 <section class="settings-card settings-card-wide" aria-labelledby="privacy-heading">

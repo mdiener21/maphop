@@ -1,4 +1,5 @@
 import { setupFavoriteTransfer } from "./favorite-transfer.js";
+import { createFavoriteCloudStore } from "./favorite-cloud-store.js";
 import {
     getFavoritesForExport,
     importFavorites,
@@ -12,6 +13,14 @@ const importFavoritesButton = document.getElementById("importFavoritesButton");
 const importFavoritesInput = document.getElementById("importFavoritesInput");
 const favoritesCountElement = document.getElementById("favoritesCount");
 const settingsStatusElement = document.getElementById("settingsStatus");
+const pocketBaseAuthForm = document.getElementById("pocketBaseAuthForm");
+const pocketBaseEmailInput = document.getElementById("pocketBaseEmailInput");
+const pocketBasePasswordInput = document.getElementById("pocketBasePasswordInput");
+const pocketBaseLogoutButton = document.getElementById("pocketBaseLogoutButton");
+const pocketBaseAuthState = document.getElementById("pocketBaseAuthState");
+const pocketBaseDeviceId = document.getElementById("pocketBaseDeviceId");
+
+const favoriteCloudStore = createFavoriteCloudStore();
 
 function setStatus(message) {
     settingsStatusElement.textContent = message;
@@ -34,6 +43,40 @@ async function refreshFavoritesCount() {
     }
 }
 
+function refreshPocketBaseState() {
+    pocketBaseAuthState.textContent = favoriteCloudStore.isAuthenticated() ? "Signed in" : "Signed out";
+    pocketBaseDeviceId.textContent = favoriteCloudStore.getDeviceId() ?? "Not registered";
+}
+
+async function authenticatePocketBase(event) {
+    event.preventDefault();
+
+    const email = pocketBaseEmailInput.value.trim();
+    const password = pocketBasePasswordInput.value;
+
+    if (!email || !password) {
+        setStatus("Enter PocketBase email and password.");
+        return;
+    }
+
+    try {
+        const { deviceId } = await favoriteCloudStore.authenticate(email, password);
+        pocketBasePasswordInput.value = "";
+        refreshPocketBaseState();
+        setStatus("PocketBase authenticated. Device registered: " + deviceId + ".");
+    } catch (error) {
+        refreshPocketBaseState();
+        setStatus("PocketBase authentication failed.");
+        console.error(error);
+    }
+}
+
+function logoutPocketBase() {
+    favoriteCloudStore.logout();
+    refreshPocketBaseState();
+    setStatus("PocketBase logged out.");
+}
+
 initializePageShell("Settings");
 
 setupFavoriteTransfer({
@@ -49,4 +92,8 @@ setupFavoriteTransfer({
     setStatus
 });
 
+pocketBaseAuthForm?.addEventListener("submit", authenticatePocketBase);
+pocketBaseLogoutButton?.addEventListener("click", logoutPocketBase);
+
 refreshFavoritesCount();
+refreshPocketBaseState();

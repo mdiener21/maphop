@@ -95,6 +95,7 @@ export function createFavoritesPanel({
     favoriteNameForm,
     favoriteNameInput,
     cancelFavoriteNameButton,
+    cloudStore = null,
     getDeviceElevationFix = () => null,
     fetchElevation = fetchOpenMeteoElevation,
     chooseElevation = chooseElevationValue
@@ -372,19 +373,38 @@ export function createFavoritesPanel({
                 chooseElevation
             });
 
-            await saveFavorite({
+            const favorite = {
                 name: trimmedName,
                 longitude: pendingFavoriteCoordinates.longitude,
                 latitude: pendingFavoriteCoordinates.latitude,
                 createdAt: Date.now(),
                 ...(elevation ?? {})
-            });
+            };
+
+            await saveFavorite(favorite);
 
             await loadFavorites();
             finishFavoriteFlow();
             onStatus("Saved " + trimmedName + ".");
+            backupFavoriteToCloud(favorite, trimmedName);
         } catch (error) {
             onStatus("Unable to save favorite location.");
+            console.error(error);
+        }
+    }
+
+    async function backupFavoriteToCloud(favorite, name) {
+        if (!cloudStore?.isAuthenticated()) {
+            return;
+        }
+
+        try {
+            const result = await cloudStore.saveFavorite(favorite);
+            if (!result.skipped) {
+                onStatus("Backed up " + name + " to PocketBase.");
+            }
+        } catch (error) {
+            onStatus("Saved locally. PocketBase backup failed.");
             console.error(error);
         }
     }

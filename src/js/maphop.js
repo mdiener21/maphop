@@ -1,6 +1,7 @@
 import maplibregl from "maplibre-gl";
 import { Protocol as PmtilesProtocol } from "pmtiles";
 import { version } from "../../package.json";
+import { createFavoriteCloudStore } from "./favorite-cloud-store.js";
 import { LocationTracker } from "./location-tracker.js";
 import { createAttributionController } from "./map/attribution-controller.js";
 import { createBaseLayerController, loadBaseLayerPreference } from "./map/base-layer-controller.js";
@@ -81,6 +82,7 @@ const terrainController = createTerrainController({
 });
 
 const favoritesOverlay = createFavoritesOverlay(map);
+const favoriteCloudStore = createFavoriteCloudStore();
 
 const favoritesPanel = createFavoritesPanel({
     map,
@@ -96,6 +98,7 @@ const favoritesPanel = createFavoritesPanel({
     favoriteNameForm: dom.favoriteNameForm,
     favoriteNameInput: dom.favoriteNameInput,
     cancelFavoriteNameButton: dom.cancelFavoriteNameButton,
+    cloudStore: favoriteCloudStore,
     getDeviceElevationFix: () => tracker.lastElevationFix
 });
 

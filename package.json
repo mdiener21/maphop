@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "maplibre-gl": "^5.21.0",
-    "pmtiles": "^4.4.0"
+    "pmtiles": "^4.4.0",
+    "pocketbase": "^0.27.3"
   }
 }
