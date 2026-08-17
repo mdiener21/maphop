@@ -5,6 +5,7 @@ import {
     importFavorites,
     isFavoritesStorageAvailable,
     readFavorites,
+    replaceFavorites,
     updateFavoritePocketBaseId
 } from "./favorite-store.js";
 import { initializePageShell } from "./page-shell.js";
@@ -74,10 +75,13 @@ async function authenticatePocketBase(event) {
         const { deviceId } = await favoriteCloudStore.authenticate(email, password);
         const favorites = await readFavorites();
         const syncResult = await favoriteCloudStore.uploadMissingFavorites(favorites, updateFavoritePocketBaseId);
+        const remoteFavorites = await favoriteCloudStore.readFavorites();
+        await replaceFavorites(remoteFavorites);
+        await refreshFavoritesCount();
         refreshPocketBaseState();
         setStatus(
             "PocketBase authenticated. Device registered: " + deviceId +
-            `. Uploaded ${syncResult.uploadedCount} local favorites.`
+            `. Uploaded ${syncResult.uploadedCount} local favorites. Synced ${remoteFavorites.length} remote favorites.`
         );
     } catch {
         refreshPocketBaseState();

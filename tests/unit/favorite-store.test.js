@@ -109,6 +109,22 @@ describe('updateFavoritePocketBaseId', () => {
     });
 });
 
+describe('replaceFavorites', () => {
+    it('replaces all local favorites with the provided snapshot', async () => {
+        await store.saveFavorite(sample({ name: 'Local only' }));
+
+        await store.replaceFavorites([
+            sample({ name: 'Remote A', pocketBaseId: 'pb-a', createdAt: 3000 }),
+            sample({ name: 'Remote B', pocketBaseId: 'pb-b', createdAt: 2000 })
+        ]);
+
+        const favorites = await store.readFavorites();
+        expect(favorites).toHaveLength(2);
+        expect(favorites.map((favorite) => favorite.name)).toEqual(['Remote A', 'Remote B']);
+        expect(favorites.map((favorite) => favorite.pocketBaseId)).toEqual(['pb-a', 'pb-b']);
+    });
+});
+
 describe('importFavorites', () => {
     it('imports all favorites when the store is empty', async () => {
         const result = await store.importFavorites([

@@ -53,6 +53,30 @@ export function createPocketBaseFavoriteBody(favorite, deviceId, userId) {
     return body;
 }
 
+function mapPocketBaseFavorite(record) {
+    const favorite = {
+        name: record.name,
+        longitude: record.geom?.lon,
+        latitude: record.geom?.lat,
+        createdAt: Date.parse(record.created),
+        pocketBaseId: record.id
+    };
+
+    if (Number.isFinite(record.elevation)) {
+        favorite.elevationMeters = record.elevation;
+    }
+
+    if (typeof record.elevation_source === "string") {
+        favorite.elevationSource = record.elevation_source;
+    }
+
+    if (Number.isFinite(record.elevation_accuracy)) {
+        favorite.elevationAccuracyMeters = record.elevation_accuracy;
+    }
+
+    return favorite;
+}
+
 export function createFavoriteCloudStore({
     client = new PocketBase(pocketBaseUrl),
     storage = globalThis.localStorage,
@@ -119,12 +143,26 @@ export function createFavoriteCloudStore({
         return { uploadedCount, skippedCount };
     }
 
+    async function readFavorites() {
+        if (!isAuthenticated()) {
+            return [];
+        }
+
+        const records = await client.collection(favoriteCollectionName).getFullList({
+            filter: "deleted = false",
+            sort: "-created"
+        });
+
+        return records.map(mapPocketBaseFavorite);
+    }
+
     return {
         authenticate,
         deleteFavorite,
         getDeviceId,
         isAuthenticated,
         logout,
+        readFavorites,
         saveFavorite,
         uploadMissingFavorites
     };

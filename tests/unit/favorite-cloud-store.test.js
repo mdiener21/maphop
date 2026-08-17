@@ -17,6 +17,7 @@ function createClient({ isValid = false, userId = 'user-1' } = {}) {
     const authWithPassword = vi.fn().mockResolvedValue({ token: 'token' });
     const create = vi.fn().mockResolvedValue({ id: 'record-id' });
     const deleteRecord = vi.fn().mockResolvedValue(true);
+    const getFullList = vi.fn().mockResolvedValue([]);
 
     return {
         authStore: {
@@ -30,14 +31,15 @@ function createClient({ isValid = false, userId = 'user-1' } = {}) {
             }
 
             if (name === 'maphop_favourites') {
-                return { create, delete: deleteRecord };
+                return { create, delete: deleteRecord, getFullList };
             }
 
             throw new Error(`Unexpected collection ${name}`);
         }),
         authWithPassword,
         create,
-        deleteRecord
+        deleteRecord,
+        getFullList
     };
 }
 
@@ -204,5 +206,38 @@ describe('createFavoriteCloudStore', () => {
         expect(markUploaded).toHaveBeenCalledWith(1, 'record-a');
         expect(markUploaded).toHaveBeenCalledWith(3, 'record-c');
         expect(result).toEqual({ uploadedCount: 2, skippedCount: 1 });
+    });
+
+    it('reads remote favorites and maps them to local favorite records', async () => {
+        const client = createClient({ isValid: true });
+        client.getFullList.mockResolvedValue([
+            {
+                id: 'record-a',
+                name: 'Remote A',
+                geom: { lon: 14.271117, lat: 46.5953463 },
+                elevation: 502,
+                elevation_source: 'device',
+                elevation_accuracy: 12,
+                created: '2026-08-16 12:00:00.000Z'
+            }
+        ]);
+        const cloudStore = createFavoriteCloudStore({ client, storage: createStorage() });
+
+        const favorites = await cloudStore.readFavorites();
+
+        expect(client.getFullList).toHaveBeenCalledWith({
+            filter: 'deleted = false',
+            sort: '-created'
+        });
+        expect(favorites).toEqual([{
+            name: 'Remote A',
+            longitude: 14.271117,
+            latitude: 46.5953463,
+            createdAt: Date.parse('2026-08-16 12:00:00.000Z'),
+            pocketBaseId: 'record-a',
+            elevationMeters: 502,
+            elevationSource: 'device',
+            elevationAccuracyMeters: 12
+        }]);
     });
 });

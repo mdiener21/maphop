@@ -1,6 +1,6 @@
 # Product Spec: Maphop
 
-**v1.13 · 2026-08-16 · Status: Active**
+**v1.14 · 2026-08-16 · Status: Active**
 
 Local-first, privacy-first PWA map viewer. No accounts required; optional PocketBase sign-in can back up favorites to a user-controlled backend.
 
@@ -27,7 +27,7 @@ Local-first, privacy-first PWA map viewer. No accounts required; optional Pocket
 | Geolocation | Geolocation API | Opt-in position tracking |
 | Elevation lookup | Open-Meteo Elevation API | Optional online fallback/comparison for favorite elevation |
 | Optional cloud backup | PocketBase JS SDK ^0.27.3 + `https://pb.kanvana.com` | Authenticated favorite backup to `maphop_favourites` |
-| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 108 tests |
+| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 110 tests |
 | E2E tests | Playwright ^1.58.2 (Firefox) | 12 tests |
 
 ---
@@ -75,7 +75,7 @@ src/
 └── manifest.webmanifest    PWA manifest (standalone, portrait, scope /)
 
 tests/
-├── unit/                   Vitest + jsdom (108 tests across 15 files)
+├── unit/                   Vitest + jsdom (110 tests across 15 files)
 └── e2e/app.spec.js         Playwright Firefox (12 tests)
 
 doc/
@@ -361,7 +361,7 @@ Optional Settings-page feature for authenticated users. Before auth, IndexedDB i
 ```
 
 - Settings page shows a simple PocketBase sign-in control. The first implementation uses email/password inputs plus a single authenticate button; credentials are sent to PocketBase via `users.authWithPassword()`, the password field is cleared after every attempt, auth errors are shown generically, and raw auth failures are not logged to the console. Auth controls are disabled while a login request is in flight to prevent duplicate submissions.
-- After successful auth, the app creates or reuses a random local device ID in `localStorage`, uploads local favorites missing `pocketBaseId`, stores each returned PocketBase record id locally, and displays that the device is registered.
+- After successful auth, the app creates or reuses a random local device ID in `localStorage`, uploads local favorites missing `pocketBaseId`, fetches all `maphop_favourites` records visible to the authenticated user, and replaces the local IndexedDB cache with that PocketBase snapshot.
 - When PocketBase auth is valid, new favorites create a `maphop_favourites` record first, then cache locally with the returned `pocketBaseId`.
 - When PocketBase auth is valid and a favorite has `pocketBaseId`, delete calls the PocketBase delete API first, then removes the local cached favorite.
 - If PocketBase create/delete fails after auth, the local cache is left unchanged and a user-facing status explains the remote operation failed.
@@ -439,7 +439,9 @@ Settings → review count → "Export favorites JSON" → file downloads immedia
 ```
 Settings → enter PocketBase email/password → Authenticate
   → auth succeeds → app creates/reuses local device ID
-  → first login uploads local favorites without pocketBaseId and caches returned ids
+  → uploads local favorites without pocketBaseId
+  → fetches all PocketBase favorites for the signed-in user
+  → replaces IndexedDB cache with the remote snapshot
   → save favorite on map → PocketBase create succeeds → local cache row saved
   → delete favorite → PocketBase delete succeeds → local cache row removed
 ```
@@ -538,7 +540,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Status toast uses `aria-live="polite"`.
 
 ### Testing
-- **Unit (Vitest + jsdom):** 108 tests across 15 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
+- **Unit (Vitest + jsdom):** 110 tests across 15 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
 - **E2E (Playwright + Firefox):** 12 tests covering page titles, DOM structure, menu interaction, and navigation. Chromium excluded (missing `libnspr4.so` on this WSL2 host).
 
 ### Offline Support
@@ -592,7 +594,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Shared location receiver | Pin + banner on shared link load; "Add to Favorites" saves; dismiss removes pin/banner |
 | Favorites backup | Export produces valid GeoJSON; import accepts all 3 formats; duplicates skipped |
 | PocketBase backup | Authenticated Settings user gets a stable local device ID; each new local favorite creates one `maphop_favourites` record when online/authenticated; local saves continue when backup fails |
-| PocketBase-managed writes | After auth, first login uploads local favorites once; new saves and deletes use PocketBase first and update IndexedDB only after API success |
+| PocketBase-managed writes | After auth, login sync uploads local unsynced rows, pulls all same-user PocketBase favorites, replaces the local cache, and new saves/deletes use PocketBase first |
 | Favorites overlay | Pins toggle on/off; hover shows name popup; survives style switch; state persists |
 | Offline launch | App shell loads without network after first visit |
 | PWA installable | Passes Lighthouse PWA installability checks |
@@ -604,7 +606,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Attribution | © panel shows correct provider credit; terrain suffix syncs with terrain state |
 | Compass | Appears on rotation or tilt; needle tracks north; tap resets bearing + pitch to 0° |
 | Architecture navigable | `doc/architecture/code-map.md` sufficient to locate owning module without reading `maphop.js` |
-| Unit tests pass | `npm test` exits 0, all 108 tests green |
+| Unit tests pass | `npm test` exits 0, all 110 tests green |
 | E2E tests pass | `npm run test:e2e` exits 0, all 12 tests green |
 
 ---

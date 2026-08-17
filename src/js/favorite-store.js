@@ -163,6 +163,22 @@ export async function updateFavoritePocketBaseId(id, pocketBaseId) {
     });
 }
 
+export async function replaceFavorites(favorites) {
+    const database = await getFavoritesDb();
+    await new Promise((resolve, reject) => {
+        const transaction = database.transaction(favoriteStoreName, "readwrite");
+        const store = transaction.objectStore(favoriteStoreName);
+
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+
+        store.clear();
+        favorites.forEach((favorite) => {
+            store.add(createFavoriteRecord(favorite));
+        });
+    });
+}
+
 export async function deleteFavoriteById(id) {
     const database = await getFavoritesDb();
     await new Promise((resolve, reject) => {
