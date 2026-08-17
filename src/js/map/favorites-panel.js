@@ -9,10 +9,6 @@ import { buildSharedLocationUrl } from "./share-location.js";
 
 const MSG_INDEXEDDB_UNAVAILABLE = "IndexedDB is not available in this browser.";
 
-function formatFavoriteCoordinates(longitude, latitude) {
-    return latitude.toFixed(5) + ", " + longitude.toFixed(5);
-}
-
 function getSuggestedFavoriteName() {
     return "Favorite " + new Date().toLocaleDateString();
 }
@@ -247,10 +243,12 @@ export function createFavoritesPanel({
             const title = document.createElement("strong");
             title.textContent = favorite.name;
 
-            const meta = document.createElement("span");
-            meta.textContent = formatFavoriteCoordinates(favorite.longitude, favorite.latitude);
-
-            button.append(title, meta);
+            button.append(title);
+            if (Number.isFinite(favorite.elevationMeters)) {
+                const meta = document.createElement("span");
+                meta.textContent = formatElevationMeters(favorite.elevationMeters);
+                button.append(meta);
+            }
             button.addEventListener("click", () => {
                 map.easeTo({
                     center: [favorite.longitude, favorite.latitude],

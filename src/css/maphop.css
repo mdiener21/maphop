@@ -219,6 +219,11 @@ body::before {
     color: #000;
 }
 
+.favorites-overlay-popup strong,
+.favorites-overlay-popup span {
+    display: block;
+}
+
 .control-menu {
     position: absolute;
     top: calc(var(--safe-top) + 14px);

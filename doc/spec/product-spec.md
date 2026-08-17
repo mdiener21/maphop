@@ -1,6 +1,6 @@
 # Product Spec: Maphop
 
-**v1.14 · 2026-08-16 · Status: Active**
+**v1.15 · 2026-08-16 · Status: Active**
 
 Local-first, privacy-first PWA map viewer. No accounts required; optional PocketBase sign-in can back up favorites to a user-controlled backend.
 
@@ -27,7 +27,7 @@ Local-first, privacy-first PWA map viewer. No accounts required; optional Pocket
 | Geolocation | Geolocation API | Opt-in position tracking |
 | Elevation lookup | Open-Meteo Elevation API | Optional online fallback/comparison for favorite elevation |
 | Optional cloud backup | PocketBase JS SDK ^0.27.3 + `https://pb.kanvana.com` | Authenticated favorite backup to `maphop_favourites` |
-| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 110 tests |
+| Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 111 tests |
 | E2E tests | Playwright ^1.58.2 (Firefox) | 12 tests |
 
 ---
@@ -75,7 +75,7 @@ src/
 └── manifest.webmanifest    PWA manifest (standalone, portrait, scope /)
 
 tests/
-├── unit/                   Vitest + jsdom (110 tests across 15 files)
+├── unit/                   Vitest + jsdom (111 tests across 15 files)
 └── e2e/app.spec.js         Playwright Firefox (12 tests)
 
 doc/
@@ -195,11 +195,13 @@ Opt-in via the **Location section** (accordion, default closed) in the control m
 | Key | Auto-increment |
 | Fields | `name`, `longitude`, `latitude`, `createdAt`, optional `elevationMeters`, `elevationSource`, `elevationAccuracyMeters`, `pocketBaseId` |
 | Coordinate display | 5 decimal places |
+| Menu row display | Favorite name + elevation only when available; no coordinates or fallback secondary text |
 | Sort order | Newest-first |
 
 - **Add**: "Add Favorite" closes menu, enters crosshair selection mode over the live map. User pans/zooms; map center under crosshair is the target. "Save This Spot" captures center and opens naming modal (default name = current date). Confirm stores to IndexedDB; toast confirms. Cancel / `Escape` / backdrop click aborts.
 - **Elevation on save**: saved favorites include best-guess elevation in meters when available. If the device provides altitude and the selected point is within the latest GPS accuracy radius (minimum 30m) of the latest GPS fix, prefer the device value. When online, call `https://api.open-meteo.com/v1/elevation?latitude={latitude}&longitude={longitude}` for the selected coordinates. If both values exist and differ by more than `max(30m, deviceAltitudeAccuracy || 0)`, ask the user which value to save; default/recommended choice remains the device value. If the device value is unavailable or ineligible, use Open-Meteo when available. If the lookup fails or the app is offline, save the favorite without elevation rather than blocking the save.
 - **Navigate**: tapping a favorite eases to coordinates (650ms `easeTo`) and closes menu.
+- **List display**: the Favorites menu shows each favorite's name and stored elevation when available; latitude/longitude and fallback secondary text are not shown in the menu list.
 - **Delete**: inline trash icon removes entry and refreshes list.
 - **Share**: share button generates a deep link; native share sheet when available, otherwise copies to clipboard.
 - **Shared location receiver**: opening Maphop with valid `lat`+`lng` params centers the map, places a pin, and shows the shared location banner (§4.9).
@@ -277,12 +279,12 @@ Opt-in via the **Location section** (accordion, default closed) in the control m
 | Icon size | `0.7` |
 | Icon anchor | `bottom` |
 | Persistence | `localStorage` key `maphop-favorites-overlay` (`"1"` = visible) |
-| Hover | `maplibregl.Popup` at `bottom` showing favorite name |
+| Hover / click | `maplibregl.Popup` at `bottom` showing favorite name, elevation, latitude, and longitude |
 
 - Toggle button in Favorites section; `data-state` flips `"active"` / `"idle"`.
 - GeoJSON source updated (`setData`) on every save, delete, or load.
 - `ensureAfterStyleLoad()` re-registers pin image and re-adds source/layer after every base map switch, restoring previous visibility.
-- Cursor changes to `pointer` on pin hover; popup removed on `mouseleave`.
+- Cursor changes to `pointer` on pin hover. Hover opens a popup that closes on `mouseleave`; click/tap opens the same details popup for touch users.
 
 ### 4.9 Shared Location Receiver
 
@@ -540,7 +542,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Status toast uses `aria-live="polite"`.
 
 ### Testing
-- **Unit (Vitest + jsdom):** 110 tests across 15 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
+- **Unit (Vitest + jsdom):** 111 tests across 15 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
 - **E2E (Playwright + Firefox):** 12 tests covering page titles, DOM structure, menu interaction, and navigation. Chromium excluded (missing `libnspr4.so` on this WSL2 host).
 
 ### Offline Support
@@ -606,7 +608,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Attribution | © panel shows correct provider credit; terrain suffix syncs with terrain state |
 | Compass | Appears on rotation or tilt; needle tracks north; tap resets bearing + pitch to 0° |
 | Architecture navigable | `doc/architecture/code-map.md` sufficient to locate owning module without reading `maphop.js` |
-| Unit tests pass | `npm test` exits 0, all 110 tests green |
+| Unit tests pass | `npm test` exits 0, all 111 tests green |
 | E2E tests pass | `npm run test:e2e` exits 0, all 12 tests green |
 
 ---

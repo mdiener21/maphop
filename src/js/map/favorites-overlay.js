@@ -15,10 +15,40 @@ function buildGeoJson(favorites) {
                 coordinates: [favorite.longitude, favorite.latitude]
             },
             properties: {
-                name: favorite.name
+                name: favorite.name,
+                longitude: favorite.longitude,
+                latitude: favorite.latitude,
+                ...(Number.isFinite(favorite.elevationMeters) ? { elevationMeters: favorite.elevationMeters } : {})
             }
         }))
     };
+}
+
+function formatElevation(elevationMeters) {
+    return Math.round(elevationMeters) + " m";
+}
+
+function createPopupContent(properties) {
+    const container = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = properties.name;
+    container.append(title);
+
+    if (Number.isFinite(properties.elevationMeters)) {
+        const elevation = document.createElement("span");
+        elevation.textContent = "Elevation: " + formatElevation(properties.elevationMeters);
+        container.append(elevation);
+    }
+
+    const latitude = document.createElement("span");
+    latitude.textContent = "Latitude: " + Number(properties.latitude).toFixed(5);
+    container.append(latitude);
+
+    const longitude = document.createElement("span");
+    longitude.textContent = "Longitude: " + Number(properties.longitude).toFixed(5);
+    container.append(longitude);
+
+    return container;
 }
 
 export function createPinImageData() {
@@ -73,6 +103,7 @@ export function createFavoritesOverlay(map) {
 
                 map.on("mouseenter", layerId, onMouseEnter);
                 map.on("mouseleave", layerId, onMouseLeave);
+                map.on("click", layerId, onClick);
             }
 
             map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
@@ -88,16 +119,29 @@ export function createFavoritesOverlay(map) {
             return;
         }
 
+        showPopup(feature, false);
+    }
+
+    function onClick(event) {
+        const feature = event.features?.[0];
+        if (!feature) {
+            return;
+        }
+
+        showPopup(feature, true);
+    }
+
+    function showPopup(feature, isClick) {
         currentPopup?.remove();
         currentPopup = new maplibregl.Popup({
             closeButton: false,
-            closeOnClick: false,
+            closeOnClick: isClick,
             anchor: "bottom",
             offset: [0, -25],
             className: "favorites-overlay-popup"
         })
             .setLngLat(feature.geometry.coordinates)
-            .setText(feature.properties.name)
+            .setDOMContent(createPopupContent(feature.properties))
             .addTo(map);
     }
 

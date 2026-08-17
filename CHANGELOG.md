@@ -6,6 +6,9 @@
 
 ### Changed
 
+- Product spec updated (v1.15): Favorites menu now shows name and elevation only; map pin popup shows name, elevation, latitude, and longitude on hover/click.
+- Favorites menu now omits coordinates and shows elevation only when available; map pin popups show name, elevation, latitude, and longitude on hover/click.
+
 ### Fixed
 
 ### Removed

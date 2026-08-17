@@ -7,6 +7,7 @@ const { popupInstances, PopupMock } = vi.hoisted(() => {
         this.remove = vi.fn();
         this.setLngLat = vi.fn(() => this);
         this.setText = vi.fn(() => this);
+        this.setDOMContent = vi.fn(() => this);
         this.addTo = vi.fn(() => this);
         popupInstances.push(this);
     });
@@ -75,7 +76,7 @@ beforeEach(() => {
 });
 
 describe("createFavoritesOverlay", () => {
-    it("creates the favorite popup with scoped styling and an upward offset", () => {
+    it("creates the favorite popup with scoped styling, details, and an upward offset", () => {
         const map = makeMap();
         const overlay = createFavoritesOverlay(map);
 
@@ -83,7 +84,12 @@ describe("createFavoritesOverlay", () => {
         map.triggerLayer("mouseenter", "favorites-overlay-pins", {
             features: [{
                 geometry: { coordinates: [16.37, 48.21] },
-                properties: { name: "Vienna" }
+                properties: {
+                    name: "Vienna",
+                    longitude: 16.37,
+                    latitude: 48.21,
+                    elevationMeters: 502
+                }
             }]
         });
 
@@ -96,7 +102,33 @@ describe("createFavoritesOverlay", () => {
             className: "favorites-overlay-popup"
         });
         expect(popupInstances[0].setLngLat).toHaveBeenCalledWith([16.37, 48.21]);
-        expect(popupInstances[0].setText).toHaveBeenCalledWith("Vienna");
+        expect(popupInstances[0].setText).not.toHaveBeenCalled();
+        expect(popupInstances[0].setDOMContent.mock.calls[0][0].textContent).toContain("Vienna");
+        expect(popupInstances[0].setDOMContent.mock.calls[0][0].textContent).toContain("Elevation: 502 m");
+        expect(popupInstances[0].setDOMContent.mock.calls[0][0].textContent).toContain("Latitude: 48.21000");
+        expect(popupInstances[0].setDOMContent.mock.calls[0][0].textContent).toContain("Longitude: 16.37000");
         expect(popupInstances[0].addTo).toHaveBeenCalledWith(map);
+    });
+
+    it("opens the favorite details popup on click for touch users", () => {
+        const map = makeMap();
+        const overlay = createFavoritesOverlay(map);
+
+        overlay.ensureAfterStyleLoad();
+        map.triggerLayer("click", "favorites-overlay-pins", {
+            features: [{
+                geometry: { coordinates: [16.37, 48.21] },
+                properties: {
+                    name: "Vienna",
+                    longitude: 16.37,
+                    latitude: 48.21
+                }
+            }]
+        });
+
+        expect(PopupMock).toHaveBeenCalledOnce();
+        expect(popupInstances[0].setDOMContent.mock.calls[0][0].textContent).toContain("Vienna");
+        expect(popupInstances[0].setDOMContent.mock.calls[0][0].textContent).toContain("Latitude: 48.21000");
+        expect(popupInstances[0].setDOMContent.mock.calls[0][0].textContent).toContain("Longitude: 16.37000");
     });
 });
