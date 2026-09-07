@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"
+        content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0"
     >
     <meta name="description" content="Personal mobile map with optional live location and saved favorites.">
     <meta name="theme-color" content="#0d1b20">
@@ -120,7 +120,7 @@
                 </button>
             </div>
 
-            <div class="menu-content menu-divider" id="layerMenu" role="menu">
+            <div class="menu-content menu-divider" id="layerMenu">
                 <div class="menu-group">
                     <button
                         class="menu-section-toggle"
@@ -193,32 +193,32 @@
                             <span class="menu-section-toggle-icon" aria-hidden="true"></span>
                         </button>
                         <div class="menu-section-panel" id="mapsSectionPanel">
-                            <div class="map-options" role="group" aria-label="Base maps">
-                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="osm">
+                            <div class="map-options" role="radiogroup" aria-label="Base maps">
+                                <button class="layer-option" type="button" role="radio" data-layer-key="osm">
                                     OpenStreetMap
                                 </button>
-                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="bergfex">
+                                <button class="layer-option" type="button" role="radio" data-layer-key="bergfex">
                                     Bergfex OSM
                                 </button>
-                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="openfreemap">
+                                <button class="layer-option" type="button" role="radio" data-layer-key="openfreemap">
                                     OpenFreeMap Liberty
                                 </button>
-                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="opentopo">
+                                <button class="layer-option" type="button" role="radio" data-layer-key="opentopo">
                                     OpenTopoMap
                                 </button>
-                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="outdoors">
+                                <button class="layer-option" type="button" role="radio" data-layer-key="outdoors">
                                     Outdoors
                                 </button>
-                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="transport">
+                                <button class="layer-option" type="button" role="radio" data-layer-key="transport">
                                     Transport
                                 </button>
-                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="cyclosm">
+                                <button class="layer-option" type="button" role="radio" data-layer-key="cyclosm">
                                     CyclOSM
                                 </button>
-                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="esriSatellite">
+                                <button class="layer-option" type="button" role="radio" data-layer-key="esriSatellite">
                                     Esri Satellite
                                 </button>
-                                <button class="layer-option" type="button" role="menuitemradio" data-layer-key="basemapGrauWmts">
+                                <button class="layer-option" type="button" role="radio" data-layer-key="basemapGrauWmts">
                                     basemap.at Grau WMTS
                                 </button>
                             </div>
