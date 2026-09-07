@@ -4,6 +4,8 @@
 
 ### Added
 
+- Toggle gps on / off added to lower right of main map for improved UX.
+
 ### Changed
 
 - Product spec updated (v1.15): Favorites menu now shows name and elevation only; map pin popup shows name, elevation, latitude, and longitude on hover/click.

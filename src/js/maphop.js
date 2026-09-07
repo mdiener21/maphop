@@ -47,6 +47,12 @@ const setStatus = createStatusToast(dom.statusElement);
 function setTrackingState(active) {
     dom.locateButton.dataset.state = active ? "active" : "idle";
     dom.locationToggleLabel.textContent = active ? "On" : "Off";
+    dom.mapLocationToggleButton.dataset.state = active ? "active" : "idle";
+    dom.mapLocationToggleButton.setAttribute("aria-pressed", String(active));
+    dom.mapLocationToggleButton.setAttribute(
+        "aria-label",
+        active ? "Hide my location" : "Show my location"
+    );
 
     if (!active) {
         dom.reCenterButton.hidden = true;
@@ -130,7 +136,7 @@ dom.terrainButton.addEventListener("click", () => {
     terrainController.toggle();
 });
 
-dom.locateButton.addEventListener("click", () => {
+function toggleLocationTracking() {
     if (tracker.isActive) {
         tracker.clearLocation();
         tracker.stop("Location hidden.");
@@ -138,6 +144,14 @@ dom.locateButton.addEventListener("click", () => {
     }
 
     tracker.start();
+}
+
+dom.locateButton.addEventListener("click", () => {
+    toggleLocationTracking();
+});
+
+dom.mapLocationToggleButton.addEventListener("click", () => {
+    toggleLocationTracking();
 });
 
 dom.layerMenuButton.addEventListener("click", (event) => {

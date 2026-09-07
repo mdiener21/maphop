@@ -818,6 +818,43 @@ body::before {
     text-decoration: underline;
 }
 
+/* ── Location toggle ───────────────────────────────────────── */
+.location-control-button {
+    position: absolute;
+    right: 16px;
+    bottom: calc(var(--safe-bottom) + 56px);
+    z-index: 5;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid rgba(111, 242, 189, 0.35);
+    border-radius: 50%;
+    background: rgba(8, 13, 15, 0);
+
+    color: #0d9c00;
+    cursor: pointer;
+    touch-action: manipulation;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.location-control-button[data-state="active"] {
+    border-color: var(--accent);
+    background: rgba(136, 179, 19, 0.459);
+    color: #2d6400;
+}
+
+.location-control-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.location-control-button:active {
+    opacity: 0.75;
+}
+
 /* ── Terrain toggle ─────────────────────────────────────────── */
 .terrain-toggle-row {
     margin-top: 6px;

@@ -9,6 +9,7 @@ export function getMapPageDom() {
         layerMenuButton: document.getElementById("layerMenuButton"),
         layerMenu: document.getElementById("layerMenu"),
         locateButton: document.getElementById("locateButton"),
+        mapLocationToggleButton: document.getElementById("mapLocationToggleButton"),
         locationToggleLabel: document.getElementById("locationToggleLabel"),
         saveFavoriteButton: document.getElementById("saveFavoriteButton"),
         favoriteSelectionOverlay: document.getElementById("favoriteSelectionOverlay"),
