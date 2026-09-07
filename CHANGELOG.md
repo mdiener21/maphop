@@ -16,6 +16,8 @@
 
 ### Changed
 
+- Transparency to map attribution
+
 ### Fixed
 
 ### Removed
