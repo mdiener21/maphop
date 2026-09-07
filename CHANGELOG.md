@@ -4,6 +4,16 @@
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.6.8] - 2026-09-07
+
+### Added
+
 - Toggle gps on / off added to lower right of main map for improved UX.
 
 ### Changed
