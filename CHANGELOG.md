@@ -8,6 +8,16 @@
 
 ### Fixed
 
+### Removed
+
+## [2.0.4] - 2026-09-10
+
+### Added
+
+### Changed
+
+### Fixed
+
 - Routing controls remain reachable for long routes through scrollable menu content.
 
 ### Removed
