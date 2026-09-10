@@ -109,8 +109,14 @@ jobs:
       - run: npm ci
         if: env.SKIP_DEPLOY != 'true'
 
+      # The tile/routing keys must be present at build time: Vite inlines them
+      # into the bundle via `define` in vite.config.js. Without them the build
+      # succeeds but ships an empty key, and routing silently makes no request.
       - run: npm run build
         if: env.SKIP_DEPLOY != 'true'
+        env:
+          VITE_THUNDERFOREST_API_KEY: ${{ secrets.VITE_THUNDERFOREST_API_KEY }}
+          VITE_OPENROUTESERVICE_API_KEY: ${{ secrets.VITE_OPENROUTESERVICE_API_KEY }}
 
       - name: Install lftp
         if: env.SKIP_DEPLOY != 'true'

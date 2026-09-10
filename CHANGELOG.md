@@ -73,6 +73,7 @@
 - Hardened browser security policies, deployment certificate checks, and dependency security updates.
 - Resolved all remaining dependency advisories; `npm audit` now reports zero vulnerabilities.
 - Added the missing `form-action` restriction to the Impressum page security policy.
+- Routing made no request on the deployed site: the CI build ran without `VITE_*` keys, so Vite inlined an empty API key. The deploy workflow now passes the Thunderforest and OpenRouteService keys from repository secrets.
 
 ### Removed
 

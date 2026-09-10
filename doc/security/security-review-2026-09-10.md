@@ -76,6 +76,25 @@ This is inherent to a static client-only PWA — the keys cannot be hidden witho
 2. Treat them as public credentials: rotate on any suspicion, never reuse them elsewhere.
 3. Record the accepted risk in the product spec so it is not mistaken for a leak later.
 4. `.env` also carries an unused `OPENROUTE_SERVICE_API_KEY` (no `VITE_` prefix, referenced nowhere). Delete it — a stray unused secret is a rotation liability.
+5. The keys must reach the CI build as repository secrets (see M-1a). Storing them there does not change the exposure — the built bundle is public either way — but it does mean the secrets now exist in two places (GitHub Actions and the local `.env`), so rotation has to cover both.
+
+### M-1a — CI built without the API keys, silently disabling routing (Medium, functional)
+
+Found while validating M-1. `.env` is correctly gitignored, and the deploy workflow's `npm run build` step passed **no** `VITE_*` environment variables, so `loadEnv()` in `vite.config.js` resolved nothing and `define` inlined an empty string. The failure is silent: the build succeeds, and `requestRoute()` returns early on `!apiKey` without any user-visible error beyond the routing panel's fallback copy.
+
+Reproduced against production:
+
+```
+$ curl -s https://maphop.eu/assets/main-DFoRhSTj.js | grep -o 'apiKey:``'
+apiKey:``
+# routing panel on maphop.eu reports:
+#   "Routing preview is ready. Add an API key to calculate routes."
+# zero requests to api.openrouteservice.org
+```
+
+The same gap disabled the Thunderforest transport layer. Verified working in a local dev server and a local production build (`POST /v2/directions/foot-walking/geojson` → 200), which confirms the application code is correct and the defect is purely deployment configuration.
+
+**Fixed in the repo:** the build step now receives `VITE_THUNDERFOREST_API_KEY` and `VITE_OPENROUTESERVICE_API_KEY` from repository secrets (`process.env` takes precedence over `.env` files in Vite's `loadEnv`, verified with a probe build). **Owner action:** add both as GitHub repository secrets, or routing stays disabled in production.
 
 ### M-2 — Seven known vulnerabilities in build dependencies (Medium)
 
