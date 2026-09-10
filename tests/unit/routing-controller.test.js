@@ -5,7 +5,7 @@ function makePanel() {
     document.body.innerHTML = `<section hidden><button></button><button></button><button></button><button></button><select><option value="foot-walking">Walking</option><option value="foot-hiking">Hiking</option></select><button></button><button></button><div></div><p hidden></p><p hidden></p><p></p></section>`;
     const [closeButton, currentLocationButton, clearButton, addStopButton, startField, destinationField] = document.querySelectorAll("button");
     const [distance, duration, status] = document.querySelectorAll("p");
-    return { root: document.querySelector("section"), closeButton, currentLocationButton, clearButton, addStopButton, profile: document.querySelector("select"), startField, destinationField, stopsList: document.querySelector("div"), distance, duration, status };
+    return { root: document.querySelector("section"), closeButton, currentLocationButton, clearButton, addStopButton, profile: document.querySelector("select"), startField, destinationField, pointsList: document.querySelector("div"), distance, duration, status };
 }
 
 function makeMap() {
@@ -59,11 +59,31 @@ describe("routing controller", () => {
         panel.destinationField.click();
         map.handlers.click({ lngLat: { lng: 3, lat: 4 } });
         await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+        expect(onMenuOpen).toHaveBeenCalledOnce();
         panel.addStopButton.click();
         map.handlers.click({ lngLat: { lng: 5, lat: 6 } });
         await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+        expect(onMenuOpen).toHaveBeenCalledOnce();
 
         expect(JSON.parse(fetch.mock.calls[1][1].body).coordinates).toEqual([[1, 2], [5, 6], [3, 4]]);
-        expect(panel.stopsList.textContent).toContain("6.00000, 5.00000");
+        expect(panel.pointsList.textContent).toContain("6.00000, 5.00000");
+
+        const transfer = {
+            value: "",
+            setData(_type, value) { this.value = value; },
+            getData() { return this.value; }
+        };
+        const dragStart = new Event("dragstart", { bubbles: true });
+        Object.defineProperty(dragStart, "dataTransfer", { value: transfer });
+        panel.pointsList.querySelectorAll(".routing-point-row")[1].dispatchEvent(dragStart);
+        const drop = new Event("drop", { bubbles: true });
+        Object.defineProperty(drop, "dataTransfer", { value: transfer });
+        panel.pointsList.querySelectorAll(".routing-point-row")[2].dispatchEvent(drop);
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+        expect(JSON.parse(fetch.mock.calls[2][1].body).coordinates).toEqual([[1, 2], [3, 4], [5, 6]]);
+
+        panel.pointsList.querySelector(".routing-delete-point").click();
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(4));
+        expect(JSON.parse(fetch.mock.calls[3][1].body).coordinates).toEqual([[1, 2], [5, 6]]);
     });
 });

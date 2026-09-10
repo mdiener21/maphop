@@ -144,6 +144,8 @@ const installPromptController = createInstallPromptController({
     installBanner: dom.installBanner,
     installButton: dom.installButton,
     installDismiss: dom.installDismiss,
+    menuInstallButton: dom.menuInstallButton,
+    menuInstallNote: dom.menuInstallNote,
     iosBanner: dom.iosBanner,
     iosDismiss: dom.iosDismiss
 });

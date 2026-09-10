@@ -23,7 +23,7 @@ export function getMapPageDom() {
             profile: document.getElementById("routeProfile"),
             startField: document.getElementById("routeStartButton"),
             destinationField: document.getElementById("routeDestinationButton"),
-            stopsList: document.getElementById("routeStopsList"),
+            pointsList: document.getElementById("routePointsList"),
             distance: document.getElementById("routeDistance"),
             duration: document.getElementById("routeDuration"),
             status: document.getElementById("routeStatus")
@@ -53,6 +53,8 @@ export function getMapPageDom() {
         installBanner: document.getElementById("installBanner"),
         installButton: document.getElementById("installButton"),
         installDismiss: document.getElementById("installDismiss"),
+        menuInstallButton: document.getElementById("menuInstallButton"),
+        menuInstallNote: document.getElementById("menuInstallNote"),
         iosBanner: document.getElementById("iosBanner"),
         iosDismiss: document.getElementById("iosDismiss"),
         reCenterButton: document.getElementById("reCenterButton"),

@@ -207,7 +207,7 @@
                                     <option value="foot-hiking">Hiking</option>
                                 </select>
                                 <button class="routing-point" id="routeStartButton" type="button"><strong>Start</strong><span>Tap to select location on map</span></button>
-                                <div class="routing-stops" id="routeStopsList" hidden></div>
+                                <div class="routing-points" id="routePointsList" hidden aria-label="Route point order"></div>
                                 <button class="routing-point" id="routeDestinationButton" type="button"><strong>Destination</strong><span>Tap to select location on map</span></button>
                                 <p class="routing-result" id="routeDistance" hidden></p>
                                 <p class="routing-result" id="routeDuration" hidden></p>
@@ -265,6 +265,10 @@
                 </div>
 
                 <div class="menu-footer">
+                    <div class="menu-install">
+                        <button class="menu-install-button" id="menuInstallButton" type="button">Install Maphop app</button>
+                        <p class="menu-install-note" id="menuInstallNote">Maphop is a website you can add as a shortcut to your home screen. It opens like an app.</p>
+                    </div>
                     <a class="menu-footer-button" href="./settings.html">Settings</a>
                     <a class="menu-footer-link" href="./impressum.html">Impressum &amp; Datenschutz</a>
                     <a class="menu-footer-link" href="https://github.com/mdiener21/maphop" target="_blank" rel="noopener">Source Code Github</a>

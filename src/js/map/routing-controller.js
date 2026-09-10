@@ -38,17 +38,29 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
     let requestController = null;
     let active = false;
     let selection = null;
+    let draggedPointIndex = null;
 
     function coordinates() {
         return start && destination ? [start, ...stops, destination] : [];
     }
 
+    function routePoints() {
+        return [start, ...stops, destination].filter(Boolean);
+    }
+
+    function setRoutePoints(points) {
+        start = points[0] ?? null;
+        destination = points.length > 1 ? points.at(-1) : null;
+        stops = points.length > 2 ? points.slice(1, -1) : [];
+    }
+
     function markerPoints() {
-        return [
-            ...(start ? [{ type: "start", coordinate: start }] : []),
-            ...stops.map((coordinate, index) => ({ type: "stop", coordinate, index })),
-            ...(destination ? [{ type: "destination", coordinate: destination }] : [])
-        ];
+        const points = routePoints();
+        return points.map((coordinate, index) => ({
+            coordinate,
+            type: index === 0 ? "start" : index === points.length - 1 ? "destination" : "stop",
+            index
+        }));
     }
 
     function syncFields() {
@@ -56,16 +68,116 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
         panel.destinationField.textContent = destination
             ? `${stops.length + 2} · ${formatLocation(destination)}`
             : "Tap to select location on map";
-        panel.stopsList.replaceChildren(...stops.map((stop, index) => {
-            const item = document.createElement("p");
-            item.className = "routing-stop";
-            item.textContent = `${index + 2} · ${formatLocation(stop)}`;
-            return item;
-        }));
-        panel.stopsList.hidden = stops.length === 0;
+        renderPointsList();
         panel.addStopButton.hidden = !start || !destination;
         panel.distance.hidden = !route.features.length;
         panel.duration.hidden = !route.features.length;
+    }
+
+    function pointLabel(index, total) {
+        if (index === 0) return "Start";
+        if (index === total - 1) return "Destination";
+        return `Stop ${index}`;
+    }
+
+    function reorderPoint(fromIndex, toIndex) {
+        if (fromIndex === toIndex) return;
+        const points = routePoints();
+        const [point] = points.splice(fromIndex, 1);
+        points.splice(toIndex, 0, point);
+        setRoutePoints(points);
+        refreshRoute();
+    }
+
+    function renderPointsList() {
+        const points = routePoints();
+        const clearDragState = () => {
+            panel.pointsList.querySelectorAll(".is-dragging, .is-drop-target").forEach((element) => {
+                element.classList.remove("is-dragging", "is-drop-target");
+            });
+        };
+        panel.pointsList.replaceChildren(...points.map((point, index) => {
+            const row = document.createElement("div");
+            row.className = "routing-point-row";
+            row.draggable = true;
+
+            const handle = document.createElement("button");
+            handle.className = "routing-drag-handle";
+            handle.type = "button";
+            handle.textContent = "☰";
+            handle.setAttribute("aria-label", `Drag ${pointLabel(index, points.length)} to reorder`);
+            handle.draggable = true;
+
+            const copy = document.createElement("span");
+            copy.className = "routing-point-copy";
+            const title = document.createElement("strong");
+            title.textContent = `${index + 1} · ${pointLabel(index, points.length)}`;
+            const location = document.createElement("span");
+            location.textContent = formatLocation(point);
+            copy.append(title, location);
+            row.append(handle, copy);
+
+            if (index > 0 && index < points.length - 1) {
+                const remove = document.createElement("button");
+                remove.className = "routing-delete-point";
+                remove.type = "button";
+                remove.textContent = "×";
+                remove.setAttribute("aria-label", `Remove stop ${index}`);
+                remove.addEventListener("click", () => {
+                    const updatedPoints = routePoints();
+                    updatedPoints.splice(index, 1);
+                    setRoutePoints(updatedPoints);
+                    refreshRoute();
+                });
+                row.append(remove);
+            } else {
+                const spacer = document.createElement("span");
+                spacer.setAttribute("aria-hidden", "true");
+                row.append(spacer);
+            }
+
+            const startDrag = (event) => {
+                draggedPointIndex = index;
+                clearDragState();
+                row.classList.add("is-dragging");
+                event.dataTransfer?.setData("text/plain", String(index));
+            };
+            row.addEventListener("dragstart", startDrag);
+            handle.addEventListener("dragstart", startDrag);
+            row.addEventListener("dragover", (event) => {
+                event.preventDefault();
+                if (draggedPointIndex !== index) {
+                    clearDragState();
+                    row.classList.add("is-drop-target");
+                }
+            });
+            row.addEventListener("drop", (event) => {
+                event.preventDefault();
+                const fromIndex = Number(event.dataTransfer?.getData("text/plain") ?? draggedPointIndex);
+                if (Number.isInteger(fromIndex)) reorderPoint(fromIndex, index);
+                draggedPointIndex = null;
+                clearDragState();
+            });
+            row.addEventListener("dragend", () => {
+                draggedPointIndex = null;
+                clearDragState();
+            });
+            handle.addEventListener("pointerdown", () => {
+                draggedPointIndex = index;
+                clearDragState();
+                row.classList.add("is-dragging");
+            });
+            handle.addEventListener("pointerup", (event) => {
+                const targetRow = document.elementFromPoint(event.clientX, event.clientY)?.closest(".routing-point-row");
+                const targetIndex = Number(targetRow?.dataset.pointIndex);
+                if (Number.isInteger(draggedPointIndex) && Number.isInteger(targetIndex)) reorderPoint(draggedPointIndex, targetIndex);
+                draggedPointIndex = null;
+                clearDragState();
+            });
+            row.dataset.pointIndex = String(index);
+            return row;
+        }));
+        panel.pointsList.hidden = points.length < 2;
     }
 
     function ensureOverlay() {
@@ -93,9 +205,9 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
             marker.on("dragend", () => {
                 const moved = marker.getLngLat();
                 const movedCoordinate = [moved.lng, moved.lat];
-                if (point.type === "start") start = movedCoordinate;
-                else if (point.type === "destination") destination = movedCoordinate;
-                else stops[point.index] = movedCoordinate;
+                const points = routePoints();
+                points[point.index] = movedCoordinate;
+                setRoutePoints(points);
                 refreshRoute();
             });
             return marker;
@@ -159,12 +271,16 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
     function onMapClick(event) {
         if (!active || !selection) return;
         const coordinate = [event.lngLat.lng, event.lngLat.lat];
-        if (selection === "start") start = coordinate;
-        else if (selection === "destination") destination = coordinate;
+        const selectedType = selection;
+        if (selectedType === "start") start = coordinate;
+        else if (selectedType === "destination") destination = coordinate;
         else stops.push(coordinate);
         selection = null;
         refreshRoute();
-        onMenuOpen?.();
+        // Once a route exists, leave the map visible after placing extra stops.
+        // The start-location flow still returns to Routing so the user can choose
+        // their destination.
+        if (selectedType === "start") onMenuOpen?.();
     }
 
     function open() {
