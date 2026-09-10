@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Hardened browser security policies, deployment certificate checks, and dependency security updates.
+
 ### Removed
 
 ## [2.0.0] - 2026-09-10

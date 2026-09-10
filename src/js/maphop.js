@@ -1,4 +1,4 @@
-import maplibregl from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
 import { Protocol as PmtilesProtocol } from "pmtiles";
 import { version } from "../../package.json";
 import { createFavoriteCloudStore } from "./favorite-cloud-store.js";

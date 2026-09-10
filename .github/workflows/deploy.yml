@@ -123,7 +123,7 @@ jobs:
             set net:max-retries 3;
             set net:timeout 20;
             set ftp:passive-mode true;
-            set ssl:verify-certificate false;
+            set ssl:verify-certificate true;
             set ftp:ssl-allow true;
             set ftp:ssl-force true;
             set ftp:ssl-protect-data yes;
