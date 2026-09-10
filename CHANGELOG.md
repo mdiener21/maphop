@@ -6,6 +6,8 @@
 
 ### Changed
 
+- Made the menu's Maphop installation action a compact secondary control.
+
 ### Fixed
 
 ### Removed
