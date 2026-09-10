@@ -4,15 +4,25 @@
 
 ### Added
 
+- Documented nginx security-header configuration for the production host in `doc/deploy/nginx-security-headers.conf`.
+- Security review report covering application code, dependencies, and deployment (`doc/security/security-review-2026-09-10.md`).
+
 ### Changed
 
 - Made the menu's Maphop installation action a compact secondary control.
+- Documented the public tile/routing API keys and the PocketBase token storage as accepted risks in the product spec.
+- Corrected the product spec's privacy section to disclose the cookieless Umami analytics script.
+- Security-header regression test now asserts against the tracked nginx configuration instead of the removed `_headers` file.
 
 ### Fixed
 
 - Hardened browser security policies, deployment certificate checks, and dependency security updates.
+- Resolved all remaining dependency advisories; `npm audit` now reports zero vulnerabilities.
+- Added the missing `form-action` restriction to the Impressum page security policy.
 
 ### Removed
+
+- Dead `_headers` file, which the nginx host ignored while serving it publicly.
 
 ## [2.0.0] - 2026-09-10
 
