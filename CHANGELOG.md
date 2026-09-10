@@ -4,6 +4,16 @@
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.1] - 2026-09-10
+
+### Added
+
 - Documented nginx security-header configuration for the production host in `doc/deploy/nginx-security-headers.conf`.
 - Security review report covering application code, dependencies, and deployment (`doc/security/security-review-2026-09-10.md`).
 
