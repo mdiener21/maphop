@@ -31,12 +31,14 @@ describe("OpenStreetMap policy compliance", () => {
 
     it("uses a referrer policy that still sends cross-origin referrers to tile providers", () => {
         const indexHtml = readProjectFile("src/index.html");
-        const headersFile = readProjectFile("src/public/_headers");
+        // Headers are served by the nginx host, not from the repo; this file is
+        // the tracked source of truth for what that host must send.
+        const nginxHeaders = readProjectFile("doc/deploy/nginx-security-headers.conf");
 
         expect(indexHtml).toContain('name="referrer" content="strict-origin-when-cross-origin"');
-        expect(headersFile).toContain("Referrer-Policy: strict-origin-when-cross-origin");
+        expect(nginxHeaders).toContain('Referrer-Policy "strict-origin-when-cross-origin"');
         expect(indexHtml).not.toContain('name="referrer" content="no-referrer"');
-        expect(headersFile).not.toContain("Referrer-Policy: no-referrer");
+        expect(nginxHeaders).not.toContain('Referrer-Policy "no-referrer"');
     });
 
     it("includes a map menu option for the Thunderforest transport layer", () => {

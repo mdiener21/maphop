@@ -1,6 +1,6 @@
 {
   "name": "maphop",
-  "version": "2.0.0",
+  "version": "2.0.3",
   "description": "Simple pwa map viewer local-first, privacy first",
   "type": "module",
   "scripts": {
@@ -25,11 +25,11 @@
   "homepage": "https://github.com/mdiener21/maphop#readme",
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@vitest/coverage-v8": "^4.1.11",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.0.1",
     "vite": "^8.0.2",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "maplibre-gl": "^6.4.1",

@@ -69,13 +69,12 @@ src/
 │       ├── dom.js                  Centralized map-page DOM lookups
 │       └── service-worker.js       SW registration
 ├── public/
-│   ├── sw.js               Service worker (network-first, scope /)
-│   └── _headers            Security headers (Netlify-compatible)
+│   └── sw.js               Service worker (network-first, scope /)
 ├── images/                 App icons 72–512px (maskable variants)
 └── manifest.webmanifest    PWA manifest (standalone, portrait, scope /)
 
 tests/
-├── unit/                   Vitest + jsdom (111 tests across 15 files)
+├── unit/                   Vitest + jsdom (115 tests across 16 files)
 └── e2e/app.spec.js         Playwright Firefox (12 tests)
 
 doc/
@@ -513,7 +512,8 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Geolocation opt-in; selected favorite coordinates are sent to Open-Meteo only during user-initiated favorite save elevation lookup.
 - If PocketBase backup is enabled, saved favorite name, coordinates, optional elevation, device ID, and authenticated user context are sent to `https://pb.kanvana.com`.
 - Menu displays: *"Remote map providers can infer your nearby area from the tiles your device requests."*
-- No analytics or tracking scripts.
+- Self-hosted, cookieless [Umami](https://umami.is) analytics (`https://analytics.gomogi.com`) is loaded on all pages. It sets no cookies and collects no personal data; the Impressum discloses it.
+- Thunderforest and OpenRouteService API keys are compiled into the public client bundle — unavoidable for a static PWA. They are treated as public credentials, restricted provider-side to the `maphop.eu` referrer, and quota-capped.
 
 ### Performance
 
@@ -529,10 +529,12 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 
 | Mechanism | Implementation |
 |-----------|---------------|
-| Content Security Policy | `<meta>` on all pages; `index.html` allowlists all built-in tile providers, optional `api.thunderforest.com`, `tiles.mapterhorn.com`, `api.open-meteo.com`, and `pb.kanvana.com` in `connect-src`/`img-src` as needed; `settings.html` allows `https://pb.kanvana.com` in `connect-src`; MapLibre blob workers via `worker-src blob: child-src blob:`. Secondary pages otherwise use tighter policy. |
+| Content Security Policy | `<meta>` on all pages, all with `default-src 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`; `index.html` allowlists all built-in tile providers, optional `api.thunderforest.com`, `tiles.mapterhorn.com`, `api.open-meteo.com`, and `pb.kanvana.com` in `connect-src`/`img-src` as needed; `settings.html` allows `https://pb.kanvana.com` in `connect-src`; MapLibre blob workers via `worker-src blob: child-src blob:`. Secondary pages otherwise use tighter policy. |
 | Settings auth hardening | `settings.html` uses `form-action 'self'`, `Referrer-Policy: no-referrer`, password clearing after every auth attempt, generic failure messages, no raw auth-error logging, and disabled controls during login. PocketBase server must enforce HTTPS, exact CORS origins, auth rate limiting, password policy, and per-user collection rules. |
 | Referrer Policy | `strict-origin-when-cross-origin` on `index.html`; secondary pages use `no-referrer`. |
-| HTTP security headers | `_headers`: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy: geolocation=(self)`, `X-XSS-Protection: 0`. |
+| HTTP security headers | Set on the **nginx host**, not from the repo — the FTPS deploy mirrors `dist/` into `public_html/` and cannot touch server config, so drop-in files (`_headers`, `.htaccess`) are silently ignored. `doc/deploy/nginx-security-headers.conf` holds the directive block to apply: `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`, `Referrer-Policy`, `Permissions-Policy: geolocation=(self)`. `frame-ancestors` **must** be an HTTP header — browsers ignore it in a `<meta>` CSP. Re-verify with `curl -sSI https://maphop.eu/` after any host change. |
+| Public API keys (accepted risk) | `VITE_THUNDERFOREST_API_KEY` and `VITE_OPENROUTESERVICE_API_KEY` are inlined into `dist/assets/main-*.js` by `vite.config.js`; the ORS key is sent as an `Authorization` header from the browser. A static client-only PWA cannot hide them. Exposure is quota/billing abuse, not data disclosure. Mitigated by provider-side referrer restrictions, quotas, and rotation on suspicion. |
+| Cloud auth token (accepted risk) | The PocketBase SDK persists its JWT in `localStorage` (`src/js/favorite-cloud-store.js`), readable by any script on the origin. Standard for the SDK; the httpOnly-cookie alternative needs server support. Residual risk is held low by the strict CSP and the no-`innerHTML` rule below. |
 | Input validation | Import: 64 KB cap, JSON parse guard, coordinate range check, 250-record limit, 80-char name limit, duplicate skipping. |
 | DOM safety | User data renders via `textContent`, attribute assignment, explicit element creation; no `innerHTML`. |
 
@@ -542,7 +544,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Status toast uses `aria-live="polite"`.
 
 ### Testing
-- **Unit (Vitest + jsdom):** 111 tests across 15 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
+- **Unit (Vitest + jsdom):** 115 tests across 16 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
 - **E2E (Playwright + Firefox):** 12 tests covering page titles, DOM structure, menu interaction, and navigation. Chromium excluded (missing `libnspr4.so` on this WSL2 host).
 
 ### Offline Support
@@ -564,6 +566,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 - Geolocation tracking stops on background/unload.
 - `CHANGELOG.md` and this spec updated together for shipped changes.
 - PWA deployment assumptions aligned across Vite config, manifest, and SW registration.
+- HTTP security headers live in the nginx host config, never in a repo drop-in file; verify with `curl -sSI https://maphop.eu/` after deployment changes.
 
 ### Ask First
 - Adding new tile providers (affects privacy, reliability, attribution).
@@ -608,7 +611,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Attribution | © panel shows correct provider credit; terrain suffix syncs with terrain state |
 | Compass | Appears on rotation or tilt; needle tracks north; tap resets bearing + pitch to 0° |
 | Architecture navigable | `doc/architecture/code-map.md` sufficient to locate owning module without reading `maphop.js` |
-| Unit tests pass | `npm test` exits 0, all 111 tests green |
+| Unit tests pass | `npm test` exits 0, all 115 tests green |
 | E2E tests pass | `npm run test:e2e` exits 0, all 12 tests green |
 
 ---
