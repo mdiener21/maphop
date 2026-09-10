@@ -45,6 +45,17 @@
 
 - Redundant Route action from the Routing view.
 
+=======
+## [1.6.12] - 2026-09-10
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
 ## [1.6.11] - 2026-09-10
 
 ### Added
