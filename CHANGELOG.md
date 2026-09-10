@@ -8,6 +8,8 @@
 
 ### Fixed
 
+- lftp deploy fixed
+
 ### Removed
 
 ## [2.0.4] - 2026-09-10
