@@ -58,22 +58,24 @@ describe("createMenuController", () => {
         expect(layerMenuButton.getAttribute("aria-expanded")).toBe("false");
     });
 
-    it("initializeSections applies the saved expanded state to panels", () => {
+    it("initializeSections starts with every full-screen category closed", () => {
         const { controller, first, second } = makeController();
 
         controller.initializeSections();
 
-        expect(first.panel.hidden).toBe(false);
+        expect(first.panel.hidden).toBe(true);
         expect(second.panel.hidden).toBe(true);
     });
 
     it("setSectionExpanded updates the toggle and panel state", () => {
-        const { controller, second } = makeController();
+        const { controller, menuShell, first, second } = makeController();
 
         controller.setSectionExpanded(second.toggle, true);
 
         expect(second.toggle.getAttribute("aria-expanded")).toBe("true");
         expect(second.panel.hidden).toBe(false);
+        expect(first.panel.hidden).toBe(true);
+        expect(menuShell.classList.contains("is-detail-open")).toBe(true);
     });
 
     it("returns safely when the toggle is missing or the panel cannot be found", () => {

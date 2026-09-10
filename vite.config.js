@@ -8,7 +8,8 @@ export default defineConfig(({ mode }) => {
         envDir: ".",
         base: "./",
         define: {
-            "import.meta.env.VITE_THUNDERFOREST_API_KEY": JSON.stringify(env.VITE_THUNDERFOREST_API_KEY ?? "")
+            "import.meta.env.VITE_THUNDERFOREST_API_KEY": JSON.stringify(env.VITE_THUNDERFOREST_API_KEY ?? ""),
+            "import.meta.env.VITE_OPENROUTESERVICE_API_KEY": JSON.stringify(env.VITE_OPENROUTESERVICE_API_KEY ?? "")
         },
         build: {
             outDir: "../dist",

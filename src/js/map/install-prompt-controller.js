@@ -18,8 +18,33 @@ function snoozeIosHint() {
     }
 }
 
-export function createInstallPromptController({ installBanner, installButton, installDismiss, iosBanner, iosDismiss }) {
+export function createInstallPromptController({
+    installBanner,
+    installButton,
+    installDismiss,
+    menuInstallButton,
+    menuInstallNote,
+    iosBanner,
+    iosDismiss
+}) {
     let deferredInstallPrompt = null;
+
+    async function requestInstall() {
+        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        if (!deferredInstallPrompt) {
+            if (isIos) {
+                iosBanner.hidden = false;
+                if (menuInstallNote) menuInstallNote.textContent = "In Safari, tap Share then Add to Home Screen to create your shortcut.";
+            } else if (menuInstallNote) {
+                menuInstallNote.textContent = "Installation is not available yet. Open this page in Chrome and try again shortly.";
+            }
+            return;
+        }
+
+        installBanner.hidden = true;
+        await deferredInstallPrompt.prompt();
+        deferredInstallPrompt = null;
+    }
 
     function init() {
         const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -40,17 +65,11 @@ export function createInstallPromptController({ installBanner, installButton, in
             event.preventDefault();
             deferredInstallPrompt = event;
             installBanner.hidden = false;
+            if (menuInstallNote) menuInstallNote.textContent = "Ready to install as a shortcut on your home screen.";
         });
 
-        installButton?.addEventListener("click", async () => {
-            if (!deferredInstallPrompt) {
-                return;
-            }
-
-            installBanner.hidden = true;
-            await deferredInstallPrompt.prompt();
-            deferredInstallPrompt = null;
-        });
+        installButton?.addEventListener("click", requestInstall);
+        menuInstallButton?.addEventListener("click", requestInstall);
 
         installDismiss?.addEventListener("click", () => {
             installBanner.hidden = true;

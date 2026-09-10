@@ -1,4 +1,4 @@
-import maplibregl from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
 
 const trackingIdleTimeoutMs = 15 * 60 * 1000;
 const locationSourceId = "user-location";

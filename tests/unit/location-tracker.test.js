@@ -5,7 +5,7 @@ vi.mock('maplibre-gl', () => {
         constructor() {}
         extend() { return this; }
     }
-    return { default: { LngLatBounds } };
+    return { LngLatBounds };
 });
 
 import { LocationTracker } from '../../src/js/location-tracker.js';

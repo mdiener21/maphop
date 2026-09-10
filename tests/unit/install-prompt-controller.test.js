@@ -5,6 +5,8 @@ function makeController() {
     const installBanner = document.createElement("div");
     const installButton = document.createElement("button");
     const installDismiss = document.createElement("button");
+    const menuInstallButton = document.createElement("button");
+    const menuInstallNote = document.createElement("p");
     const iosBanner = document.createElement("div");
     const iosDismiss = document.createElement("button");
 
@@ -15,11 +17,13 @@ function makeController() {
         installBanner,
         installButton,
         installDismiss,
+        menuInstallButton,
+        menuInstallNote,
         iosBanner,
         iosDismiss
     });
 
-    return { controller, installBanner, installButton, installDismiss, iosBanner, iosDismiss };
+    return { controller, installBanner, installButton, installDismiss, menuInstallButton, menuInstallNote, iosBanner, iosDismiss };
 }
 
 function dispatchWindowEvent(event) {
@@ -100,6 +104,20 @@ describe("createInstallPromptController", () => {
 
         expect(installBanner.hidden).toBe(true);
         expect(event.prompt).not.toHaveBeenCalled();
+    });
+
+    it("uses the menu install action to show the native Chrome prompt", async () => {
+        const { controller, menuInstallButton } = makeController();
+        controller.init();
+        const event = new Event("beforeinstallprompt");
+        event.preventDefault = vi.fn();
+        event.prompt = vi.fn().mockResolvedValue(undefined);
+        dispatchWindowEvent(event);
+
+        menuInstallButton.click();
+        await Promise.resolve();
+
+        expect(event.prompt).toHaveBeenCalledOnce();
     });
 
     it("hides both banners when appinstalled fires", () => {

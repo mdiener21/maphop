@@ -5,6 +5,11 @@ node_modules/
 .env.*
 .env.local
 .env.development.local
+*.pem
+*.key
+*.pfx
+*.p12
+secrets/
 
 # Ignore log files
 logs/

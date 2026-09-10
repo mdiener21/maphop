@@ -16,9 +16,7 @@ const { popupInstances, PopupMock } = vi.hoisted(() => {
 });
 
 vi.mock("maplibre-gl", () => ({
-    default: {
-        Popup: PopupMock
-    }
+    Popup: PopupMock
 }));
 
 import { createFavoritesOverlay } from "../../src/js/map/favorites-overlay.js";
