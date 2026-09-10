@@ -96,6 +96,21 @@ The same gap disabled the Thunderforest transport layer. Verified working in a l
 
 **Fixed in the repo:** the build step now receives `VITE_THUNDERFOREST_API_KEY` and `VITE_OPENROUTESERVICE_API_KEY` from repository secrets (`process.env` takes precedence over `.env` files in Vite's `loadEnv`, verified with a probe build). **Owner action:** add both as GitHub repository secrets, or routing stays disabled in production.
 
+### M-1b — FTPS certificate verification was disabled on the deploy path (Medium)
+
+`a47c928` turned on `ssl:verify-certificate true`; the deploy then failed and it was reverted to `false` in `2b42793`. Diagnosing the actual failure:
+
+```
+$ openssl s_client -connect maphop.eu:21 -starttls ftp -servername maphop.eu
+depth=0 CN = *.your-server.de
+issuer= C = US, O = DigiCert Inc, CN = Thawte TLS RSA CA G1
+Verify return code: 0 (ok)
+```
+
+The certificate is valid and publicly trusted — it simply does not cover `maphop.eu`, so lftp's **hostname** check failed. With verification off, the FTPS session is encrypted but unauthenticated: an active network attacker can present any certificate and capture the deploy credentials or substitute the uploaded site content.
+
+**Fixed in the repo:** the deploy now connects to the hostname the certificate actually covers, supplied as an `FTP_HOST` secret, with `ssl:verify-certificate true` restored. The step fails fast with a clear message if the secret is missing rather than silently falling back. **Owner action:** set `FTP_HOST` to the server's `*.your-server.de` hostname from the hosting panel.
+
 ### M-2 — Seven known vulnerabilities in build dependencies (Medium)
 
 ```

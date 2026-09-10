@@ -122,22 +122,33 @@ jobs:
         if: env.SKIP_DEPLOY != 'true'
         run: sudo apt-get update && sudo apt-get install -y lftp ca-certificates
 
+      # Connect using the hostname on the server's TLS certificate, not maphop.eu.
+      # The host presents a valid DigiCert/Thawte-issued cert for *.your-server.de,
+      # so connecting as maphop.eu fails hostname verification — that mismatch, not
+      # a bad certificate, is why verification was previously turned off.
       - name: Deploy via lftp
         if: env.SKIP_DEPLOY != 'true'
         run: |
+          if [ -z "${FTP_HOST}" ]; then
+            echo "::error::FTP_HOST secret is not set. It must be the hostname on the server's"
+            echo "::error::TLS certificate (e.g. wXXXXXXX.your-server.de), taken from the hosting"
+            echo "::error::panel. maphop.eu is not covered by that certificate."
+            exit 1
+          fi
           lftp -c "
             set net:max-retries 3;
             set net:timeout 20;
             set ftp:passive-mode true;
-            set ssl:verify-certificate false;
+            set ssl:verify-certificate true;
             set ftp:ssl-allow true;
             set ftp:ssl-force true;
             set ftp:ssl-protect-data yes;
-            open -u ${FTP_USER},${FTP_PASSWORD} -p 21 maphop.eu;
+            open -u ${FTP_USER},${FTP_PASSWORD} -p 21 ${FTP_HOST};
             mirror --reverse --delete --verbose ./dist/ ./public_html/;
             bye;
           "
         env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
           FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
 

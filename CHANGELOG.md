@@ -74,6 +74,7 @@
 - Resolved all remaining dependency advisories; `npm audit` now reports zero vulnerabilities.
 - Added the missing `form-action` restriction to the Impressum page security policy.
 - Routing made no request on the deployed site: the CI build ran without `VITE_*` keys, so Vite inlined an empty API key. The deploy workflow now passes the Thunderforest and OpenRouteService keys from repository secrets.
+- Restored FTPS certificate verification on deploy by connecting through the hostname on the server's TLS certificate (`FTP_HOST` secret); the earlier failure was a hostname mismatch, not an invalid certificate.
 
 ### Removed
 
