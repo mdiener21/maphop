@@ -1,17 +1,33 @@
 export function getMapPageDom() {
     const locationSectionToggle = document.getElementById("locationSectionToggle");
     const favoritesSectionToggle = document.getElementById("favoritesSectionToggle");
+    const routingSectionToggle = document.getElementById("routingSectionToggle");
     const mapsSectionToggle = document.getElementById("mapsSectionToggle");
 
     return {
         statusElement: document.getElementById("status"),
         menuShell: document.getElementById("menuShell"),
         layerMenuButton: document.getElementById("layerMenuButton"),
+        menuCloseButton: document.getElementById("menuCloseButton"),
         layerMenu: document.getElementById("layerMenu"),
         locateButton: document.getElementById("locateButton"),
         mapLocationToggleButton: document.getElementById("mapLocationToggleButton"),
         locationToggleLabel: document.getElementById("locationToggleLabel"),
         saveFavoriteButton: document.getElementById("saveFavoriteButton"),
+        routingPanel: {
+            root: document.getElementById("routingPanel"),
+            closeButton: document.getElementById("closeRoutingButton"),
+            currentLocationButton: document.getElementById("routeCurrentLocationButton"),
+            clearButton: document.getElementById("clearRouteButton"),
+            addStopButton: document.getElementById("addRouteStopButton"),
+            profile: document.getElementById("routeProfile"),
+            startField: document.getElementById("routeStartButton"),
+            destinationField: document.getElementById("routeDestinationButton"),
+            stopsList: document.getElementById("routeStopsList"),
+            distance: document.getElementById("routeDistance"),
+            duration: document.getElementById("routeDuration"),
+            status: document.getElementById("routeStatus")
+        },
         favoriteSelectionOverlay: document.getElementById("favoriteSelectionOverlay"),
         cancelFavoriteSelectionButton: document.getElementById("cancelFavoriteSelectionButton"),
         confirmFavoriteSelectionButton: document.getElementById("confirmFavoriteSelectionButton"),
@@ -26,8 +42,9 @@ export function getMapPageDom() {
         favoritesEmpty: document.getElementById("favoritesEmpty"),
         locationSectionToggle,
         favoritesSectionToggle,
+        routingSectionToggle,
         mapsSectionToggle,
-        menuSectionToggleElements: [locationSectionToggle, favoritesSectionToggle, mapsSectionToggle].filter(Boolean),
+        menuSectionToggleElements: [locationSectionToggle, favoritesSectionToggle, routingSectionToggle, mapsSectionToggle].filter(Boolean),
         appVersionElement: document.getElementById("appVersion"),
         layerOptionElements: Array.from(document.querySelectorAll(".layer-option")),
         sharedLocationBanner: document.getElementById("sharedLocationBanner"),

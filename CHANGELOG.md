@@ -10,6 +10,27 @@
 
 ### Removed
 
+## [2.0.0] - 2026-09-10
+
+### Added
+
+- Online walking and hiking route planning with start, destination, and multiple intermediate stops.
+- Numbered, draggable route pins; start is green, intermediate stops are blue, and destination is red.
+- Route distance and estimated travel time in the routing view.
+
+### Changed
+
+- Map controls now open as a focused full-screen workspace, with full-screen category views for Location, Favorites, Routing, and Maps.
+- Selecting a route location temporarily closes the menu and returns directly to Routing after the map point is chosen.
+
+### Fixed
+
+- Routing controls remain reachable for long routes through scrollable menu content.
+
+### Removed
+
+- Redundant Route action from the Routing view.
+
 ## [1.6.11] - 2026-09-10
 
 ### Added

@@ -62,6 +62,7 @@ Maphop is a lightweight map viewer you open in any modern browser. It gives you:
 | 💾 **GeoJSON Backup** | Export favorites as GeoJSON and import previously saved favorites from Settings |
 | 🏔️ **3D Terrain** | Toggle hillshade and terrain exaggeration for a three-dimensional view |
 | 🧭 **Compass** | Appears when the map is rotated or tilted; tap to reset to flat north-up view |
+| 🥾 **Walking & Hiking Routes** | Online route planning with OpenRouteService, using temporary map clicks or an explicitly requested current location |
 | 🔄 **Re-center** | Appears when you pan away from your live location; tap to fly back |
 | © **Attribution Widget** | Compact attribution panel for the active base map and terrain sources |
 | 📴 **Offline-capable** | Service worker caches the app shell for use without connectivity |
@@ -175,6 +176,10 @@ npm install
 # Optional: enable Thunderforest Outdoors locally
 printf 'VITE_THUNDERFOREST_API_KEY=your-key-here\n' > .env.local
 
+# Optional: enable walking and hiking routing locally
+# Add your own OpenRouteService key locally; never commit it.
+printf 'VITE_OPENROUTESERVICE_API_KEY=your-key-here\n' >> .env.local
+
 # Start the Vite dev server with hot-module replacement
 npm run dev
 ```
@@ -184,6 +189,8 @@ Open [http://localhost:5173](http://localhost:5173) in your browser. Changes to 
 `.env.local` is gitignored. Do not commit personal API keys.
 
 If you enable Thunderforest Outdoors, keep in mind that this is a browser-rendered tile layer: the key stays out of the repository, but it is still visible to users of a deployed build. Restrict the key in your Thunderforest account to the intended domains and usage limits.
+
+Routing uses the same browser-rendered configuration. This change does not add an OpenRouteService key to any `.env` file. A `VITE_` value is included in a client build, so use a domain-restricted, quota-limited key; use a server-side proxy if the credential must remain secret.
 
 ### Running Tests
 

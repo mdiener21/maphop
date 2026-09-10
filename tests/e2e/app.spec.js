@@ -30,6 +30,13 @@ test.describe('Map page', () => {
         await expect(page.locator('[data-layer-key]').first()).toBeVisible();
     });
 
+    test('opens the Routing panel from the map menu', async ({ page }) => {
+        await page.goto('/');
+        await page.locator('#layerMenuButton').click();
+        await page.locator('#routingSectionToggle').click();
+        await expect(page.locator('#routingPanel')).toBeVisible();
+    });
+
     test('has all expected base map layers', async ({ page }) => {
         await page.goto('/');
         await page.locator('#layerMenuButton').click();

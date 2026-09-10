@@ -11,6 +11,7 @@ import { createFavoritesOverlay, createPinImageData } from "./map/favorites-over
 import { createFavoritesPanel } from "./map/favorites-panel.js";
 import { createInstallPromptController } from "./map/install-prompt-controller.js";
 import { createMenuController } from "./map/menu-controller.js";
+import { createRoutingController } from "./map/routing-controller.js";
 import { registerScopedServiceWorker } from "./map/service-worker.js";
 import { parseSharedLocationFromUrl } from "./map/share-location.js";
 import { createStatusToast } from "./map/status-toast.js";
@@ -67,6 +68,7 @@ const tracker = new LocationTracker(map, {
 const menuController = createMenuController({
     menuShell: dom.menuShell,
     layerMenuButton: dom.layerMenuButton,
+    menuCloseButton: dom.menuCloseButton,
     menuSectionToggleElements: dom.menuSectionToggleElements
 });
 
@@ -89,6 +91,19 @@ const terrainController = createTerrainController({
 
 const favoritesOverlay = createFavoritesOverlay(map);
 const favoriteCloudStore = createFavoriteCloudStore();
+const routingController = createRoutingController({
+    map,
+    maplibregl,
+    apiKey: import.meta.env.VITE_OPENROUTESERVICE_API_KEY ?? "",
+    panel: dom.routingPanel,
+    onMenuClose: () => menuController.setOpen(false),
+    onMenuOpen: () => window.setTimeout(() => {
+        menuController.setOpen(true);
+        menuController.setSectionExpanded(dom.routingSectionToggle, true);
+        routingController.open();
+    }),
+    onStatus: setStatus
+});
 
 const favoritesPanel = createFavoritesPanel({
     map,
@@ -119,6 +134,7 @@ const baseLayerController = createBaseLayerController({
         terrainController.ensureAfterStyleLoad();
         tracker.ensureOverlayAfterStyleLoad();
         favoritesOverlay.ensureAfterStyleLoad();
+        routingController.ensureAfterStyleLoad();
     },
     onActiveLayerChanged: refreshAttribution,
     onMenuClose: () => menuController.setOpen(false)
@@ -159,6 +175,10 @@ dom.layerMenuButton.addEventListener("click", (event) => {
     menuController.toggle();
 });
 
+dom.menuCloseButton.addEventListener("click", () => {
+    menuController.close();
+});
+
 dom.layerMenu.addEventListener("click", (event) => {
     event.stopPropagation();
 });
@@ -167,6 +187,9 @@ dom.menuSectionToggleElements.forEach((toggleElement) => {
     toggleElement.addEventListener("click", () => {
         const isExpanded = toggleElement.getAttribute("aria-expanded") !== "true";
         menuController.setSectionExpanded(toggleElement, isExpanded);
+        if (toggleElement === dom.routingSectionToggle && isExpanded) {
+            routingController.open();
+        }
     });
 });
 
@@ -226,7 +249,7 @@ window.addEventListener("pagehide", () => {
 });
 
 document.addEventListener("click", () => {
-    menuController.setOpen(false);
+    menuController.close();
 });
 
 registerScopedServiceWorker();
@@ -257,6 +280,7 @@ map.on("load", () => {
     terrainController.ensureAfterStyleLoad();
     tracker.ensureOverlayAfterStyleLoad();
     favoritesOverlay.ensureAfterStyleLoad();
+    routingController.ensureAfterStyleLoad();
     favoritesOverlay.initToggleButton(dom.showFavoritesOnMapButton, dom.showFavoritesOnMapLabel);
     baseLayerController.updateLayerOptionState();
     refreshAttribution();

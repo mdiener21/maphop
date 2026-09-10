@@ -25,6 +25,7 @@
             https://tiles.openfreemap.org
             https://tiles.mapterhorn.com
             https://api.open-meteo.com
+            https://api.openrouteservice.org
             https://pb.kanvana.com;
         connect-src 'self' blob: https://analytics.gomogi.com
             https://tiles.bergfex.at
@@ -37,6 +38,7 @@
             https://tiles.openfreemap.org
             https://tiles.mapterhorn.com
             https://api.open-meteo.com
+            https://api.openrouteservice.org
             https://pb.kanvana.com;
         worker-src 'self' blob:;
         child-src blob:;
@@ -118,6 +120,7 @@
                         <span></span>
                     </span>
                 </button>
+                <button class="menu-close-button" id="menuCloseButton" type="button" aria-label="Close map controls" hidden>×</button>
             </div>
 
             <div class="menu-content menu-divider" id="layerMenu">
@@ -159,7 +162,7 @@
                             class="menu-section-toggle"
                             id="favoritesSectionToggle"
                             type="button"
-                            aria-expanded="true"
+                            aria-expanded="false"
                             aria-controls="favoritesSectionPanel"
                         >
                             <span class="menu-group-title">Favorites</span>
@@ -184,9 +187,44 @@
                     <div class="menu-group">
                         <button
                             class="menu-section-toggle"
+                            id="routingSectionToggle"
+                            type="button"
+                            aria-expanded="false"
+                            aria-controls="routingSectionPanel"
+                        >
+                            <span class="menu-group-title">Routing</span>
+                            <span class="menu-section-toggle-icon" aria-hidden="true"></span>
+                        </button>
+                        <div class="menu-section-panel" id="routingSectionPanel">
+                            <section class="routing-panel" id="routingPanel" hidden aria-label="Create a walking route">
+                                <div class="routing-panel-header">
+                                    <div><p class="routing-eyebrow">OpenRouteService</p><h2>Plan a route</h2></div>
+                                    <button class="routing-close" id="closeRoutingButton" type="button" aria-label="Close routing panel">×</button>
+                                </div>
+                                <label class="routing-label" for="routeProfile">Route type</label>
+                                <select class="routing-select" id="routeProfile">
+                                    <option value="foot-walking">Walking</option>
+                                    <option value="foot-hiking">Hiking</option>
+                                </select>
+                                <button class="routing-point" id="routeStartButton" type="button"><strong>Start</strong><span>Tap to select location on map</span></button>
+                                <div class="routing-stops" id="routeStopsList" hidden></div>
+                                <button class="routing-point" id="routeDestinationButton" type="button"><strong>Destination</strong><span>Tap to select location on map</span></button>
+                                <p class="routing-result" id="routeDistance" hidden></p>
+                                <p class="routing-result" id="routeDuration" hidden></p>
+                                <button class="routing-location-button" id="routeCurrentLocationButton" type="button">Use current location as start</button>
+                                <button class="routing-location-button" id="addRouteStopButton" type="button" hidden>Add another stop</button>
+                                <p class="routing-status" id="routeStatus" aria-live="polite"></p>
+                                <button class="routing-clear-button" id="clearRouteButton" type="button">Clear route</button>
+                            </section>
+                        </div>
+                    </div>
+
+                    <div class="menu-group">
+                        <button
+                            class="menu-section-toggle"
                             id="mapsSectionToggle"
                             type="button"
-                            aria-expanded="true"
+                            aria-expanded="false"
                             aria-controls="mapsSectionPanel"
                         >
                             <span class="menu-group-title">Maps</span>
