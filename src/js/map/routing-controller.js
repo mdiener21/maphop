@@ -193,6 +193,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
     }
 
     function syncRoute() {
+        if (!route.features.length && !map.getSource(routeSourceId)) return;
         ensureOverlay();
         map.getSource(routeSourceId)?.setData(route);
     }
@@ -287,7 +288,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
     function open() {
         active = true;
         panel.root.hidden = false;
-        ensureOverlay();
+        syncRoute();
         syncFields();
         if (!navigator.onLine) {
             panel.status.textContent = "Routing needs an internet connection.";
@@ -340,5 +341,5 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
     panel.clearButton.addEventListener("click", clear);
     panel.closeButton.addEventListener("click", close);
 
-    return { clear, close, ensureAfterStyleLoad: () => { ensureOverlay(); syncRoute(); }, open };
+    return { clear, close, ensureAfterStyleLoad: syncRoute, open };
 }

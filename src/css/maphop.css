@@ -806,7 +806,7 @@ body::before {
 
 @media (min-width: 700px) {
     .control-menu {
-        width: 200px;
+        width: 400px;
     }
 
     .control-menu.is-open {
@@ -814,7 +814,7 @@ body::before {
         right: 16px;
         bottom: calc(var(--safe-bottom) + 14px);
         left: auto;
-        width: 200px;
+        width: 400px;
         box-sizing: border-box;
         padding: 16px;
         border-radius: 10px;

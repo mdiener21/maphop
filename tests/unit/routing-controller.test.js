@@ -11,7 +11,16 @@ function makePanel() {
 function makeMap() {
     const handlers = {};
     const source = { setData: vi.fn() };
-    return { on: vi.fn((name, handler) => { handlers[name] = handler; }), getSource: vi.fn(() => source), getLayer: vi.fn(() => null), addSource: vi.fn(), addLayer: vi.fn(), handlers, source };
+    const sources = new Map();
+    return {
+        on: vi.fn((name, handler) => { handlers[name] = handler; }),
+        getSource: vi.fn((id) => sources.get(id)),
+        getLayer: vi.fn(() => null),
+        addSource: vi.fn((id, definition) => { sources.set(id, { ...source, definition }); }),
+        addLayer: vi.fn(),
+        handlers,
+        source
+    };
 }
 
 function makeStyleResetMap() {
@@ -57,6 +66,9 @@ describe("routing controller", () => {
         map.handlers.click({ lngLat: { lng: 3, lat: 4 } });
         await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
         expect(fetch.mock.calls[0][0]).toBe("https://api.openrouteservice.org/v2/directions/foot-hiking/geojson");
+        await vi.waitFor(() => expect(map.addSource).toHaveBeenCalledWith("walking-route", expect.objectContaining({
+            data: expect.objectContaining({ features: [expect.any(Object)] })
+        })));
         expect(map.source.setData).toHaveBeenCalled();
 
         panel.profile.value = "cycling-mountain";
@@ -88,7 +100,7 @@ describe("routing controller", () => {
 
         await vi.waitFor(() => expect(map.source("walking-route").setData).toHaveBeenCalled());
         expect(map.source("walking-route").definition.data.features).toHaveLength(1);
-        expect(map.addLayer).toHaveBeenCalledTimes(4);
+        expect(map.addLayer).toHaveBeenCalledTimes(2);
     });
 
     it("collapses the menu for selection, reopens it, and adds stops in route order", async () => {
