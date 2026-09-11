@@ -27,6 +27,7 @@ test.describe('Map page', () => {
     test('shows base map layer buttons', async ({ page }) => {
         await page.goto('/');
         await page.locator('#layerMenuButton').click();
+        await page.locator('#mapsSectionToggle').click();
         await expect(page.locator('[data-layer-key]').first()).toBeVisible();
     });
 
@@ -35,6 +36,35 @@ test.describe('Map page', () => {
         await page.locator('#layerMenuButton').click();
         await page.locator('#routingSectionToggle').click();
         await expect(page.locator('#routingPanel')).toBeVisible();
+    });
+
+    test('keeps a long routing list scrollable in a 200px desktop menu', async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 720 });
+        await page.goto('/');
+        await page.locator('#layerMenuButton').click();
+        await page.locator('#routingSectionToggle').click();
+        await page.locator('#routePointsList').evaluate((list) => {
+            list.hidden = false;
+            list.replaceChildren(...Array.from({ length: 16 }, (_, index) => {
+                const point = document.createElement('div');
+                point.className = 'routing-point-row';
+                point.textContent = `Waypoint ${index + 1}`;
+                return point;
+            }));
+        });
+
+        const layout = await page.locator('#menuShell').evaluate((menu) => {
+            const content = menu.querySelector('#layerMenu');
+            return {
+                width: menu.getBoundingClientRect().width,
+                canScroll: content.scrollHeight > content.clientHeight,
+                overflowY: getComputedStyle(content).overflowY,
+            };
+        });
+
+        expect(layout.width).toBe(200);
+        expect(layout.canScroll).toBe(true);
+        expect(layout.overflowY).toBe('auto');
     });
 
     test('has all expected base map layers', async ({ page }) => {

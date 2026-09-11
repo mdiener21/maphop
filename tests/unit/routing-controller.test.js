@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createRoutingController } from "../../src/js/map/routing-controller.js";
 
 function makePanel() {
-    document.body.innerHTML = `<section hidden><button></button><button></button><button></button><button></button><select><option value="foot-walking">Walking</option><option value="foot-hiking">Hiking</option></select><button></button><button></button><div></div><p hidden></p><p hidden></p><p></p></section>`;
+    document.body.innerHTML = `<section hidden><button></button><button></button><button></button><button></button><select><option value="foot-hiking">Hiking</option><option value="cycling-mountain">Mountain bike</option><option value="foot-walking">Walking</option></select><button></button><button></button><div></div><p hidden></p><p hidden></p><p></p></section>`;
     const [closeButton, currentLocationButton, clearButton, addStopButton, startField, destinationField] = document.querySelectorAll("button");
     const [distance, duration, status] = document.querySelectorAll("p");
     return { root: document.querySelector("section"), closeButton, currentLocationButton, clearButton, addStopButton, profile: document.querySelector("select"), startField, destinationField, pointsList: document.querySelector("div"), distance, duration, status };
@@ -56,8 +56,13 @@ describe("routing controller", () => {
         panel.destinationField.click();
         map.handlers.click({ lngLat: { lng: 3, lat: 4 } });
         await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
-        expect(fetch.mock.calls[0][0]).toBe("https://api.openrouteservice.org/v2/directions/foot-walking/geojson");
+        expect(fetch.mock.calls[0][0]).toBe("https://api.openrouteservice.org/v2/directions/foot-hiking/geojson");
         expect(map.source.setData).toHaveBeenCalled();
+
+        panel.profile.value = "cycling-mountain";
+        panel.profile.dispatchEvent(new Event("change"));
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+        expect(fetch.mock.calls[1][0]).toBe("https://api.openrouteservice.org/v2/directions/cycling-mountain/geojson");
     });
 
     it("restores the route overlay when the map style resets while a route request is pending", async () => {
