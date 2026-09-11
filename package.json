@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:production": "playwright test --config playwright.production.config.js",
     "test:coverage": "vitest run --coverage"
   },
   "repository": {

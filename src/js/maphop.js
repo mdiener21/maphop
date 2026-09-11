@@ -1,4 +1,5 @@
 import * as maplibregl from "maplibre-gl";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { Protocol as PmtilesProtocol } from "pmtiles";
 import { version } from "../../package.json";
 import { createFavoriteCloudStore } from "./favorite-cloud-store.js";
@@ -27,6 +28,9 @@ const dom = getMapPageDom();
 if (dom.appVersionElement) {
     dom.appVersionElement.textContent = `version ${version}`;
 }
+
+// Bundle the worker and its imports; MapLibre's default sibling URL is absent in dist.
+maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
 const pmtilesProtocol = new PmtilesProtocol();
 maplibregl.addProtocol("pmtiles", pmtilesProtocol.tile);
