@@ -193,6 +193,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
     }
 
     function syncRoute() {
+        ensureOverlay();
         map.getSource(routeSourceId)?.setData(route);
     }
 

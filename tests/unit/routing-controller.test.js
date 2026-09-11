@@ -14,6 +14,24 @@ function makeMap() {
     return { on: vi.fn((name, handler) => { handlers[name] = handler; }), getSource: vi.fn(() => source), getLayer: vi.fn(() => null), addSource: vi.fn(), addLayer: vi.fn(), handlers, source };
 }
 
+function makeStyleResetMap() {
+    const handlers = {};
+    const sources = new Map();
+    const layers = new Map();
+    return {
+        on: vi.fn((name, handler) => { handlers[name] = handler; }),
+        getSource: vi.fn((id) => sources.get(id)),
+        getLayer: vi.fn((id) => layers.get(id)),
+        addSource: vi.fn((id, definition) => {
+            sources.set(id, { definition, setData: vi.fn() });
+        }),
+        addLayer: vi.fn((definition) => { layers.set(definition.id, definition); }),
+        handlers,
+        resetStyle: () => { sources.clear(); layers.clear(); },
+        source: (id) => sources.get(id)
+    };
+}
+
 describe("routing controller", () => {
     beforeEach(() => { document.body.replaceChildren(); vi.restoreAllMocks(); });
 
@@ -40,6 +58,32 @@ describe("routing controller", () => {
         await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
         expect(fetch.mock.calls[0][0]).toContain("foot-walking/geojson");
         expect(map.source.setData).toHaveBeenCalled();
+    });
+
+    it("restores the route overlay when the map style resets while a route request is pending", async () => {
+        const map = makeStyleResetMap();
+        const panel = makePanel();
+        const marker = { setLngLat: vi.fn().mockReturnThis(), addTo: vi.fn().mockReturnThis(), on: vi.fn(), remove: vi.fn() };
+        let resolveRoute;
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => new Promise((resolve) => { resolveRoute = resolve; })
+        });
+        const controller = createRoutingController({ map, maplibregl: { Marker: vi.fn(function Marker() { return marker; }) }, apiKey: "test", panel, onStatus: vi.fn() });
+
+        controller.open();
+        panel.startField.click();
+        map.handlers.click({ lngLat: { lng: 1, lat: 2 } });
+        panel.destinationField.click();
+        map.handlers.click({ lngLat: { lng: 3, lat: 4 } });
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+
+        map.resetStyle();
+        resolveRoute({ features: [{ geometry: { type: "LineString", coordinates: [[1, 2], [3, 4]] }, properties: { summary: { distance: 1200, duration: 540 } } }] });
+
+        await vi.waitFor(() => expect(map.source("walking-route").setData).toHaveBeenCalled());
+        expect(map.source("walking-route").definition.data.features).toHaveLength(1);
+        expect(map.addLayer).toHaveBeenCalledTimes(4);
     });
 
     it("collapses the menu for selection, reopens it, and adds stops in route order", async () => {
