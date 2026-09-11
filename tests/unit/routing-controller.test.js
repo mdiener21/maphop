@@ -56,7 +56,7 @@ describe("routing controller", () => {
         panel.destinationField.click();
         map.handlers.click({ lngLat: { lng: 3, lat: 4 } });
         await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
-        expect(fetch.mock.calls[0][0]).toContain("foot-walking/geojson");
+        expect(fetch.mock.calls[0][0]).toBe("https://api.openrouteservice.org/v2/directions/foot-walking/geojson");
         expect(map.source.setData).toHaveBeenCalled();
     });
 

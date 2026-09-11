@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
             "import.meta.env.VITE_THUNDERFOREST_API_KEY": JSON.stringify(env.VITE_THUNDERFOREST_API_KEY ?? ""),
             "import.meta.env.VITE_OPENROUTESERVICE_API_KEY": JSON.stringify(env.VITE_OPENROUTESERVICE_API_KEY ?? "")
         },
+        optimizeDeps: {
+            exclude: ["maplibre-gl"]
+        },
         build: {
             outDir: "../dist",
             emptyOutDir: true,
