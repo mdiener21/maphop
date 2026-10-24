@@ -39,6 +39,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
     let active = false;
     let selection = null;
     let draggedPointIndex = null;
+    let summaryPopup = null;
 
     function coordinates() {
         return start && destination ? [start, ...stops, destination] : [];
@@ -216,9 +217,68 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
         });
     }
 
+    function clearSummaryPopup() {
+        summaryPopup?.remove();
+        summaryPopup = null;
+    }
+
+    function popupCoordinate(feature) {
+        if (destination) return destination;
+        const coordinates = feature.geometry?.coordinates;
+        if (coordinates?.length) return coordinates[Math.floor(coordinates.length / 2)];
+        return null;
+    }
+
+    function createSummaryPopupContent(feature) {
+        const summary = feature.properties?.summary ?? {};
+        const container = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = "Route summary";
+        container.append(title);
+
+        const distance = document.createElement("span");
+        distance.textContent = `Distance: ${formatDistance(summary.distance ?? 0)}`;
+        container.append(distance);
+
+        const duration = document.createElement("span");
+        duration.textContent = `Time: ${formatDuration(summary.duration ?? 0)}`;
+        container.append(duration);
+
+        const from = document.createElement("span");
+        from.textContent = `From: ${start ? formatLocation(start) : "Not set"}`;
+        container.append(from);
+
+        const to = document.createElement("span");
+        to.textContent = `To: ${destination ? formatLocation(destination) : "Not set"}`;
+        container.append(to);
+
+        const waypoints = document.createElement("span");
+        waypoints.textContent = `Stops: ${stops.length}`;
+        container.append(waypoints);
+
+        return container;
+    }
+
+    function showSummaryPopup(feature) {
+        const coordinate = popupCoordinate(feature);
+        if (!coordinate) return;
+        clearSummaryPopup();
+        summaryPopup = new maplibregl.Popup({
+            closeButton: true,
+            closeOnClick: false,
+            anchor: "bottom",
+            offset: [0, -20],
+            className: "routing-summary-popup"
+        })
+            .setLngLat(coordinate)
+            .setDOMContent(createSummaryPopupContent(feature))
+            .addTo(map);
+    }
+
     function resetRoute() {
         requestController?.abort();
         requestController = null;
+        clearSummaryPopup();
         route = emptyRoute();
         syncRoute();
         syncFields();
@@ -232,6 +292,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
         }
         requestController?.abort();
         requestController = new AbortController();
+        clearSummaryPopup();
         panel.status.textContent = "Finding route…";
         try {
             const response = await fetch(`https://api.openrouteservice.org/v2/directions/${panel.profile.value}/geojson`, {
@@ -249,8 +310,12 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
             panel.duration.textContent = `Time: ${formatDuration(feature.properties.summary.duration)}`;
             panel.status.textContent = "";
             syncFields();
+            showSummaryPopup(feature);
         } catch (error) {
-            if (error.name !== "AbortError") panel.status.textContent = "Could not calculate a route. Please try again.";
+            if (error.name !== "AbortError") {
+                clearSummaryPopup();
+                panel.status.textContent = "Could not calculate a route. Please try again.";
+            }
         }
     }
 

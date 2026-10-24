@@ -368,6 +368,14 @@ Optional Settings-page feature for authenticated users. Before auth, IndexedDB i
 - If PocketBase create/delete fails after auth, the local cache is left unchanged and a user-facing status explains the remote operation failed.
 - Logout clears the PocketBase auth store; it does not delete local favorites or the local device ID.
 
+### 4.13 Route Planning Summary Popup
+
+When a route is successfully calculated, the map shows a dismissible popup anchored at the destination point.
+
+- Popup content includes: total distance, estimated duration, start coordinate label, destination coordinate label, and stop count.
+- Recalculating a route removes the previous popup and replaces it with an updated summary.
+- Clearing a route or encountering a route-calculation failure removes the popup.
+
 ---
 
 ## User Flows
@@ -457,6 +465,14 @@ Menu → Favorites → "Show on Map" toggle ON → pins appear on map
 ### Flow 11: Share Favorite
 **Sender:** Favorites → share button → native share sheet OR URL copied to clipboard.
 **Receiver:** open shared link → map centers on coordinates → pin marker + banner appear → "Add to Favorites" → naming modal → save; OR ✕ → dismiss.
+
+### Flow 12: Route Summary Popup
+```
+Routing panel → select start + destination (+ optional stops) → route request succeeds
+  → map popup appears at destination with distance, duration, from/to labels, and stop count
+  → tap close on popup OR clear route
+  → popup disappears
+```
 
 ---
 
