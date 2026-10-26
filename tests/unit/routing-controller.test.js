@@ -41,6 +41,22 @@ function makeStyleResetMap() {
     };
 }
 
+function makeMaplibreMocks() {
+    const marker = { setLngLat: vi.fn().mockReturnThis(), addTo: vi.fn().mockReturnThis(), on: vi.fn(), remove: vi.fn() };
+    const popups = [];
+    const Popup = vi.fn(function Popup() {
+        const popup = {
+            setLngLat: vi.fn().mockReturnThis(),
+            setDOMContent: vi.fn().mockReturnThis(),
+            addTo: vi.fn().mockReturnThis(),
+            remove: vi.fn()
+        };
+        popups.push(popup);
+        return popup;
+    });
+    return { marker, popups, maplibregl: { Marker: vi.fn(function Marker() { return marker; }), Popup } };
+}
+
 describe("routing controller", () => {
     beforeEach(() => { document.body.replaceChildren(); vi.restoreAllMocks(); });
 
@@ -55,10 +71,10 @@ describe("routing controller", () => {
 
     it("sets start then destination from map clicks and requests the selected profile", async () => {
         const map = makeMap();
-        const marker = { setLngLat: vi.fn().mockReturnThis(), addTo: vi.fn().mockReturnThis(), on: vi.fn(), remove: vi.fn() };
+        const { maplibregl } = makeMaplibreMocks();
         global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ features: [{ geometry: { type: "LineString", coordinates: [[1, 2], [3, 4]] }, properties: { summary: { distance: 1200, duration: 540 } } }] }) });
         const panel = makePanel();
-        const controller = createRoutingController({ map, maplibregl: { Marker: vi.fn(function Marker() { return marker; }) }, apiKey: "test", panel, onStatus: vi.fn() });
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, onStatus: vi.fn() });
         controller.open();
         panel.startField.click();
         map.handlers.click({ lngLat: { lng: 1, lat: 2 } });
@@ -80,13 +96,13 @@ describe("routing controller", () => {
     it("restores the route overlay when the map style resets while a route request is pending", async () => {
         const map = makeStyleResetMap();
         const panel = makePanel();
-        const marker = { setLngLat: vi.fn().mockReturnThis(), addTo: vi.fn().mockReturnThis(), on: vi.fn(), remove: vi.fn() };
+        const { maplibregl } = makeMaplibreMocks();
         let resolveRoute;
         global.fetch = vi.fn().mockResolvedValue({
             ok: true,
             json: () => new Promise((resolve) => { resolveRoute = resolve; })
         });
-        const controller = createRoutingController({ map, maplibregl: { Marker: vi.fn(function Marker() { return marker; }) }, apiKey: "test", panel, onStatus: vi.fn() });
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, onStatus: vi.fn() });
 
         controller.open();
         panel.startField.click();
@@ -106,11 +122,11 @@ describe("routing controller", () => {
     it("collapses the menu for selection, reopens it, and adds stops in route order", async () => {
         const map = makeMap();
         const panel = makePanel();
-        const marker = { setLngLat: vi.fn().mockReturnThis(), addTo: vi.fn().mockReturnThis(), on: vi.fn(), remove: vi.fn() };
+        const { maplibregl } = makeMaplibreMocks();
         const onMenuClose = vi.fn();
         const onMenuOpen = vi.fn();
         global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ features: [{ geometry: { type: "LineString", coordinates: [] }, properties: { summary: { distance: 100, duration: 60 } } }] }) });
-        const controller = createRoutingController({ map, maplibregl: { Marker: vi.fn(function Marker() { return marker; }) }, apiKey: "test", panel, onMenuClose, onMenuOpen, onStatus: vi.fn() });
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, onMenuClose, onMenuOpen, onStatus: vi.fn() });
 
         controller.open();
         panel.startField.click();
@@ -146,5 +162,36 @@ describe("routing controller", () => {
         panel.pointsList.querySelector(".routing-delete-point").click();
         await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(4));
         expect(JSON.parse(fetch.mock.calls[3][1].body).coordinates).toEqual([[1, 2], [5, 6]]);
+    });
+
+    it("shows a route summary popup and clears it on recalculation and clear", async () => {
+        const map = makeMap();
+        const panel = makePanel();
+        const { popups, maplibregl } = makeMaplibreMocks();
+        global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ features: [{ geometry: { type: "LineString", coordinates: [[1, 2], [2, 3], [3, 4]] }, properties: { summary: { distance: 1200, duration: 540 } } }] }) });
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, onStatus: vi.fn() });
+
+        controller.open();
+        panel.startField.click();
+        map.handlers.click({ lngLat: { lng: 1, lat: 2 } });
+        panel.destinationField.click();
+        map.handlers.click({ lngLat: { lng: 3, lat: 4 } });
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+        await vi.waitFor(() => expect(maplibregl.Popup).toHaveBeenCalledOnce());
+        expect(popups[0].setLngLat).toHaveBeenCalledWith([3, 4]);
+        expect(popups[0].setDOMContent.mock.calls[0][0].textContent).toContain("Route summary");
+        expect(popups[0].setDOMContent.mock.calls[0][0].textContent).toContain("Distance: 1.2 km");
+        expect(popups[0].setDOMContent.mock.calls[0][0].textContent).toContain("Time: 9 min");
+        expect(popups[0].setDOMContent.mock.calls[0][0].textContent).toContain("Stops: 0");
+
+        panel.addStopButton.click();
+        map.handlers.click({ lngLat: { lng: 5, lat: 6 } });
+        expect(popups[0].remove).toHaveBeenCalledTimes(1);
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+        await vi.waitFor(() => expect(maplibregl.Popup).toHaveBeenCalledTimes(2));
+        expect(popups[1].setDOMContent.mock.calls[0][0].textContent).toContain("Stops: 1");
+
+        panel.clearButton.click();
+        expect(popups[1].remove).toHaveBeenCalledTimes(1);
     });
 });
