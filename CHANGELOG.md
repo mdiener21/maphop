@@ -4,6 +4,16 @@
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.13] - 2026-10-26
+
+### Added
+
 - Routing now shows a dismissible map popup after successful route generation with distance, duration, start/destination coordinates, and stop count.
 
 ### Changed
