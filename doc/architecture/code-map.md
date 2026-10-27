@@ -25,8 +25,8 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | PWA install prompt and iOS install hint behavior | `src/js/map/install-prompt-controller.js` |
 | Routing panel, ORS requests, route overlay/pins, route profile metadata (label, icon, timing method), the chosen route duration (DIN 33466, mountain-bike riding time, or ORS "est.") for panel and sheet, route bounds and Fit route / auto-fit per new route | `src/js/map/routing-controller.js` |
 | Route Summary Sheet UI (`#routeSummary`): render, show/hide/× dismiss, expand/collapse by tap/swipe (phones only), point list, Fit route / Edit / Clear button wiring, and live height publishing (`--route-summary-height`) | `src/js/map/route-summary-sheet.js` |
-| DIN 33466 hiking-time calculator (pure `estimateHikingDuration`) used by the Route Summary Sheet | `src/js/map/hiking-time.js` |
-| Mountain-bike riding-time calculator (pure `estimateRidingDuration`) used by the Route Summary Sheet | `src/js/map/riding-time.js` |
+| DIN 33466 hiking-time calculator (pure `estimateHikingDuration`) used by `routing-controller.js` (duration choice for the sheet and panel) | `src/js/map/hiking-time.js` |
+| Mountain-bike riding-time calculator (pure `estimateRidingDuration`) used by `routing-controller.js` (duration choice for the sheet and panel) | `src/js/map/riding-time.js` |
 | Map-page DOM element lookup | `src/js/map/dom.js` |
 | Status toast behavior | `src/js/map/status-toast.js` |
 | Service worker registration gate | `src/js/map/service-worker.js` |

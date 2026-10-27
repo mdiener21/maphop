@@ -287,6 +287,46 @@ describe("routing controller", () => {
         expect(summary.elevation.textContent).toBe("↑ 900 m / ↓ 900 m");
     });
 
+    it("shows the same riding time for mountain-bike routes that differ only in descent", async () => {
+        const map = makeMap();
+        const panel = makePanel();
+        const summary = makeSummary();
+        const { maplibregl } = makeMaplibreMocks();
+        global.fetch = vi.fn()
+            .mockResolvedValueOnce(routeResponse(8000, 3600, { ascent: 900, descent: 0 }))
+            .mockResolvedValueOnce(routeResponse(8000, 3600, { ascent: 900, descent: 1500 }));
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
+        panel.profile.value = "cycling-mountain";
+
+        controller.open();
+        selectStartAndDestination(panel, map);
+        await vi.waitFor(() => expect(summary.elevation.textContent).toBe("↑ 900 m / ↓ 0 m"));
+        const withoutDescent = summary.duration.textContent;
+
+        panel.profile.dispatchEvent(new Event("change"));
+        await vi.waitFor(() => expect(summary.elevation.textContent).toBe("↑ 900 m / ↓ 1500 m"));
+        expect(withoutDescent).toBe("Riding time (est.): 1 h 39 min");
+        expect(summary.duration.textContent).toBe(withoutDescent);
+    });
+
+    it("shows the riding time and hides the ascent/descent row for mountain-bike routes with an ascent but no descent", async () => {
+        const map = makeMap();
+        const panel = makePanel();
+        const summary = makeSummary();
+        const { maplibregl } = makeMaplibreMocks();
+        global.fetch = vi.fn().mockResolvedValue(routeResponse(8000, 3600, { ascent: 900 }));
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
+        panel.profile.value = "cycling-mountain";
+
+        controller.open();
+        selectStartAndDestination(panel, map);
+
+        await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+        expect(summary.duration.textContent).toBe("Riding time (est.): 1 h 39 min");
+        expect(panel.duration.textContent).toBe("Riding time (est.): 1 h 39 min");
+        expect(summary.elevation.hidden).toBe(true);
+    });
+
     it("falls back to the ORS time labelled est. for mountain-bike routes without an ascent", async () => {
         const map = makeMap();
         const panel = makePanel();

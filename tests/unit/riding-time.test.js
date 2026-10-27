@@ -17,11 +17,12 @@ describe("estimateRidingDuration (mountain bike)", () => {
         expect(estimateRidingDuration({ distanceMeters: 0, ascentMeters: 0 })).toBe(0);
     });
 
-    it("adds no time for descent", () => {
-        const withoutDescent = estimateRidingDuration({ distanceMeters: 12000, ascentMeters: 300 });
-        expect(estimateRidingDuration({ distanceMeters: 12000, ascentMeters: 300, descentMeters: 900 })).toBe(withoutDescent);
-    });
+    // The calculator takes no descent at all; "descent adds no time" is covered through the
+    // routing controller in routing-controller.test.js, where ORS descent is actually available.
 
+    // Fitted to one recorded mountain-bike ride analysed in 200 m segments (16.5 km, 412 m up,
+    // 88 min including slow sections); against that ride's strict moving time (82 min) the
+    // estimate is about 10% conservative.
     it("reproduces the calibration ride: 16.48 km with 412 m up takes about 88 min", () => {
         const minutes = estimateRidingDuration({ distanceMeters: 16480, ascentMeters: 412 }) / 60;
         expect(Math.abs(minutes - 88)).toBeLessThanOrEqual(2);

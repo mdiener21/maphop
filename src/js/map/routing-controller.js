@@ -9,7 +9,7 @@ const fitMarginPx = 40;
 
 // Slope-aware on-device timings (ORS ignores slope). `estimate` returns seconds, or null
 // when ORS returned no usable elevation, in which case the ORS estimate is shown instead.
-const hikingTiming = {
+const din33466Timing = {
     label: "Hiking time (DIN 33466)",
     estimate: ({ distance, ascent, descent }) => (hasElevation({ ascent, descent })
         ? estimateHikingDuration({ distanceMeters: distance, ascentMeters: ascent, descentMeters: descent })
@@ -25,9 +25,9 @@ const orsTiming = { label: null, estimate: () => null };
 
 // ORS profiles offered in the Routing panel, with the timing used for each.
 const routeProfiles = {
-    "foot-hiking": { label: "Hiking", icon: "foot", timing: hikingTiming },
+    "foot-hiking": { label: "Hiking", icon: "foot", timing: din33466Timing },
     "cycling-mountain": { label: "Mountain bike", icon: "bike", timing: ridingTiming },
-    "foot-walking": { label: "Walking", icon: "foot", timing: hikingTiming }
+    "foot-walking": { label: "Walking", icon: "foot", timing: din33466Timing }
 };
 
 function emptyRoute() {
