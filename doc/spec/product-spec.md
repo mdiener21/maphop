@@ -386,8 +386,8 @@ When a route is successfully calculated, the route details appear in a summary s
 - Total ascent and descent (↑ m / ↓ m), from the ORS `elevation: true` summary. This row is hidden if the API doesn't return it.
 - **Duration source:** ORS ignores elevation when it estimates time for foot profiles (see upstream GIScience/openrouteservice#1121), so a flat 3 km route and a steep 3 km climb get the same time.
   - **Hiking and Walking:** Maphop calculates the time on the device using **DIN 33466** (the German/Austrian alpine-club standard): flat time = distance ÷ 4 km/h, climb/descent time = ascent ÷ 300 m/h + descent ÷ 500 m/h, total = the larger of the two + half of the smaller. This is the primary duration shown, labelled "Hiking time (DIN 33466)". If ORS returns no ascent/descent, it falls back to the ORS duration.
-  - **Mountain bike:** Maphop shows the ORS duration labelled "est.", because there's no equally standard slope formula for bikes.
-  - Only one duration is shown at a time, never both. The Routing panel's time line shows the same duration and label as the sheet ("Hiking time (DIN 33466): …" or "Time: … est.").
+  - **Mountain bike:** Maphop calculates a slope-aware riding time on the device: time = distance ÷ 18 km/h + ascent ÷ 750 m/h. Descent adds no time. The two constants were fitted to one recorded mountain-bike ride analysed in 200 m segments (16.5 km, 412 m up, 88 min including slow sections); against that ride's strict moving time (82 min) the estimate is about 10% conservative. It is labelled "Riding time (est.)" and is moving time only, without breaks. If ORS returns no ascent, it falls back to the ORS duration labelled "est.".
+  - Only one duration is shown at a time, never both. The Routing panel's time line shows the same duration and label as the sheet ("Hiking time (DIN 33466): …", "Riding time (est.): …" or "Time: … est.").
 - Point list: label plus rounded coordinates, colour-coded like the route pins (green start, blue stops, red destination).
 
 **Actions:**
@@ -495,7 +495,7 @@ Menu → Favorites → "Show on Map" toggle ON → pins appear on map
 ### Flow 12: Route Summary Sheet
 ```
 Routing panel → select start + destination (+ optional stops) → route request succeeds
-  → app computes DIN 33466 time for foot profiles from ascent/descent (bike: ORS time)
+  → app computes DIN 33466 time for foot profiles and the riding-time formula for bike, from ascent/descent (fallback: ORS time)
   → map fits to route; summary sheet slides up (mobile: collapsed row with distance + time;
     desktop: bottom-left card)
   → mobile: tap/swipe up → expanded (ascent/descent, point list, Fit / Edit / Clear)

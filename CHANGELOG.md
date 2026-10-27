@@ -6,6 +6,8 @@
 
 ### Changed
 
+- Mountain-bike riding time (#28): Mountain-bike routes previously showed the ORS time, which ignores climbing. They now show a slope-aware riding time calculated on the device, labelled "Riding time (est.)": distance ÷ 18 km/h + ascent ÷ 750 m/h, with descent adding no time. It is moving time only, without breaks. The constants were fitted to one recorded mountain-bike ride analysed in 200 m segments (16.5 km, 412 m up, 88 min including slow sections); against that ride's strict moving time (82 min) the estimate is about 10% conservative. The calculator lives in `src/js/map/riding-time.js`. If ORS returns no ascent, the sheet and the Routing panel fall back to the ORS time labelled "est.". Hiking and Walking keep DIN 33466.
+
 ### Fixed
 
 ### Removed
