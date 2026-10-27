@@ -37,7 +37,10 @@ export function getMapPageDom() {
             closeButton: document.getElementById("routeSummaryCloseButton"),
             toggle: document.getElementById("routeSummaryToggle"),
             header: document.getElementById("routeSummaryHeader"),
-            points: document.getElementById("routeSummaryPoints")
+            points: document.getElementById("routeSummaryPoints"),
+            fitButton: document.getElementById("routeSummaryFitButton"),
+            editButton: document.getElementById("routeSummaryEditButton"),
+            clearButton: document.getElementById("routeSummaryClearButton")
         },
         favoriteSelectionOverlay: document.getElementById("favoriteSelectionOverlay"),
         cancelFavoriteSelectionButton: document.getElementById("cancelFavoriteSelectionButton"),

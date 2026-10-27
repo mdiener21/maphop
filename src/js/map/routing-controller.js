@@ -4,6 +4,7 @@ const routeSourceId = "walking-route";
 const routeOutlineLayerId = "walking-route-outline";
 const routeLineLayerId = "walking-route-line";
 const swipeThresholdPx = 30;
+const fitMarginPx = 40;
 
 function emptyRoute() {
     return { type: "FeatureCollection", features: [] };
@@ -30,6 +31,20 @@ function routeDurationLabel(profile, properties) {
         return `Hiking time (DIN 33466): ${formatDuration(seconds)}`;
     }
     return `${formatDuration(duration)} est.`;
+}
+
+function lineCoordinates(geometry) {
+    if (geometry?.type === "LineString") return geometry.coordinates;
+    if (geometry?.type === "MultiLineString") return geometry.coordinates.flat();
+    return [];
+}
+
+function routeBounds(feature) {
+    const coordinates = lineCoordinates(feature?.geometry);
+    if (!coordinates.length) return null;
+    const longitudes = coordinates.map(([longitude]) => longitude);
+    const latitudes = coordinates.map(([, latitude]) => latitude);
+    return [[Math.min(...longitudes), Math.min(...latitudes)], [Math.max(...longitudes), Math.max(...latitudes)]];
 }
 
 function formatLocation([longitude, latitude]) {
@@ -314,6 +329,23 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
         swipeStartY = null;
     }
 
+    // Publishes the sheet's live height as --route-summary-height (CSS lifts the
+    // bottom map controls by it) and returns it for the Fit route padding.
+    function measureSummaryHeight() {
+        if (!summary) return 0;
+        const height = summary.root.offsetHeight;
+        summary.root.parentElement?.style.setProperty("--route-summary-height", `${height}px`);
+        return height;
+    }
+
+    function fitRoute() {
+        const bounds = routeBounds(route.features[0]);
+        if (!bounds) return;
+        map.fitBounds(bounds, {
+            padding: { top: fitMarginPx, right: fitMarginPx, left: fitMarginPx, bottom: measureSummaryHeight() + fitMarginPx }
+        });
+    }
+
     function dismissSummary() {
         summaryDismissed = true;
         hideSummary();
@@ -357,6 +389,8 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
             summaryDismissed = false;
             setSummaryExpanded(false);
             showSummary();
+            // Only a freshly calculated route fits; style-reload re-renders go through syncRoute().
+            fitRoute();
         } catch (error) {
             if (error.name !== "AbortError") {
                 hideSummary();
@@ -454,12 +488,13 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
     panel.clearButton.addEventListener("click", clear);
     panel.closeButton.addEventListener("click", close);
     summary?.closeButton.addEventListener("click", dismissSummary);
+    summary?.fitButton?.addEventListener("click", fitRoute);
+    summary?.editButton?.addEventListener("click", () => onMenuOpen?.());
+    summary?.clearButton?.addEventListener("click", clear);
     // Bottom-docked map controls lift by the sheet's live height (CSS var), so
     // they stay clear of it whether it is collapsed or expanded.
     if (summary?.root.parentElement && typeof ResizeObserver === "function") {
-        new ResizeObserver(() => {
-            summary.root.parentElement.style.setProperty("--route-summary-height", `${summary.root.offsetHeight}px`);
-        }).observe(summary.root);
+        new ResizeObserver(measureSummaryHeight).observe(summary.root);
     }
     [summary?.toggle, summary?.header].filter(Boolean).forEach((element) => {
         element.addEventListener("click", toggleSummary);

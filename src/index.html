@@ -335,7 +335,11 @@
                 <p class="route-summary-elevation" id="routeSummaryElevation" hidden></p>
             </div>
             <ol class="route-summary-points" id="routeSummaryPoints" aria-label="Route points"></ol>
-            <div class="route-summary-actions" id="routeSummaryActions" hidden></div>
+            <div class="route-summary-actions" id="routeSummaryActions" role="group" aria-label="Route actions">
+                <button class="route-summary-action" id="routeSummaryFitButton" type="button" aria-label="Fit route to screen">Fit route</button>
+                <button class="route-summary-action" id="routeSummaryEditButton" type="button" aria-label="Edit route in the Routing menu">Edit</button>
+                <button class="route-summary-action route-summary-action-clear" id="routeSummaryClearButton" type="button" aria-label="Clear route">Clear</button>
+            </div>
         </section>
 
         <div class="shared-location-banner" id="sharedLocationBanner" hidden role="status" aria-live="polite">

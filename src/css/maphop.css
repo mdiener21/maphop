@@ -1254,6 +1254,39 @@ body::before {
     font-variant-numeric: tabular-nums;
 }
 
+.route-summary-actions {
+    display: flex;
+    gap: 8px;
+    padding: 0 8px 14px 0;
+}
+
+.route-summary-action {
+    flex: 1;
+    min-height: 44px;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    background: rgba(237, 244, 239, 0.06);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.route-summary-action:hover,
+.route-summary-action:focus-visible {
+    background: rgba(237, 244, 239, 0.14);
+}
+
+.route-summary-action:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.route-summary-action-clear {
+    color: var(--route-pin-destination);
+}
+
 /* Lift bottom-docked map controls above the sheet while it is visible.
    --route-summary-height is measured by the routing controller. */
 #app:has(.route-summary:not([hidden])) :is(.recenter-button, .compass-button, .status-toast, .attribution-widget, .location-control-button) {

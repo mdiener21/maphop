@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createRoutingController } from "../../src/js/map/routing-controller.js";
 
@@ -27,6 +29,19 @@ function makeExpandableSummary() {
     const points = document.createElement("ol");
     summary.root.append(toggle, header, points);
     return { ...summary, toggle, header, points };
+}
+
+function makeActionSummary() {
+    const summary = makeSummary();
+    const app = document.createElement("div");
+    document.body.append(app);
+    app.append(summary.root);
+    const actions = document.createElement("div");
+    actions.innerHTML = `<button type="button">Fit route</button><button type="button">Edit</button><button type="button">Clear</button>`;
+    summary.root.append(actions);
+    const [fitButton, editButton, clearButton] = actions.querySelectorAll("button");
+    Object.defineProperty(summary.root, "offsetHeight", { configurable: true, get: () => 120 });
+    return { ...summary, fitButton, editButton, clearButton };
 }
 
 function pointer(type, clientY) {
@@ -62,6 +77,7 @@ function makeMap() {
         getLayer: vi.fn(() => null),
         addSource: vi.fn((id, definition) => { sources.set(id, { ...source, definition }); }),
         addLayer: vi.fn(),
+        fitBounds: vi.fn(),
         handlers,
         source
     };
@@ -79,6 +95,7 @@ function makeStyleResetMap() {
             sources.set(id, { definition, setData: vi.fn() });
         }),
         addLayer: vi.fn((definition) => { layers.set(definition.id, definition); }),
+        fitBounds: vi.fn(),
         handlers,
         resetStyle: () => { sources.clear(); layers.clear(); },
         source: (id) => sources.get(id)
@@ -482,6 +499,91 @@ describe("routing controller", () => {
                 ["start", "Start2.00000, 1.00000"],
                 ["destination", "Destination6.00000, 5.00000"]
             ]);
+        });
+    });
+
+    describe("summary actions", () => {
+        async function showRoute({ onMenuOpen = vi.fn(), map = makeMap() } = {}) {
+            const panel = makePanel();
+            const summary = makeActionSummary();
+            const { maplibregl, marker } = makeMaplibreMocks();
+            global.fetch = vi.fn().mockImplementation(async () => routeResponse(1200, 540));
+            const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onMenuOpen, onStatus: vi.fn() });
+            controller.open();
+            selectStartAndDestination(panel, map);
+            await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+            return { map, panel, summary, controller, marker, onMenuOpen };
+        }
+
+        it("Fit route fits the map to the route bounds with the sheet height as bottom padding", async () => {
+            const { map, summary } = await showRoute();
+            map.fitBounds.mockClear();
+
+            summary.fitButton.click();
+
+            expect(map.fitBounds).toHaveBeenCalledTimes(1);
+            const [bounds, options] = map.fitBounds.mock.calls[0];
+            expect(bounds).toEqual([[1, 2], [3, 4]]);
+            expect(options.padding.bottom).toBeGreaterThan(120);
+            expect(options.padding.top).toBeLessThan(options.padding.bottom);
+            expect(options.padding.left).toBe(options.padding.top);
+            expect(options.padding.right).toBe(options.padding.top);
+        });
+
+        it("auto-fits once per newly calculated route, not when the route re-renders after a style change", async () => {
+            const map = makeStyleResetMap();
+            const { controller, marker } = await showRoute({ map });
+            expect(map.fitBounds).toHaveBeenCalledTimes(1);
+            expect(map.fitBounds.mock.calls[0][1].padding.bottom).toBeGreaterThan(120);
+
+            map.resetStyle();
+            controller.ensureAfterStyleLoad();
+            controller.open();
+            expect(map.fitBounds).toHaveBeenCalledTimes(1);
+
+            // Dragging a pin recalculates the route, which fits again.
+            const dragEnd = marker.on.mock.calls.find(([name]) => name === "dragend")[1];
+            marker.getLngLat = () => ({ lng: 5, lat: 6 });
+            dragEnd();
+            await vi.waitFor(() => expect(map.fitBounds).toHaveBeenCalledTimes(2));
+        });
+
+        it("Edit opens the menu on the Routing section and keeps the route", async () => {
+            const { summary, onMenuOpen, map } = await showRoute();
+            onMenuOpen.mockClear();
+            map.source.setData.mockClear();
+
+            summary.editButton.click();
+
+            expect(onMenuOpen).toHaveBeenCalledTimes(1);
+            expect(summary.root.hidden).toBe(false);
+            expect(map.source.setData).not.toHaveBeenCalled();
+        });
+
+        it("Clear removes the route, the pins and the sheet", async () => {
+            const { map, summary, panel, marker } = await showRoute();
+            marker.remove.mockClear();
+
+            summary.clearButton.click();
+
+            expect(summary.root.hidden).toBe(true);
+            expect(marker.remove).toHaveBeenCalled();
+            expect(map.source.setData).toHaveBeenLastCalledWith({ type: "FeatureCollection", features: [] });
+            expect(panel.startField.textContent).toBe("Tap to select location on map");
+        });
+
+        it("renders Fit route, Edit and Clear as focusable buttons with accessible names on the map page", () => {
+            document.documentElement.innerHTML = readFileSync(resolve(process.cwd(), "src/index.html"), "utf8");
+            const actions = document.getElementById("routeSummaryActions");
+            const buttons = [...actions.querySelectorAll("button")];
+
+            expect(actions.hidden).toBe(false);
+            expect(buttons.map((button) => button.id)).toEqual(["routeSummaryFitButton", "routeSummaryEditButton", "routeSummaryClearButton"]);
+            buttons.forEach((button) => {
+                expect(button.type).toBe("button");
+                expect(button.tabIndex).toBe(0);
+                expect(button.getAttribute("aria-label")).toContain(button.textContent.trim());
+            });
         });
     });
 });
