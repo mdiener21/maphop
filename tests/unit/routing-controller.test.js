@@ -266,11 +266,12 @@ describe("routing controller", () => {
         expect(summary.duration.textContent).toBe("Hiking time (DIN 33466): 4 h 2 min");
     });
 
-    it("shows the ORS time labelled est. for mountain-bike routes, with ascent/descent", async () => {
+    it("shows the slope-aware riding time for mountain-bike routes, with ascent/descent", async () => {
         const map = makeMap();
         const panel = makePanel();
         const summary = makeSummary();
         const { maplibregl } = makeMaplibreMocks();
+        // 8 km / 18 km/h + 900 m / 750 m/h = 1 h 39 min; ORS would say 1 h. Descent adds nothing.
         global.fetch = vi.fn().mockResolvedValue(routeResponse(8000, 3600, { ascent: 900, descent: 900 }));
         const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
         panel.profile.value = "cycling-mountain";
@@ -279,11 +280,29 @@ describe("routing controller", () => {
         selectStartAndDestination(panel, map);
 
         await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
-        expect(summary.duration.textContent).toBe("1 h 0 min est.");
-        expect(summary.duration.textContent).not.toContain("DIN");
-        expect(panel.duration.textContent).toBe("Time: 1 h 0 min est.");
+        expect(summary.duration.textContent).toBe("Riding time (est.): 1 h 39 min");
+        expect(panel.duration.textContent).toBe("Riding time (est.): 1 h 39 min");
+        expect(summary.duration.textContent).not.toContain("1 h 0 min");
         expect(summary.root.dataset.profileIcon).toBe("bike");
         expect(summary.elevation.textContent).toBe("↑ 900 m / ↓ 900 m");
+    });
+
+    it("falls back to the ORS time labelled est. for mountain-bike routes without an ascent", async () => {
+        const map = makeMap();
+        const panel = makePanel();
+        const summary = makeSummary();
+        const { maplibregl } = makeMaplibreMocks();
+        global.fetch = vi.fn().mockResolvedValue(routeResponse(8000, 3600));
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
+        panel.profile.value = "cycling-mountain";
+
+        controller.open();
+        selectStartAndDestination(panel, map);
+
+        await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+        expect(summary.duration.textContent).toBe("1 h 0 min est.");
+        expect(panel.duration.textContent).toBe("Time: 1 h 0 min est.");
+        expect(summary.elevation.hidden).toBe(true);
     });
 
     it("falls back to the ORS time and hides the ascent/descent row when elevation is missing", async () => {

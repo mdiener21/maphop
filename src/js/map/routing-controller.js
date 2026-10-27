@@ -1,4 +1,5 @@
 import { estimateHikingDuration } from "./hiking-time.js";
+import { estimateRidingDuration } from "./riding-time.js";
 import { createRouteSummarySheet } from "./route-summary-sheet.js";
 
 const routeSourceId = "walking-route";
@@ -6,12 +7,27 @@ const routeOutlineLayerId = "walking-route-outline";
 const routeLineLayerId = "walking-route-line";
 const fitMarginPx = 40;
 
-// ORS profiles offered in the Routing panel. `timing: "din33466"` profiles get the
-// slope-aware DIN 33466 time (ORS ignores slope for walking); "ors" keeps the ORS estimate.
+// Slope-aware on-device timings (ORS ignores slope). `estimate` returns seconds, or null
+// when ORS returned no usable elevation, in which case the ORS estimate is shown instead.
+const hikingTiming = {
+    label: "Hiking time (DIN 33466)",
+    estimate: ({ distance, ascent, descent }) => (hasElevation({ ascent, descent })
+        ? estimateHikingDuration({ distanceMeters: distance, ascentMeters: ascent, descentMeters: descent })
+        : null)
+};
+const ridingTiming = {
+    label: "Riding time (est.)",
+    estimate: ({ distance, ascent }) => (Number.isFinite(ascent)
+        ? estimateRidingDuration({ distanceMeters: distance, ascentMeters: ascent })
+        : null)
+};
+const orsTiming = { label: null, estimate: () => null };
+
+// ORS profiles offered in the Routing panel, with the timing used for each.
 const routeProfiles = {
-    "foot-hiking": { label: "Hiking", icon: "foot", timing: "din33466" },
-    "cycling-mountain": { label: "Mountain bike", icon: "bike", timing: "ors" },
-    "foot-walking": { label: "Walking", icon: "foot", timing: "din33466" }
+    "foot-hiking": { label: "Hiking", icon: "foot", timing: hikingTiming },
+    "cycling-mountain": { label: "Mountain bike", icon: "bike", timing: ridingTiming },
+    "foot-walking": { label: "Walking", icon: "foot", timing: hikingTiming }
 };
 
 function emptyRoute() {
@@ -32,16 +48,17 @@ function hasElevation({ ascent, descent }) {
 }
 
 function profileInfo(profile) {
-    return routeProfiles[profile] ?? { label: profile, icon: "foot", timing: "ors" };
+    return routeProfiles[profile] ?? { label: profile, icon: "foot", timing: orsTiming };
 }
 
 // The one duration shown for a route, in both the sheet and the Routing panel.
 // `label` is null for the ORS estimate, which reads as "… est." on its own.
 function routeDuration(profile, properties) {
     const { distance = 0, duration = 0 } = properties.summary ?? {};
-    if (profileInfo(profile).timing === "din33466" && hasElevation(properties)) {
-        const seconds = estimateHikingDuration({ distanceMeters: distance, ascentMeters: properties.ascent, descentMeters: properties.descent });
-        return { label: "Hiking time (DIN 33466)", value: formatDuration(seconds) };
+    const { timing } = profileInfo(profile);
+    const seconds = timing.estimate({ distance, ascent: properties.ascent, descent: properties.descent });
+    if (seconds !== null) {
+        return { label: timing.label, value: formatDuration(seconds) };
     }
     return { label: null, value: `${formatDuration(duration)} est.` };
 }
