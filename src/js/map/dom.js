@@ -28,6 +28,20 @@ export function getMapPageDom() {
             duration: document.getElementById("routeDuration"),
             status: document.getElementById("routeStatus")
         },
+        routeSummary: {
+            root: document.getElementById("routeSummary"),
+            profile: document.getElementById("routeSummaryProfile"),
+            distance: document.getElementById("routeSummaryDistance"),
+            duration: document.getElementById("routeSummaryDuration"),
+            elevation: document.getElementById("routeSummaryElevation"),
+            closeButton: document.getElementById("routeSummaryCloseButton"),
+            toggle: document.getElementById("routeSummaryToggle"),
+            header: document.getElementById("routeSummaryHeader"),
+            points: document.getElementById("routeSummaryPoints"),
+            fitButton: document.getElementById("routeSummaryFitButton"),
+            editButton: document.getElementById("routeSummaryEditButton"),
+            clearButton: document.getElementById("routeSummaryClearButton")
+        },
         favoriteSelectionOverlay: document.getElementById("favoriteSelectionOverlay"),
         cancelFavoriteSelectionButton: document.getElementById("cancelFavoriteSelectionButton"),
         confirmFavoriteSelectionButton: document.getElementById("confirmFavoriteSelectionButton"),

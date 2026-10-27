@@ -23,6 +23,9 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Favorites rendering, share/save/delete flows, or map navigation from favorites | `src/js/map/favorites-panel.js` |
 | Shared location URL format and deep-link parsing | `src/js/map/share-location.js` |
 | PWA install prompt and iOS install hint behavior | `src/js/map/install-prompt-controller.js` |
+| Routing panel, ORS requests, route overlay/pins, route profile metadata (label, icon, timing method), the chosen route duration (DIN 33466 or ORS "est.") for panel and sheet, route bounds and Fit route / auto-fit per new route | `src/js/map/routing-controller.js` |
+| Route Summary Sheet UI (`#routeSummary`): render, show/hide/× dismiss, expand/collapse by tap/swipe (phones only), point list, Fit route / Edit / Clear button wiring, and live height publishing (`--route-summary-height`) | `src/js/map/route-summary-sheet.js` |
+| DIN 33466 hiking-time calculator (pure `estimateHikingDuration`) used by the Route Summary Sheet | `src/js/map/hiking-time.js` |
 | Map-page DOM element lookup | `src/js/map/dom.js` |
 | Status toast behavior | `src/js/map/status-toast.js` |
 | Service worker registration gate | `src/js/map/service-worker.js` |
@@ -47,6 +50,8 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Base layer controller | `tests/unit/base-layer-controller.test.js` |
 | Install prompt controller | `tests/unit/install-prompt-controller.test.js` |
 | Menu controller | `tests/unit/menu-controller.test.js` |
+| Routing controller and Route Summary Sheet (behaviour through `createRoutingController`) | `tests/unit/routing-controller.test.js` |
+| Route Summary Sheet module (`destroy()`) | `tests/unit/route-summary-sheet.test.js` |
 | Terrain controller | `tests/unit/terrain-controller.test.js` |
 | Shared location URL helpers | `tests/unit/share-location.test.js` |
 | Favorites store | `tests/unit/favorite-store.test.js` |

@@ -1,6 +1,18 @@
+import { estimateHikingDuration } from "./hiking-time.js";
+import { createRouteSummarySheet } from "./route-summary-sheet.js";
+
 const routeSourceId = "walking-route";
 const routeOutlineLayerId = "walking-route-outline";
 const routeLineLayerId = "walking-route-line";
+const fitMarginPx = 40;
+
+// ORS profiles offered in the Routing panel. `timing: "din33466"` profiles get the
+// slope-aware DIN 33466 time (ORS ignores slope for walking); "ors" keeps the ORS estimate.
+const routeProfiles = {
+    "foot-hiking": { label: "Hiking", icon: "foot", timing: "din33466" },
+    "cycling-mountain": { label: "Mountain bike", icon: "bike", timing: "ors" },
+    "foot-walking": { label: "Walking", icon: "foot", timing: "din33466" }
+};
 
 function emptyRoute() {
     return { type: "FeatureCollection", features: [] };
@@ -13,6 +25,46 @@ function formatDistance(meters) {
 function formatDuration(seconds) {
     const minutes = Math.round(seconds / 60);
     return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+}
+
+function hasElevation({ ascent, descent }) {
+    return Number.isFinite(ascent) && Number.isFinite(descent);
+}
+
+function profileInfo(profile) {
+    return routeProfiles[profile] ?? { label: profile, icon: "foot", timing: "ors" };
+}
+
+// The one duration shown for a route, in both the sheet and the Routing panel.
+// `label` is null for the ORS estimate, which reads as "… est." on its own.
+function routeDuration(profile, properties) {
+    const { distance = 0, duration = 0 } = properties.summary ?? {};
+    if (profileInfo(profile).timing === "din33466" && hasElevation(properties)) {
+        const seconds = estimateHikingDuration({ distanceMeters: distance, ascentMeters: properties.ascent, descentMeters: properties.descent });
+        return { label: "Hiking time (DIN 33466)", value: formatDuration(seconds) };
+    }
+    return { label: null, value: `${formatDuration(duration)} est.` };
+}
+
+function lineCoordinates(geometry) {
+    if (geometry?.type === "LineString") return geometry.coordinates;
+    if (geometry?.type === "MultiLineString") return geometry.coordinates.flat();
+    return [];
+}
+
+function routeBounds(feature) {
+    const coordinates = lineCoordinates(feature?.geometry);
+    if (!coordinates.length) return null;
+    // A loop, not Math.min(...array): spreading very long routes overflows the call stack.
+    let [west, south] = coordinates[0];
+    let [east, north] = coordinates[0];
+    for (const [longitude, latitude] of coordinates) {
+        if (longitude < west) west = longitude;
+        if (longitude > east) east = longitude;
+        if (latitude < south) south = latitude;
+        if (latitude > north) north = latitude;
+    }
+    return [[west, south], [east, north]];
 }
 
 function formatLocation([longitude, latitude]) {
@@ -29,7 +81,7 @@ function createPin(number, type) {
     return pin;
 }
 
-export function createRoutingController({ map, maplibregl, apiKey, panel, onMenuClose, onMenuOpen, onStatus }) {
+export function createRoutingController({ map, maplibregl, apiKey, panel, summary, onMenuClose, onMenuOpen, onStatus }) {
     let start = null;
     let destination = null;
     let stops = [];
@@ -39,7 +91,10 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
     let active = false;
     let selection = null;
     let draggedPointIndex = null;
-    let summaryPopup = null;
+    // Without sheet elements (e.g. other pages/tests) the sheet is a no-op.
+    const sheet = summary
+        ? createRouteSummarySheet({ summary, onFit: fitRoute, onEdit: () => onMenuOpen?.(), onClear: clear })
+        : { bottomInset: () => 0, destroy() {}, hide() {}, show() {} };
 
     function coordinates() {
         return start && destination ? [start, ...stops, destination] : [];
@@ -217,68 +272,38 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
         });
     }
 
-    function clearSummaryPopup() {
-        summaryPopup?.remove();
-        summaryPopup = null;
+    function summaryView(feature) {
+        const properties = feature.properties ?? {};
+        const profile = profileInfo(panel.profile.value);
+        const { label, value } = routeDuration(panel.profile.value, properties);
+        const points = markerPoints();
+        return {
+            profileLabel: profile.label,
+            icon: profile.icon,
+            distance: formatDistance(properties.summary?.distance ?? 0),
+            duration: label ? `${label}: ${value}` : value,
+            elevation: hasElevation(properties) ? `↑ ${Math.round(properties.ascent)} m / ↓ ${Math.round(properties.descent)} m` : null,
+            points: points.map(({ coordinate, type, index }) => ({ type, label: pointLabel(index, points.length), location: formatLocation(coordinate) }))
+        };
     }
 
-    function popupCoordinate(feature) {
-        if (destination) return destination;
-        const coordinates = feature.geometry?.coordinates;
-        if (coordinates?.length) return coordinates[Math.floor(coordinates.length / 2)];
-        return null;
+    function showSummary(options) {
+        const feature = route.features[0];
+        if (feature) sheet.show(summaryView(feature), options);
     }
 
-    function createSummaryPopupContent(feature) {
-        const summary = feature.properties?.summary ?? {};
-        const container = document.createElement("div");
-        const title = document.createElement("strong");
-        title.textContent = "Route summary";
-        container.append(title);
-
-        const distance = document.createElement("span");
-        distance.textContent = `Distance: ${formatDistance(summary.distance ?? 0)}`;
-        container.append(distance);
-
-        const duration = document.createElement("span");
-        duration.textContent = `Time: ${formatDuration(summary.duration ?? 0)}`;
-        container.append(duration);
-
-        const from = document.createElement("span");
-        from.textContent = `From: ${start ? formatLocation(start) : "Not set"}`;
-        container.append(from);
-
-        const to = document.createElement("span");
-        to.textContent = `To: ${destination ? formatLocation(destination) : "Not set"}`;
-        container.append(to);
-
-        const waypoints = document.createElement("span");
-        waypoints.textContent = `Stops: ${stops.length}`;
-        container.append(waypoints);
-
-        return container;
-    }
-
-    function showSummaryPopup(feature) {
-        const coordinate = popupCoordinate(feature);
-        if (!coordinate) return;
-        clearSummaryPopup();
-        summaryPopup = new maplibregl.Popup({
-            closeButton: true,
-            closeOnClick: false,
-            anchor: "bottom",
-            offset: [0, -20],
-            className: "routing-summary-popup"
-        })
-            .setLngLat(coordinate)
-            .setDOMContent(createSummaryPopupContent(feature))
-            .addTo(map);
+    function fitRoute() {
+        const bounds = routeBounds(route.features[0]);
+        if (!bounds) return;
+        map.fitBounds(bounds, {
+            padding: { top: fitMarginPx, right: fitMarginPx, left: fitMarginPx, bottom: sheet.bottomInset() + fitMarginPx }
+        });
     }
 
     function resetRoute() {
         requestController?.abort();
         requestController = null;
-        clearSummaryPopup();
+        sheet.hide();
         route = emptyRoute();
         syncRoute();
         syncFields();
@@ -292,13 +317,13 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
         }
         requestController?.abort();
         requestController = new AbortController();
-        clearSummaryPopup();
+        sheet.hide();
         panel.status.textContent = "Finding route…";
         try {
             const response = await fetch(`https://api.openrouteservice.org/v2/directions/${panel.profile.value}/geojson`, {
                 method: "POST",
                 headers: { Authorization: apiKey, "Content-Type": "application/json" },
-                body: JSON.stringify({ coordinates: coordinates() }),
+                body: JSON.stringify({ coordinates: coordinates(), elevation: true }),
                 signal: requestController.signal
             });
             if (!response.ok) throw new Error("route request failed");
@@ -306,14 +331,17 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
             if (!feature?.geometry || !active) throw new Error("route unavailable");
             route = { type: "FeatureCollection", features: [feature] };
             syncRoute();
+            const { label, value } = routeDuration(panel.profile.value, feature.properties);
             panel.distance.textContent = `Distance: ${formatDistance(feature.properties.summary.distance)}`;
-            panel.duration.textContent = `Time: ${formatDuration(feature.properties.summary.duration)}`;
+            panel.duration.textContent = `${label ?? "Time"}: ${value}`;
             panel.status.textContent = "";
             syncFields();
-            showSummaryPopup(feature);
+            showSummary({ collapsed: true });
+            // Only a freshly calculated route fits; style-reload re-renders go through syncRoute().
+            fitRoute();
         } catch (error) {
             if (error.name !== "AbortError") {
-                clearSummaryPopup();
+                sheet.hide();
                 panel.status.textContent = "Could not calculate a route. Please try again.";
             }
         }
@@ -355,6 +383,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
         panel.root.hidden = false;
         syncRoute();
         syncFields();
+        showSummary();
         if (!navigator.onLine) {
             panel.status.textContent = "Routing needs an internet connection.";
             onStatus("Routing needs an internet connection.");
@@ -405,6 +434,5 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, onMenu
     panel.currentLocationButton.addEventListener("click", useCurrentLocation);
     panel.clearButton.addEventListener("click", clear);
     panel.closeButton.addEventListener("click", close);
-
     return { clear, close, ensureAfterStyleLoad: syncRoute, open };
 }
