@@ -368,13 +368,38 @@ Optional Settings-page feature for authenticated users. Before auth, IndexedDB i
 - If PocketBase create/delete fails after auth, the local cache is left unchanged and a user-facing status explains the remote operation failed.
 - Logout clears the PocketBase auth store; it does not delete local favorites or the local device ID.
 
-### 4.13 Route Planning Summary Popup
+### 4.13 Route Summary Sheet
 
-When a route is successfully calculated, the map shows a dismissible popup anchored at the destination point.
+When a route is successfully calculated, the route details appear in a summary sheet. It replaces the earlier destination-anchored map popup, which was often off-screen or hidden behind the menu on phones.
 
-- Popup content includes: total distance, estimated duration, start coordinate label, destination coordinate label, and stop count.
-- Recalculating a route removes the previous popup and replaces it with an updated summary.
-- Clearing a route or encountering a route-calculation failure removes the popup.
+**Layout (responsive, one DOM component `#routeSummary` in `index.html`):**
+- **Mobile (< 700px):** bottom sheet, full width, docked above the safe-area inset, with a drag handle. It has two states:
+  - *Collapsed (default):* one row about 64px tall showing profile icon, **distance**, **duration**, and an expand chevron. The map stays almost fully visible.
+  - *Expanded:* adds ascent/descent, the ordered point list (Start / Stop n / Destination), and the actions. Expand or collapse it by tapping the handle or the row, or by swiping up or down.
+- **Desktop (≥ 700px):** a floating card at the bottom-left, 320px wide, always expanded, so it never overlaps the control menu on the right.
+- Uses the app's dark glass panel styling (`--panel`, `--panel-border`, `--accent`), not the default white MapLibre popup.
+
+**Content:**
+- Route type label (Hiking / Mountain bike / Walking).
+- Distance and duration, using the existing formatters, shown as the primary figures.
+- Total ascent and descent (↑ m / ↓ m), from the ORS `elevation: true` summary. This row is hidden if the API doesn't return it.
+- **Duration source:** ORS ignores elevation when it estimates time for foot profiles (see upstream GIScience/openrouteservice#1121), so a flat 3 km route and a steep 3 km climb get the same time.
+  - **Hiking and Walking:** Maphop calculates the time on the device using **DIN 33466** (the German/Austrian alpine-club standard): flat time = distance ÷ 4 km/h, climb/descent time = ascent ÷ 300 m/h + descent ÷ 500 m/h, total = the larger of the two + half of the smaller. This is the primary duration shown, labelled "Hiking time (DIN 33466)". If ORS returns no ascent/descent, it falls back to the ORS duration.
+  - **Mountain bike:** Maphop shows the ORS duration labelled "est.", because there's no equally standard slope formula for bikes.
+  - Only one duration is shown at a time, never both.
+- Point list: label plus rounded coordinates, colour-coded like the route pins (green start, blue stops, red destination).
+
+**Actions:**
+- **Fit route:** zooms the map to the route bounds, with padding that accounts for the sheet's height.
+- **Edit:** opens the control menu on the Routing section.
+- **Clear:** clears the route, using the same behaviour as the panel's "Clear route" button.
+- **Close (×):** hides the sheet but keeps the route on the map. Re-opening the Routing panel or recalculating the route shows the sheet again.
+
+**Lifecycle:**
+- Shown after each successful route calculation, and replaced on recalculation (profile change, point drag, reorder, add or remove stop).
+- Hidden while a new route request is in flight, on route failure, on Clear, and when the routing panel is closed.
+- After the first successful route, the map fits to the route bounds automatically, once per new route.
+- Accessibility: `role="region"` with `aria-label="Route summary"`, `aria-live="polite"` on the primary figures, keyboard-operable buttons, and transitions disabled when `prefers-reduced-motion` is set.
 
 ---
 
@@ -466,12 +491,14 @@ Menu → Favorites → "Show on Map" toggle ON → pins appear on map
 **Sender:** Favorites → share button → native share sheet OR URL copied to clipboard.
 **Receiver:** open shared link → map centers on coordinates → pin marker + banner appear → "Add to Favorites" → naming modal → save; OR ✕ → dismiss.
 
-### Flow 12: Route Summary Popup
+### Flow 12: Route Summary Sheet
 ```
 Routing panel → select start + destination (+ optional stops) → route request succeeds
-  → map popup appears at destination with distance, duration, from/to labels, and stop count
-  → tap close on popup OR clear route
-  → popup disappears
+  → app computes DIN 33466 time for foot profiles from ascent/descent (bike: ORS time)
+  → map fits to route; summary sheet slides up (mobile: collapsed row with distance + time;
+    desktop: bottom-left card)
+  → mobile: tap/swipe up → expanded (ascent/descent, point list, Fit / Edit / Clear)
+  → Edit → menu opens on Routing | Clear → route + sheet removed | × → sheet hidden, route stays
 ```
 
 ---

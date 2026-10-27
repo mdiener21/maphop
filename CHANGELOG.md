@@ -6,6 +6,8 @@
 
 ### Changed
 
+- Refreshed `CLAUDE.md`: corrected module locations (`baseMapConfigs`, `setBaseLayer()`), removed references to deleted files, added test commands, issue-tracker workflow, and API-key/privacy notes.
+
 ### Fixed
 
 ### Removed
