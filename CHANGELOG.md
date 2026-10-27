@@ -4,11 +4,17 @@
 
 ### Added
 
+- Route Summary Sheet (#23): after a route is calculated, its type, distance and ORS time ("est.") appear in a dark glass sheet. On phones it is a 64px bar docked at the bottom; on desktop it is a 320px card at the bottom-left. It hides while a route is loading, on failure, on Clear and when the Routing panel closes. The × hides it but keeps the route, and it comes back on the next route or when the Routing panel reopens.
+
 ### Changed
+
+- Bottom-docked map controls (re-center, compass, location, attribution, status toast) move up while the Route Summary Sheet is visible.
 
 ### Fixed
 
 ### Removed
+
+- The white MapLibre route summary popup at the destination, and its popup CSS.
 
 ## [2.0.15] - 2026-10-27
 

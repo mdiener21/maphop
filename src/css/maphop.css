@@ -268,15 +268,6 @@ body::before {
     display: block;
 }
 
-.routing-summary-popup .maplibregl-popup-content {
-    color: #000;
-}
-
-.routing-summary-popup strong,
-.routing-summary-popup span {
-    display: block;
-}
-
 .control-menu {
     position: absolute;
     top: calc(var(--safe-top) + 14px);
@@ -1075,4 +1066,114 @@ body::before {
 
 .recenter-button:active {
     opacity: 0.75;
+}
+
+/* ── Route summary sheet ────────────────────────────────────── */
+.route-summary {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 4;
+    padding: 0 8px 0 16px;
+    padding-bottom: var(--safe-bottom);
+    border-top: 1px solid var(--panel-border);
+    background: var(--panel);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    box-shadow: var(--shadow);
+    color: var(--text);
+    animation: route-summary-in 180ms ease-out;
+}
+
+.route-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 64px;
+}
+
+.route-summary-figures {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 12px;
+    min-width: 0;
+}
+
+.route-summary-profile {
+    flex-basis: 100%;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.route-summary-distance {
+    color: var(--accent);
+    font-size: 1.15rem;
+}
+
+.route-summary-duration {
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.route-summary-close {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.route-summary-close:hover,
+.route-summary-close:focus-visible {
+    background: rgba(237, 244, 239, 0.08);
+    color: var(--text);
+}
+
+/* Lift bottom-docked map controls above the phone bar while it is visible. */
+#app:has(.route-summary:not([hidden])) :is(.recenter-button, .compass-button, .status-toast, .attribution-widget, .location-control-button) {
+    margin-bottom: 64px;
+}
+
+@keyframes route-summary-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (min-width: 700px) {
+    .route-summary {
+        right: auto;
+        bottom: calc(var(--safe-bottom) + 16px);
+        left: 16px;
+        /* 320px, but never under the 400px control menu on the right. */
+        width: min(320px, calc(100vw - 448px));
+        padding: 0 8px 0 16px;
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+    }
+
+    /* The card sits where the re-center/compass buttons live; lift them above it. */
+    #app:has(.route-summary:not([hidden])) :is(.status-toast, .attribution-widget, .location-control-button) {
+        margin-bottom: 0;
+    }
+
+    #app:has(.route-summary:not([hidden])) :is(.recenter-button, .compass-button) {
+        margin-bottom: 82px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .route-summary {
+        animation: none;
+    }
 }

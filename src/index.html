@@ -321,6 +321,19 @@
             Re-center
         </button>
 
+        <section class="route-summary" id="routeSummary" role="region" aria-label="Route summary" hidden>
+            <div class="route-summary-header">
+                <div class="route-summary-figures" aria-live="polite">
+                    <span class="route-summary-profile" id="routeSummaryProfile"></span>
+                    <strong class="route-summary-distance" id="routeSummaryDistance"></strong>
+                    <span class="route-summary-duration" id="routeSummaryDuration"></span>
+                </div>
+                <button class="route-summary-close" id="routeSummaryCloseButton" type="button" aria-label="Hide route summary">&#x2715;</button>
+            </div>
+            <div class="route-summary-details" id="routeSummaryDetails" hidden></div>
+            <div class="route-summary-actions" id="routeSummaryActions" hidden></div>
+        </section>
+
         <div class="shared-location-banner" id="sharedLocationBanner" hidden role="status" aria-live="polite">
             <svg class="shared-location-pin-icon" width="18" height="24" viewBox="0 0 24 32" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20S24 21 24 12C24 5.373 18.627 0 12 0z" fill="#6ff2bd" stroke="#0d1b20" stroke-width="1.5"/>

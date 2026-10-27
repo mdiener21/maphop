@@ -23,6 +23,7 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Favorites rendering, share/save/delete flows, or map navigation from favorites | `src/js/map/favorites-panel.js` |
 | Shared location URL format and deep-link parsing | `src/js/map/share-location.js` |
 | PWA install prompt and iOS install hint behavior | `src/js/map/install-prompt-controller.js` |
+| Routing panel, ORS requests, route overlay/pins, and Route Summary Sheet (`#routeSummary`) show/hide/dismiss | `src/js/map/routing-controller.js` |
 | Map-page DOM element lookup | `src/js/map/dom.js` |
 | Status toast behavior | `src/js/map/status-toast.js` |
 | Service worker registration gate | `src/js/map/service-worker.js` |
@@ -47,6 +48,7 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Base layer controller | `tests/unit/base-layer-controller.test.js` |
 | Install prompt controller | `tests/unit/install-prompt-controller.test.js` |
 | Menu controller | `tests/unit/menu-controller.test.js` |
+| Routing controller and Route Summary Sheet | `tests/unit/routing-controller.test.js` |
 | Terrain controller | `tests/unit/terrain-controller.test.js` |
 | Shared location URL helpers | `tests/unit/share-location.test.js` |
 | Favorites store | `tests/unit/favorite-store.test.js` |

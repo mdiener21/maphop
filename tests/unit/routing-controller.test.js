@@ -8,6 +8,26 @@ function makePanel() {
     return { root: document.querySelector("section"), closeButton, currentLocationButton, clearButton, addStopButton, profile: document.querySelector("select"), startField, destinationField, pointsList: document.querySelector("div"), distance, duration, status };
 }
 
+function makeSummary() {
+    const root = document.createElement("section");
+    root.hidden = true;
+    root.innerHTML = `<span></span><strong></strong><span></span><button type="button">×</button>`;
+    document.body.append(root);
+    const [profile, duration] = root.querySelectorAll("span");
+    return { root, profile, distance: root.querySelector("strong"), duration, closeButton: root.querySelector("button") };
+}
+
+function routeResponse(distance, duration) {
+    return { ok: true, json: async () => ({ features: [{ geometry: { type: "LineString", coordinates: [[1, 2], [3, 4]] }, properties: { summary: { distance, duration } } }] }) };
+}
+
+function selectStartAndDestination(panel, map) {
+    panel.startField.click();
+    map.handlers.click({ lngLat: { lng: 1, lat: 2 } });
+    panel.destinationField.click();
+    map.handlers.click({ lngLat: { lng: 3, lat: 4 } });
+}
+
 function makeMap() {
     const handlers = {};
     const source = { setData: vi.fn() };
@@ -43,18 +63,7 @@ function makeStyleResetMap() {
 
 function makeMaplibreMocks() {
     const marker = { setLngLat: vi.fn().mockReturnThis(), addTo: vi.fn().mockReturnThis(), on: vi.fn(), remove: vi.fn() };
-    const popups = [];
-    const Popup = vi.fn(function Popup() {
-        const popup = {
-            setLngLat: vi.fn().mockReturnThis(),
-            setDOMContent: vi.fn().mockReturnThis(),
-            addTo: vi.fn().mockReturnThis(),
-            remove: vi.fn()
-        };
-        popups.push(popup);
-        return popup;
-    });
-    return { marker, popups, maplibregl: { Marker: vi.fn(function Marker() { return marker; }), Popup } };
+    return { marker, maplibregl: { Marker: vi.fn(function Marker() { return marker; }) } };
 }
 
 describe("routing controller", () => {
@@ -164,34 +173,106 @@ describe("routing controller", () => {
         expect(JSON.parse(fetch.mock.calls[3][1].body).coordinates).toEqual([[1, 2], [5, 6]]);
     });
 
-    it("shows a route summary popup and clears it on recalculation and clear", async () => {
+    it("shows the route summary sheet with route type, distance and estimated time after a successful route", async () => {
         const map = makeMap();
         const panel = makePanel();
-        const { popups, maplibregl } = makeMaplibreMocks();
-        global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ features: [{ geometry: { type: "LineString", coordinates: [[1, 2], [2, 3], [3, 4]] }, properties: { summary: { distance: 1200, duration: 540 } } }] }) });
-        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, onStatus: vi.fn() });
+        const summary = makeSummary();
+        const { maplibregl } = makeMaplibreMocks();
+        global.fetch = vi.fn().mockResolvedValue(routeResponse(1200, 540));
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
 
         controller.open();
-        panel.startField.click();
-        map.handlers.click({ lngLat: { lng: 1, lat: 2 } });
-        panel.destinationField.click();
-        map.handlers.click({ lngLat: { lng: 3, lat: 4 } });
-        await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
-        await vi.waitFor(() => expect(maplibregl.Popup).toHaveBeenCalledOnce());
-        expect(popups[0].setLngLat).toHaveBeenCalledWith([3, 4]);
-        expect(popups[0].setDOMContent.mock.calls[0][0].textContent).toContain("Route summary");
-        expect(popups[0].setDOMContent.mock.calls[0][0].textContent).toContain("Distance: 1.2 km");
-        expect(popups[0].setDOMContent.mock.calls[0][0].textContent).toContain("Time: 9 min");
-        expect(popups[0].setDOMContent.mock.calls[0][0].textContent).toContain("Stops: 0");
+        expect(summary.root.hidden).toBe(true);
+        selectStartAndDestination(panel, map);
 
-        panel.addStopButton.click();
-        map.handlers.click({ lngLat: { lng: 5, lat: 6 } });
-        expect(popups[0].remove).toHaveBeenCalledTimes(1);
+        await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+        expect(summary.profile.textContent).toBe("Hiking");
+        expect(summary.distance.textContent).toBe("1.2 km");
+        expect(summary.duration.textContent).toBe("9 min est.");
+        expect(panel.distance.textContent).toBe("Distance: 1.2 km");
+        expect(panel.duration.textContent).toBe("Time: 9 min");
+        expect(panel.distance.hidden).toBe(false);
+    });
+
+    it("hides the sheet while a recalculation is in flight, updates it on success and hides it on failure", async () => {
+        const map = makeMap();
+        const panel = makePanel();
+        const summary = makeSummary();
+        const { maplibregl } = makeMaplibreMocks();
+        let resolveSecond;
+        global.fetch = vi.fn()
+            .mockResolvedValueOnce(routeResponse(1200, 540))
+            .mockReturnValueOnce(new Promise((resolve) => { resolveSecond = resolve; }))
+            .mockResolvedValueOnce({ ok: false, json: async () => ({}) });
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
+
+        controller.open();
+        selectStartAndDestination(panel, map);
+        await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+
+        panel.profile.value = "cycling-mountain";
+        panel.profile.dispatchEvent(new Event("change"));
+        expect(summary.root.hidden).toBe(true);
+        resolveSecond(routeResponse(5000, 3600));
+        await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+        expect(summary.profile.textContent).toBe("Mountain bike");
+        expect(summary.distance.textContent).toBe("5.0 km");
+        expect(summary.duration.textContent).toBe("1 h 0 min est.");
+
+        panel.profile.value = "foot-walking";
+        panel.profile.dispatchEvent(new Event("change"));
+        await vi.waitFor(() => expect(panel.status.textContent).toBe("Could not calculate a route. Please try again."));
+        expect(summary.root.hidden).toBe(true);
+    });
+
+    it("dismisses the sheet with × but keeps the route, and shows it again on reopen or the next route", async () => {
+        const map = makeMap();
+        const panel = makePanel();
+        const summary = makeSummary();
+        const { maplibregl } = makeMaplibreMocks();
+        global.fetch = vi.fn().mockImplementation(async () => routeResponse(1200, 540));
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
+
+        controller.open();
+        selectStartAndDestination(panel, map);
+        await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+        const setDataCalls = map.source.setData.mock.calls.length;
+
+        summary.closeButton.click();
+        expect(summary.root.hidden).toBe(true);
+        expect(map.source.setData).toHaveBeenCalledTimes(setDataCalls);
+        expect(panel.distance.hidden).toBe(false);
+
+        controller.open();
+        expect(summary.root.hidden).toBe(false);
+
+        summary.closeButton.click();
+        panel.profile.value = "foot-walking";
+        panel.profile.dispatchEvent(new Event("change"));
         await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-        await vi.waitFor(() => expect(maplibregl.Popup).toHaveBeenCalledTimes(2));
-        expect(popups[1].setDOMContent.mock.calls[0][0].textContent).toContain("Stops: 1");
+        await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+        expect(summary.profile.textContent).toBe("Walking");
+    });
 
+    it("hides the sheet on Clear and when the Routing panel is closed", async () => {
+        const map = makeMap();
+        const panel = makePanel();
+        const summary = makeSummary();
+        const { maplibregl } = makeMaplibreMocks();
+        global.fetch = vi.fn().mockImplementation(async () => routeResponse(1200, 540));
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
+
+        controller.open();
+        selectStartAndDestination(panel, map);
+        await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
         panel.clearButton.click();
-        expect(popups[1].remove).toHaveBeenCalledTimes(1);
+        expect(summary.root.hidden).toBe(true);
+        controller.open();
+        expect(summary.root.hidden).toBe(true);
+
+        selectStartAndDestination(panel, map);
+        await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+        panel.closeButton.click();
+        expect(summary.root.hidden).toBe(true);
     });
 });
