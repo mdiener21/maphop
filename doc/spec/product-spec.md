@@ -376,21 +376,22 @@ When a route is successfully calculated, the route details appear in a summary s
 - **Mobile (< 700px):** bottom sheet, full width, docked above the safe-area inset, with a drag handle. It has two states:
   - *Collapsed (default):* one row about 64px tall showing profile icon, **distance**, **duration**, and an expand chevron. The map stays almost fully visible.
   - *Expanded:* adds ascent/descent, the ordered point list (Start / Stop n / Destination), and the actions. Expand or collapse it by tapping the handle or the row, or by swiping up or down.
-- **Desktop (≥ 700px):** a floating card at the bottom-left, 320px wide, always expanded, so it never overlaps the control menu on the right.
+- **Desktop (≥ 700px):** a floating card at the bottom-left, 320px wide, always expanded, so it never overlaps the control menu on the right. On narrower desktop windows it shrinks to `min(320px, 100vw − 448px)` so it still clears the open 400px menu. The toggle and chevron are hidden, and clicking the header does not change the expand state.
+- **Map controls:** while the sheet is visible, the bottom-docked map controls (re-center, compass, location, attribution), the status toast and the PWA install banner move up by the sheet's live height (`--route-summary-height`), following it as it expands or collapses. On desktop only the re-center and compass buttons, which share the bottom-left corner with the card, are lifted.
 - Uses the app's dark glass panel styling (`--panel`, `--panel-border`, `--accent`), not the default white MapLibre popup.
 
 **Content:**
-- Route type label (Hiking / Mountain bike / Walking).
+- Route type label (Hiking / Mountain bike / Walking) and a small profile icon (walker or bike) in the collapsed row.
 - Distance and duration, using the existing formatters, shown as the primary figures.
 - Total ascent and descent (↑ m / ↓ m), from the ORS `elevation: true` summary. This row is hidden if the API doesn't return it.
 - **Duration source:** ORS ignores elevation when it estimates time for foot profiles (see upstream GIScience/openrouteservice#1121), so a flat 3 km route and a steep 3 km climb get the same time.
   - **Hiking and Walking:** Maphop calculates the time on the device using **DIN 33466** (the German/Austrian alpine-club standard): flat time = distance ÷ 4 km/h, climb/descent time = ascent ÷ 300 m/h + descent ÷ 500 m/h, total = the larger of the two + half of the smaller. This is the primary duration shown, labelled "Hiking time (DIN 33466)". If ORS returns no ascent/descent, it falls back to the ORS duration.
   - **Mountain bike:** Maphop shows the ORS duration labelled "est.", because there's no equally standard slope formula for bikes.
-  - Only one duration is shown at a time, never both.
+  - Only one duration is shown at a time, never both. The Routing panel's time line shows the same duration and label as the sheet ("Hiking time (DIN 33466): …" or "Time: … est.").
 - Point list: label plus rounded coordinates, colour-coded like the route pins (green start, blue stops, red destination).
 
 **Actions:**
-- **Fit route:** zooms the map to the route bounds, with padding that accounts for the sheet's height.
+- **Fit route:** zooms the map to the route bounds with a 40px margin. On phones the bottom padding adds the sheet's current height; on desktop the card is at the side, so only the margin is used.
 - **Edit:** opens the control menu on the Routing section.
 - **Clear:** clears the route, using the same behaviour as the panel's "Clear route" button.
 - **Close (×):** hides the sheet but keeps the route on the map. Re-opening the Routing panel or recalculating the route shows the sheet again.

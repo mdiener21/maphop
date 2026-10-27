@@ -11,37 +11,27 @@ function makePanel() {
 }
 
 function makeSummary() {
-    const root = document.createElement("section");
-    root.hidden = true;
-    root.innerHTML = `<span></span><strong></strong><span></span><button type="button">×</button><p hidden></p>`;
-    document.body.append(root);
-    const [profile, duration] = root.querySelectorAll("span");
-    return { root, profile, distance: root.querySelector("strong"), duration, elevation: root.querySelector("p"), closeButton: root.querySelector("button") };
-}
-
-function makeExpandableSummary() {
-    const summary = makeSummary();
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.setAttribute("aria-expanded", "false");
-    const header = document.createElement("div");
-    header.append(...summary.root.children);
-    const points = document.createElement("ol");
-    summary.root.append(toggle, header, points);
-    return { ...summary, toggle, header, points };
-}
-
-function makeActionSummary() {
-    const summary = makeSummary();
     const app = document.createElement("div");
+    app.innerHTML = `<section hidden>
+        <button type="button" class="toggle" aria-expanded="false"></button>
+        <div class="header"><span class="profile"></span><strong></strong><span class="duration"></span><button type="button" class="close">×</button></div>
+        <p hidden></p>
+        <ol></ol>
+        <div><button type="button" class="fit">Fit route</button><button type="button" class="edit">Edit</button><button type="button" class="clear">Clear</button></div>
+    </section>`;
     document.body.append(app);
-    app.append(summary.root);
-    const actions = document.createElement("div");
-    actions.innerHTML = `<button type="button">Fit route</button><button type="button">Edit</button><button type="button">Clear</button>`;
-    summary.root.append(actions);
-    const [fitButton, editButton, clearButton] = actions.querySelectorAll("button");
-    Object.defineProperty(summary.root, "offsetHeight", { configurable: true, get: () => 120 });
-    return { ...summary, fitButton, editButton, clearButton };
+    const root = app.querySelector("section");
+    Object.defineProperty(root, "offsetHeight", { configurable: true, get: () => 120 });
+    const find = (selector) => root.querySelector(selector);
+    return {
+        root, profile: find(".profile"), distance: find("strong"), duration: find(".duration"), elevation: find("p"),
+        closeButton: find(".close"), toggle: find(".toggle"), header: find(".header"), points: find("ol"),
+        fitButton: find(".fit"), editButton: find(".edit"), clearButton: find(".clear")
+    };
+}
+
+function stubDesktop(matches) {
+    window.matchMedia = vi.fn((query) => ({ matches: matches && query === "(min-width: 700px)", media: query }));
 }
 
 function pointer(type, clientY) {
@@ -108,7 +98,7 @@ function makeMaplibreMocks() {
 }
 
 describe("routing controller", () => {
-    beforeEach(() => { document.body.replaceChildren(); vi.restoreAllMocks(); });
+    beforeEach(() => { document.body.replaceChildren(); vi.restoreAllMocks(); delete window.matchMedia; });
 
     it("opens for endpoint selection without a configured key", () => {
         const onStatus = vi.fn();
@@ -231,7 +221,7 @@ describe("routing controller", () => {
         expect(summary.distance.textContent).toBe("1.2 km");
         expect(summary.duration.textContent).toBe("9 min est.");
         expect(panel.distance.textContent).toBe("Distance: 1.2 km");
-        expect(panel.duration.textContent).toBe("Time: 9 min");
+        expect(panel.duration.textContent).toBe("Time: 9 min est.");
         expect(panel.distance.hidden).toBe(false);
     });
 
@@ -265,6 +255,8 @@ describe("routing controller", () => {
 
         await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
         expect(summary.duration.textContent).toBe("Hiking time (DIN 33466): 4 h 2 min");
+        expect(panel.duration.textContent).toBe("Hiking time (DIN 33466): 4 h 2 min");
+        expect(summary.root.dataset.profileIcon).toBe("foot");
         expect(summary.elevation.hidden).toBe(false);
         expect(summary.elevation.textContent).toBe("↑ 900 m / ↓ 13 m");
 
@@ -289,6 +281,8 @@ describe("routing controller", () => {
         await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
         expect(summary.duration.textContent).toBe("1 h 0 min est.");
         expect(summary.duration.textContent).not.toContain("DIN");
+        expect(panel.duration.textContent).toBe("Time: 1 h 0 min est.");
+        expect(summary.root.dataset.profileIcon).toBe("bike");
         expect(summary.elevation.textContent).toBe("↑ 900 m / ↓ 900 m");
     });
 
@@ -398,7 +392,7 @@ describe("routing controller", () => {
         async function showRoute() {
             const map = makeMap();
             const panel = makePanel();
-            const summary = makeExpandableSummary();
+            const summary = makeSummary();
             const { maplibregl } = makeMaplibreMocks();
             global.fetch = vi.fn().mockImplementation(async () => routeResponse(1200, 540));
             const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
@@ -420,6 +414,18 @@ describe("routing controller", () => {
             expect(summary.root.classList.contains("is-expanded")).toBe(true);
 
             summary.header.click();
+            expect(expanded(summary)).toBe("false");
+            expect(summary.root.classList.contains("is-expanded")).toBe(false);
+        });
+
+        it("ignores header taps and swipes on desktop, where the card is always expanded", async () => {
+            stubDesktop(true);
+            const { summary } = await showRoute();
+
+            summary.header.click();
+            summary.toggle.click();
+            swipe(summary.header, -60);
+
             expect(expanded(summary)).toBe("false");
             expect(summary.root.classList.contains("is-expanded")).toBe(false);
         });
@@ -505,7 +511,7 @@ describe("routing controller", () => {
     describe("summary actions", () => {
         async function showRoute({ onMenuOpen = vi.fn(), map = makeMap() } = {}) {
             const panel = makePanel();
-            const summary = makeActionSummary();
+            const summary = makeSummary();
             const { maplibregl, marker } = makeMaplibreMocks();
             global.fetch = vi.fn().mockImplementation(async () => routeResponse(1200, 540));
             const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onMenuOpen, onStatus: vi.fn() });
@@ -528,6 +534,35 @@ describe("routing controller", () => {
             expect(options.padding.top).toBeLessThan(options.padding.bottom);
             expect(options.padding.left).toBe(options.padding.top);
             expect(options.padding.right).toBe(options.padding.top);
+        });
+
+        it("Fit route uses only the fixed margin as bottom padding on desktop, where the card is at the side", async () => {
+            stubDesktop(true);
+            const { map, summary } = await showRoute();
+            map.fitBounds.mockClear();
+
+            summary.fitButton.click();
+
+            expect(map.fitBounds.mock.calls[0][1].padding).toEqual({ top: 40, right: 40, bottom: 40, left: 40 });
+        });
+
+        it("fits very long routes without overflowing the call stack", async () => {
+            const map = makeMap();
+            const panel = makePanel();
+            const { maplibregl } = makeMaplibreMocks();
+            const coordinates = Array.from({ length: 300000 }, (_, index) => [10 + index / 1e6, 47 - index / 1e6]);
+            global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ features: [{ geometry: { type: "LineString", coordinates }, properties: { summary: { distance: 1, duration: 1 } } }] }) });
+            const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary: makeSummary(), onStatus: vi.fn() });
+
+            controller.open();
+            selectStartAndDestination(panel, map);
+
+            await vi.waitFor(() => expect(map.fitBounds).toHaveBeenCalledTimes(1));
+            const [[west, south], [east, north]] = map.fitBounds.mock.calls[0][0];
+            expect(west).toBe(10);
+            expect(north).toBe(47);
+            expect(east).toBeCloseTo(10.299999);
+            expect(south).toBeCloseTo(46.700001);
         });
 
         it("auto-fits once per newly calculated route, not when the route re-renders after a style change", async () => {

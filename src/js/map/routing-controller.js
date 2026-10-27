@@ -1,10 +1,18 @@
 import { estimateHikingDuration } from "./hiking-time.js";
+import { createRouteSummarySheet } from "./route-summary-sheet.js";
 
 const routeSourceId = "walking-route";
 const routeOutlineLayerId = "walking-route-outline";
 const routeLineLayerId = "walking-route-line";
-const swipeThresholdPx = 30;
 const fitMarginPx = 40;
+
+// ORS profiles offered in the Routing panel. `timing: "din33466"` profiles get the
+// slope-aware DIN 33466 time (ORS ignores slope for walking); "ors" keeps the ORS estimate.
+const routeProfiles = {
+    "foot-hiking": { label: "Hiking", icon: "foot", timing: "din33466" },
+    "cycling-mountain": { label: "Mountain bike", icon: "bike", timing: "ors" },
+    "foot-walking": { label: "Walking", icon: "foot", timing: "din33466" }
+};
 
 function emptyRoute() {
     return { type: "FeatureCollection", features: [] };
@@ -23,14 +31,19 @@ function hasElevation({ ascent, descent }) {
     return Number.isFinite(ascent) && Number.isFinite(descent);
 }
 
-// Foot profiles use DIN 33466 because ORS ignores slope for walking time; bikes keep the ORS estimate.
-function routeDurationLabel(profile, properties) {
+function profileInfo(profile) {
+    return routeProfiles[profile] ?? { label: profile, icon: "foot", timing: "ors" };
+}
+
+// The one duration shown for a route, in both the sheet and the Routing panel.
+// `label` is null for the ORS estimate, which reads as "… est." on its own.
+function routeDuration(profile, properties) {
     const { distance = 0, duration = 0 } = properties.summary ?? {};
-    if (profile.startsWith("foot-") && hasElevation(properties)) {
+    if (profileInfo(profile).timing === "din33466" && hasElevation(properties)) {
         const seconds = estimateHikingDuration({ distanceMeters: distance, ascentMeters: properties.ascent, descentMeters: properties.descent });
-        return `Hiking time (DIN 33466): ${formatDuration(seconds)}`;
+        return { label: "Hiking time (DIN 33466)", value: formatDuration(seconds) };
     }
-    return `${formatDuration(duration)} est.`;
+    return { label: null, value: `${formatDuration(duration)} est.` };
 }
 
 function lineCoordinates(geometry) {
@@ -42,9 +55,16 @@ function lineCoordinates(geometry) {
 function routeBounds(feature) {
     const coordinates = lineCoordinates(feature?.geometry);
     if (!coordinates.length) return null;
-    const longitudes = coordinates.map(([longitude]) => longitude);
-    const latitudes = coordinates.map(([, latitude]) => latitude);
-    return [[Math.min(...longitudes), Math.min(...latitudes)], [Math.max(...longitudes), Math.max(...latitudes)]];
+    // A loop, not Math.min(...array): spreading very long routes overflows the call stack.
+    let [west, south] = coordinates[0];
+    let [east, north] = coordinates[0];
+    for (const [longitude, latitude] of coordinates) {
+        if (longitude < west) west = longitude;
+        if (longitude > east) east = longitude;
+        if (latitude < south) south = latitude;
+        if (latitude > north) north = latitude;
+    }
+    return [[west, south], [east, north]];
 }
 
 function formatLocation([longitude, latitude]) {
@@ -71,9 +91,10 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
     let active = false;
     let selection = null;
     let draggedPointIndex = null;
-    let summaryDismissed = false;
-    let swipeStartY = null;
-    let lastSwipeAt = 0;
+    // Without sheet elements (e.g. other pages/tests) the sheet is a no-op.
+    const sheet = summary
+        ? createRouteSummarySheet({ summary, onFit: fitRoute, onEdit: () => onMenuOpen?.(), onClear: clear })
+        : { bottomInset: () => 0, destroy() {}, hide() {}, show() {} };
 
     function coordinates() {
         return start && destination ? [start, ...stops, destination] : [];
@@ -251,110 +272,38 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
         });
     }
 
-    function hideSummary() {
-        if (summary) summary.root.hidden = true;
-    }
-
-    function showSummary() {
-        const feature = route.features[0];
-        if (!summary || !feature || summaryDismissed) return;
+    function summaryView(feature) {
         const properties = feature.properties ?? {};
-        const showElevation = hasElevation(properties);
-        summary.profile.textContent = panel.profile.selectedOptions[0]?.textContent ?? "";
-        summary.distance.textContent = formatDistance(properties.summary?.distance ?? 0);
-        summary.duration.textContent = routeDurationLabel(panel.profile.value, properties);
-        if (summary.elevation) {
-            summary.elevation.textContent = showElevation ? `↑ ${Math.round(properties.ascent)} m / ↓ ${Math.round(properties.descent)} m` : "";
-            summary.elevation.hidden = !showElevation;
-        }
-        renderSummaryPoints();
-        summary.root.hidden = false;
-    }
-
-    function renderSummaryPoints() {
-        if (!summary.points) return;
+        const profile = profileInfo(panel.profile.value);
+        const { label, value } = routeDuration(panel.profile.value, properties);
         const points = markerPoints();
-        summary.points.replaceChildren(...points.map(({ coordinate, type, index }) => {
-            const item = document.createElement("li");
-            item.className = `route-summary-point route-summary-point-${type}`;
-            item.dataset.pointType = type;
-            const label = document.createElement("span");
-            label.className = "route-summary-point-label";
-            label.textContent = pointLabel(index, points.length);
-            const location = document.createElement("span");
-            location.className = "route-summary-point-location";
-            location.textContent = formatLocation(coordinate);
-            item.append(label, location);
-            return item;
-        }));
+        return {
+            profileLabel: profile.label,
+            icon: profile.icon,
+            distance: formatDistance(properties.summary?.distance ?? 0),
+            duration: label ? `${label}: ${value}` : value,
+            elevation: hasElevation(properties) ? `↑ ${Math.round(properties.ascent)} m / ↓ ${Math.round(properties.descent)} m` : null,
+            points: points.map(({ coordinate, type, index }) => ({ type, label: pointLabel(index, points.length), location: formatLocation(coordinate) }))
+        };
     }
 
-    function setSummaryExpanded(expanded) {
-        if (!summary?.toggle) return;
-        summary.root.classList.toggle("is-expanded", expanded);
-        summary.toggle.setAttribute("aria-expanded", String(expanded));
-        summary.toggle.setAttribute("aria-label", expanded ? "Hide route details" : "Show route details");
-    }
-
-    // Buttons inside the header (×) keep their own action.
-    function isOtherButton(target) {
-        const button = target.closest?.("button");
-        return Boolean(button) && button !== summary.toggle;
-    }
-
-    function toggleSummary(event) {
-        // A swipe can also fire a click; swallow it so it isn't read as a tap.
-        if (Date.now() - lastSwipeAt < 400 || isOtherButton(event.target)) return;
-        setSummaryExpanded(summary.toggle.getAttribute("aria-expanded") !== "true");
-    }
-
-    function startSwipe(event) {
-        if (isOtherButton(event.target)) return;
-        swipeStartY = event.clientY;
-        lastSwipeAt = 0;
-        // Keep receiving pointerup when the finger leaves the sheet mid-swipe.
-        event.currentTarget.setPointerCapture?.(event.pointerId);
-    }
-
-    function endSwipe(event) {
-        if (swipeStartY === null) return;
-        const deltaY = event.clientY - swipeStartY;
-        swipeStartY = null;
-        if (Math.abs(deltaY) < swipeThresholdPx) return;
-        lastSwipeAt = Date.now();
-        setSummaryExpanded(deltaY < 0);
-    }
-
-    function cancelSwipe() {
-        swipeStartY = null;
-    }
-
-    // Publishes the sheet's live height as --route-summary-height (CSS lifts the
-    // bottom map controls by it) and returns it for the Fit route padding.
-    function measureSummaryHeight() {
-        if (!summary) return 0;
-        const height = summary.root.offsetHeight;
-        summary.root.parentElement?.style.setProperty("--route-summary-height", `${height}px`);
-        return height;
+    function showSummary(options) {
+        const feature = route.features[0];
+        if (feature) sheet.show(summaryView(feature), options);
     }
 
     function fitRoute() {
         const bounds = routeBounds(route.features[0]);
         if (!bounds) return;
         map.fitBounds(bounds, {
-            padding: { top: fitMarginPx, right: fitMarginPx, left: fitMarginPx, bottom: measureSummaryHeight() + fitMarginPx }
+            padding: { top: fitMarginPx, right: fitMarginPx, left: fitMarginPx, bottom: sheet.bottomInset() + fitMarginPx }
         });
-    }
-
-    function dismissSummary() {
-        summaryDismissed = true;
-        hideSummary();
     }
 
     function resetRoute() {
         requestController?.abort();
         requestController = null;
-        hideSummary();
+        sheet.hide();
         route = emptyRoute();
         syncRoute();
         syncFields();
@@ -368,7 +317,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
         }
         requestController?.abort();
         requestController = new AbortController();
-        hideSummary();
+        sheet.hide();
         panel.status.textContent = "Finding route…";
         try {
             const response = await fetch(`https://api.openrouteservice.org/v2/directions/${panel.profile.value}/geojson`, {
@@ -382,18 +331,17 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
             if (!feature?.geometry || !active) throw new Error("route unavailable");
             route = { type: "FeatureCollection", features: [feature] };
             syncRoute();
+            const { label, value } = routeDuration(panel.profile.value, feature.properties);
             panel.distance.textContent = `Distance: ${formatDistance(feature.properties.summary.distance)}`;
-            panel.duration.textContent = `Time: ${formatDuration(feature.properties.summary.duration)}`;
+            panel.duration.textContent = `${label ?? "Time"}: ${value}`;
             panel.status.textContent = "";
             syncFields();
-            summaryDismissed = false;
-            setSummaryExpanded(false);
-            showSummary();
+            showSummary({ collapsed: true });
             // Only a freshly calculated route fits; style-reload re-renders go through syncRoute().
             fitRoute();
         } catch (error) {
             if (error.name !== "AbortError") {
-                hideSummary();
+                sheet.hide();
                 panel.status.textContent = "Could not calculate a route. Please try again.";
             }
         }
@@ -435,7 +383,6 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
         panel.root.hidden = false;
         syncRoute();
         syncFields();
-        summaryDismissed = false;
         showSummary();
         if (!navigator.onLine) {
             panel.status.textContent = "Routing needs an internet connection.";
@@ -487,21 +434,5 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
     panel.currentLocationButton.addEventListener("click", useCurrentLocation);
     panel.clearButton.addEventListener("click", clear);
     panel.closeButton.addEventListener("click", close);
-    summary?.closeButton.addEventListener("click", dismissSummary);
-    summary?.fitButton?.addEventListener("click", fitRoute);
-    summary?.editButton?.addEventListener("click", () => onMenuOpen?.());
-    summary?.clearButton?.addEventListener("click", clear);
-    // Bottom-docked map controls lift by the sheet's live height (CSS var), so
-    // they stay clear of it whether it is collapsed or expanded.
-    if (summary?.root.parentElement && typeof ResizeObserver === "function") {
-        new ResizeObserver(measureSummaryHeight).observe(summary.root);
-    }
-    [summary?.toggle, summary?.header].filter(Boolean).forEach((element) => {
-        element.addEventListener("click", toggleSummary);
-        element.addEventListener("pointerdown", startSwipe);
-        element.addEventListener("pointerup", endSwipe);
-        element.addEventListener("pointercancel", cancelSwipe);
-    });
-
     return { clear, close, ensureAfterStyleLoad: syncRoute, open };
 }

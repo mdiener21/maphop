@@ -1094,6 +1094,9 @@ body::before {
     align-items: center;
     gap: 10px;
     min-height: 64px;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
 }
 
 .route-summary-figures {
@@ -1124,6 +1127,22 @@ body::before {
     font-weight: 700;
 }
 
+/* Profile icon (walker or bike) in the collapsed row; the sheet sets data-profile-icon. */
+.route-summary-icon {
+    display: inline-flex;
+    align-self: center;
+    color: var(--accent);
+}
+
+.route-summary-icon svg {
+    display: none;
+}
+
+.route-summary[data-profile-icon="foot"] .route-summary-icon-foot,
+.route-summary[data-profile-icon="bike"] .route-summary-icon-bike {
+    display: block;
+}
+
 .route-summary-elevation {
     margin: 0 0 10px;
     color: var(--text-muted);
@@ -1132,6 +1151,7 @@ body::before {
 }
 
 .route-summary-close {
+    order: 2;
     flex-shrink: 0;
     width: 44px;
     height: 44px;
@@ -1180,12 +1200,6 @@ body::before {
     border-radius: 6px;
 }
 
-.route-summary-header {
-    cursor: pointer;
-    touch-action: none;
-    user-select: none;
-}
-
 .route-summary-header::after {
     content: "";
     flex-shrink: 0;
@@ -1202,10 +1216,6 @@ body::before {
 .route-summary.is-expanded .route-summary-header::after {
     margin-top: -4px;
     transform: rotate(225deg);
-}
-
-.route-summary-close {
-    order: 2;
 }
 
 @media (max-width: 699.98px) {
@@ -1287,9 +1297,9 @@ body::before {
     color: var(--route-pin-destination);
 }
 
-/* Lift bottom-docked map controls above the sheet while it is visible.
-   --route-summary-height is measured by the routing controller. */
-#app:has(.route-summary:not([hidden])) :is(.recenter-button, .compass-button, .status-toast, .attribution-widget, .location-control-button) {
+/* Lift bottom-docked map controls and the install banners above the sheet while it
+   is visible. --route-summary-height is published by route-summary-sheet.js. */
+#app:has(.route-summary:not([hidden])) :is(.recenter-button, .compass-button, .status-toast, .attribution-widget, .location-control-button, .install-banner) {
     margin-bottom: var(--route-summary-height, 64px);
 }
 
@@ -1311,7 +1321,7 @@ body::before {
     }
 
     /* The card sits where the re-center/compass buttons live; lift them above it. */
-    #app:has(.route-summary:not([hidden])) :is(.status-toast, .attribution-widget, .location-control-button) {
+    #app:has(.route-summary:not([hidden])) :is(.status-toast, .attribution-widget, .location-control-button, .install-banner) {
         margin-bottom: 0;
     }
 
