@@ -5,10 +5,12 @@
 ### Added
 
 - Route Summary Sheet (#23): after a route is calculated, its type, distance and ORS time ("est.") appear in a dark glass sheet. On phones it is a 64px bar docked at the bottom; on desktop it is a 320px card at the bottom-left. It hides while a route is loading, on failure, on Clear and when the Routing panel closes. The × hides it but keeps the route, and it comes back on the next route or when the Routing panel reopens.
+- Expandable Route Summary Sheet (#25): on phones, tap the handle or the summary row, or swipe it up or down (about 30px), to expand or collapse the sheet. The toggle reports `aria-expanded`. The expanded sheet lists Start / Stop n / Destination with their coordinates, colour-coded green, blue and red like the route pins. Each new route starts collapsed. On desktop the card is always expanded and the toggle is hidden.
 
 ### Changed
 
-- Bottom-docked map controls (re-center, compass, location, attribution, status toast) move up while the Route Summary Sheet is visible.
+- Bottom-docked map controls (re-center, compass, location, attribution, status toast) move up while the Route Summary Sheet is visible, following its current height when it expands.
+- Route pin colours are now shared CSS custom properties (`--route-pin-start`, `--route-pin-stop`, `--route-pin-destination`), so the summary point list matches the map pins.
 
 ### Fixed
 

@@ -1,6 +1,7 @@
 const routeSourceId = "walking-route";
 const routeOutlineLayerId = "walking-route-outline";
 const routeLineLayerId = "walking-route-line";
+const swipeThresholdPx = 30;
 
 function emptyRoute() {
     return { type: "FeatureCollection", features: [] };
@@ -40,6 +41,8 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
     let selection = null;
     let draggedPointIndex = null;
     let summaryDismissed = false;
+    let swipeStartY = null;
+    let lastSwipeAt = 0;
 
     function coordinates() {
         return start && destination ? [start, ...stops, destination] : [];
@@ -228,7 +231,66 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
         summary.profile.textContent = panel.profile.selectedOptions[0]?.textContent ?? "";
         summary.distance.textContent = formatDistance(distance);
         summary.duration.textContent = `${formatDuration(duration)} est.`;
+        renderSummaryPoints();
         summary.root.hidden = false;
+    }
+
+    function renderSummaryPoints() {
+        if (!summary.points) return;
+        const points = markerPoints();
+        summary.points.replaceChildren(...points.map(({ coordinate, type, index }) => {
+            const item = document.createElement("li");
+            item.className = `route-summary-point route-summary-point-${type}`;
+            item.dataset.pointType = type;
+            const label = document.createElement("span");
+            label.className = "route-summary-point-label";
+            label.textContent = pointLabel(index, points.length);
+            const location = document.createElement("span");
+            location.className = "route-summary-point-location";
+            location.textContent = formatLocation(coordinate);
+            item.append(label, location);
+            return item;
+        }));
+    }
+
+    function setSummaryExpanded(expanded) {
+        if (!summary?.toggle) return;
+        summary.root.classList.toggle("is-expanded", expanded);
+        summary.toggle.setAttribute("aria-expanded", String(expanded));
+        summary.toggle.setAttribute("aria-label", expanded ? "Hide route details" : "Show route details");
+    }
+
+    // Buttons inside the header (×) keep their own action.
+    function isOtherButton(target) {
+        const button = target.closest?.("button");
+        return Boolean(button) && button !== summary.toggle;
+    }
+
+    function toggleSummary(event) {
+        // A swipe can also fire a click; swallow it so it isn't read as a tap.
+        if (Date.now() - lastSwipeAt < 400 || isOtherButton(event.target)) return;
+        setSummaryExpanded(summary.toggle.getAttribute("aria-expanded") !== "true");
+    }
+
+    function startSwipe(event) {
+        if (isOtherButton(event.target)) return;
+        swipeStartY = event.clientY;
+        lastSwipeAt = 0;
+        // Keep receiving pointerup when the finger leaves the sheet mid-swipe.
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+    }
+
+    function endSwipe(event) {
+        if (swipeStartY === null) return;
+        const deltaY = event.clientY - swipeStartY;
+        swipeStartY = null;
+        if (Math.abs(deltaY) < swipeThresholdPx) return;
+        lastSwipeAt = Date.now();
+        setSummaryExpanded(deltaY < 0);
+    }
+
+    function cancelSwipe() {
+        swipeStartY = null;
     }
 
     function dismissSummary() {
@@ -272,6 +334,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
             panel.status.textContent = "";
             syncFields();
             summaryDismissed = false;
+            setSummaryExpanded(false);
             showSummary();
         } catch (error) {
             if (error.name !== "AbortError") {
@@ -370,6 +433,19 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
     panel.clearButton.addEventListener("click", clear);
     panel.closeButton.addEventListener("click", close);
     summary?.closeButton.addEventListener("click", dismissSummary);
+    // Bottom-docked map controls lift by the sheet's live height (CSS var), so
+    // they stay clear of it whether it is collapsed or expanded.
+    if (summary?.root.parentElement && typeof ResizeObserver === "function") {
+        new ResizeObserver(() => {
+            summary.root.parentElement.style.setProperty("--route-summary-height", `${summary.root.offsetHeight}px`);
+        }).observe(summary.root);
+    }
+    [summary?.toggle, summary?.header].filter(Boolean).forEach((element) => {
+        element.addEventListener("click", toggleSummary);
+        element.addEventListener("pointerdown", startSwipe);
+        element.addEventListener("pointerup", endSwipe);
+        element.addEventListener("pointercancel", cancelSwipe);
+    });
 
     return { clear, close, ensureAfterStyleLoad: syncRoute, open };
 }

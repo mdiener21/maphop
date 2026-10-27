@@ -322,7 +322,8 @@
         </button>
 
         <section class="route-summary" id="routeSummary" role="region" aria-label="Route summary" hidden>
-            <div class="route-summary-header">
+            <button class="route-summary-toggle" id="routeSummaryToggle" type="button" aria-expanded="false" aria-controls="routeSummaryDetails routeSummaryPoints routeSummaryActions" aria-label="Show route details"><span class="route-summary-grip" aria-hidden="true"></span></button>
+            <div class="route-summary-header" id="routeSummaryHeader">
                 <div class="route-summary-figures" aria-live="polite">
                     <span class="route-summary-profile" id="routeSummaryProfile"></span>
                     <strong class="route-summary-distance" id="routeSummaryDistance"></strong>
@@ -331,6 +332,7 @@
                 <button class="route-summary-close" id="routeSummaryCloseButton" type="button" aria-label="Hide route summary">&#x2715;</button>
             </div>
             <div class="route-summary-details" id="routeSummaryDetails" hidden></div>
+            <ol class="route-summary-points" id="routeSummaryPoints" aria-label="Route points"></ol>
             <div class="route-summary-actions" id="routeSummaryActions" hidden></div>
         </section>
 

@@ -17,6 +17,30 @@ function makeSummary() {
     return { root, profile, distance: root.querySelector("strong"), duration, closeButton: root.querySelector("button") };
 }
 
+function makeExpandableSummary() {
+    const summary = makeSummary();
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.setAttribute("aria-expanded", "false");
+    const header = document.createElement("div");
+    header.append(...summary.root.children);
+    const points = document.createElement("ol");
+    summary.root.append(toggle, header, points);
+    return { ...summary, toggle, header, points };
+}
+
+function pointer(type, clientY) {
+    const event = new Event(type, { bubbles: true });
+    Object.assign(event, { clientX: 0, clientY, pointerId: 1 });
+    return event;
+}
+
+function swipe(element, deltaY) {
+    element.dispatchEvent(pointer("pointerdown", 200));
+    element.dispatchEvent(pointer("pointerup", 200 + deltaY));
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+}
+
 function routeResponse(distance, duration) {
     return { ok: true, json: async () => ({ features: [{ geometry: { type: "LineString", coordinates: [[1, 2], [3, 4]] }, properties: { summary: { distance, duration } } }] }) };
 }
@@ -274,5 +298,113 @@ describe("routing controller", () => {
         await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
         panel.closeButton.click();
         expect(summary.root.hidden).toBe(true);
+    });
+
+    describe("expandable sheet", () => {
+        async function showRoute() {
+            const map = makeMap();
+            const panel = makePanel();
+            const summary = makeExpandableSummary();
+            const { maplibregl } = makeMaplibreMocks();
+            global.fetch = vi.fn().mockImplementation(async () => routeResponse(1200, 540));
+            const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
+            controller.open();
+            selectStartAndDestination(panel, map);
+            await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+            return { map, panel, summary, controller };
+        }
+
+        const expanded = (summary) => summary.toggle.getAttribute("aria-expanded");
+
+        it("toggles aria-expanded when the handle or the header row is tapped", async () => {
+            const { summary } = await showRoute();
+            expect(expanded(summary)).toBe("false");
+            expect(summary.root.classList.contains("is-expanded")).toBe(false);
+
+            summary.toggle.click();
+            expect(expanded(summary)).toBe("true");
+            expect(summary.root.classList.contains("is-expanded")).toBe(true);
+
+            summary.header.click();
+            expect(expanded(summary)).toBe("false");
+            expect(summary.root.classList.contains("is-expanded")).toBe(false);
+        });
+
+        it("expands on a swipe up and collapses on a swipe down past the 30px threshold", async () => {
+            const { summary } = await showRoute();
+
+            swipe(summary.header, -10);
+            expect(expanded(summary)).toBe("true"); // short movement is still a tap
+
+            swipe(summary.header, -45);
+            expect(expanded(summary)).toBe("true"); // swipe up keeps it expanded, no tap toggle
+
+            swipe(summary.toggle, 45);
+            expect(expanded(summary)).toBe("false");
+
+            swipe(summary.toggle, 45);
+            expect(expanded(summary)).toBe("false");
+
+            swipe(summary.header, -60);
+            expect(expanded(summary)).toBe("true");
+        });
+
+        it("does not toggle when × is pressed, and resets to collapsed for each new route", async () => {
+            const { summary, panel } = await showRoute();
+            summary.toggle.click();
+            expect(expanded(summary)).toBe("true");
+
+            panel.profile.value = "foot-walking";
+            panel.profile.dispatchEvent(new Event("change"));
+            await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+            await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+            expect(expanded(summary)).toBe("false");
+
+            summary.closeButton.click();
+            expect(expanded(summary)).toBe("false");
+            expect(summary.root.hidden).toBe(true);
+        });
+
+        it("lists the ordered route points colour-coded like the pins and updates after a reorder or removed stop", async () => {
+            const { summary, panel, map } = await showRoute();
+            const listed = () => [...summary.points.children].map((item) => [item.dataset.pointType, item.textContent]);
+            expect(listed()).toEqual([
+                ["start", "Start2.00000, 1.00000"],
+                ["destination", "Destination4.00000, 3.00000"]
+            ]);
+
+            panel.addStopButton.click();
+            map.handlers.click({ lngLat: { lng: 5, lat: 6 } });
+            await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+            await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+            expect(listed()).toEqual([
+                ["start", "Start2.00000, 1.00000"],
+                ["stop", "Stop 16.00000, 5.00000"],
+                ["destination", "Destination4.00000, 3.00000"]
+            ]);
+
+            const transfer = { value: "", setData(_type, value) { this.value = value; }, getData() { return this.value; } };
+            const dragStart = new Event("dragstart", { bubbles: true });
+            Object.defineProperty(dragStart, "dataTransfer", { value: transfer });
+            panel.pointsList.querySelectorAll(".routing-point-row")[1].dispatchEvent(dragStart);
+            const drop = new Event("drop", { bubbles: true });
+            Object.defineProperty(drop, "dataTransfer", { value: transfer });
+            panel.pointsList.querySelectorAll(".routing-point-row")[2].dispatchEvent(drop);
+            await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+            await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+            expect(listed()).toEqual([
+                ["start", "Start2.00000, 1.00000"],
+                ["stop", "Stop 14.00000, 3.00000"],
+                ["destination", "Destination6.00000, 5.00000"]
+            ]);
+
+            panel.pointsList.querySelector(".routing-delete-point").click();
+            await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(4));
+            await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+            expect(listed()).toEqual([
+                ["start", "Start2.00000, 1.00000"],
+                ["destination", "Destination6.00000, 5.00000"]
+            ]);
+        });
     });
 });
