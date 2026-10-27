@@ -16,6 +16,8 @@
 
 ### Fixed
 
+- Dev-dependency security advisories: upgraded `vitest` and `@vitest/coverage-v8` from 4.1.11 to 5.0.5 (GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp) and bumped the transitive `undici` past 7.30.0 (GHSA-4qv8-2p9j-2685, GHSA-f72v-6w45-q472, GHSA-xjj6-f33q-929c). `npm audit` now reports 0 vulnerabilities. No runtime dependencies changed.
+
 ### Removed
 
 - The white MapLibre route summary popup at the destination, and its popup CSS.
