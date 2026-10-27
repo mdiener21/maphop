@@ -24,6 +24,7 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Shared location URL format and deep-link parsing | `src/js/map/share-location.js` |
 | PWA install prompt and iOS install hint behavior | `src/js/map/install-prompt-controller.js` |
 | Routing panel, ORS requests, route overlay/pins, and Route Summary Sheet (`#routeSummary`) show/hide/dismiss, expand/collapse (tap/swipe) and point list | `src/js/map/routing-controller.js` |
+| DIN 33466 hiking-time calculator (pure `estimateHikingDuration`) used by the Route Summary Sheet | `src/js/map/hiking-time.js` |
 | Map-page DOM element lookup | `src/js/map/dom.js` |
 | Status toast behavior | `src/js/map/status-toast.js` |
 | Service worker registration gate | `src/js/map/service-worker.js` |

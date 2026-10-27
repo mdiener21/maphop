@@ -11,10 +11,10 @@ function makePanel() {
 function makeSummary() {
     const root = document.createElement("section");
     root.hidden = true;
-    root.innerHTML = `<span></span><strong></strong><span></span><button type="button">×</button>`;
+    root.innerHTML = `<span></span><strong></strong><span></span><button type="button">×</button><p hidden></p>`;
     document.body.append(root);
     const [profile, duration] = root.querySelectorAll("span");
-    return { root, profile, distance: root.querySelector("strong"), duration, closeButton: root.querySelector("button") };
+    return { root, profile, distance: root.querySelector("strong"), duration, elevation: root.querySelector("p"), closeButton: root.querySelector("button") };
 }
 
 function makeExpandableSummary() {
@@ -41,8 +41,8 @@ function swipe(element, deltaY) {
     element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 }
 
-function routeResponse(distance, duration) {
-    return { ok: true, json: async () => ({ features: [{ geometry: { type: "LineString", coordinates: [[1, 2], [3, 4]] }, properties: { summary: { distance, duration } } }] }) };
+function routeResponse(distance, duration, elevation = {}) {
+    return { ok: true, json: async () => ({ features: [{ geometry: { type: "LineString", coordinates: [[1, 2, 500], [3, 4, 620]] }, properties: { summary: { distance, duration }, ...elevation } }] }) };
 }
 
 function selectStartAndDestination(panel, map) {
@@ -216,6 +216,83 @@ describe("routing controller", () => {
         expect(panel.distance.textContent).toBe("Distance: 1.2 km");
         expect(panel.duration.textContent).toBe("Time: 9 min");
         expect(panel.distance.hidden).toBe(false);
+    });
+
+    it("requests elevation from ORS and draws the route with 3D coordinates", async () => {
+        const map = makeMap();
+        const panel = makePanel();
+        const { maplibregl } = makeMaplibreMocks();
+        global.fetch = vi.fn().mockResolvedValue(routeResponse(1200, 540, { ascent: 120, descent: 0 }));
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary: makeSummary(), onStatus: vi.fn() });
+
+        controller.open();
+        selectStartAndDestination(panel, map);
+
+        await vi.waitFor(() => expect(map.addSource).toHaveBeenCalled());
+        expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ coordinates: [[1, 2], [3, 4]], elevation: true });
+        const drawn = map.addSource.mock.calls.at(-1)[1].data.features[0];
+        expect(drawn.geometry.coordinates).toEqual([[1, 2, 500], [3, 4, 620]]);
+    });
+
+    it("shows the DIN 33466 hiking time and whole-metre ascent/descent for foot profiles", async () => {
+        const map = makeMap();
+        const panel = makePanel();
+        const summary = makeSummary();
+        const { maplibregl } = makeMaplibreMocks();
+        // 8 km, 900 m up → DIN 33466 = 4 h; ORS would say 2 h.
+        global.fetch = vi.fn().mockResolvedValue(routeResponse(8000, 7200, { ascent: 900.4, descent: 12.6 }));
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
+
+        controller.open();
+        selectStartAndDestination(panel, map);
+
+        await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+        expect(summary.duration.textContent).toBe("Hiking time (DIN 33466): 4 h 2 min");
+        expect(summary.elevation.hidden).toBe(false);
+        expect(summary.elevation.textContent).toBe("↑ 900 m / ↓ 13 m");
+
+        panel.profile.value = "foot-walking";
+        panel.profile.dispatchEvent(new Event("change"));
+        await vi.waitFor(() => expect(summary.profile.textContent).toBe("Walking"));
+        expect(summary.duration.textContent).toBe("Hiking time (DIN 33466): 4 h 2 min");
+    });
+
+    it("shows the ORS time labelled est. for mountain-bike routes, with ascent/descent", async () => {
+        const map = makeMap();
+        const panel = makePanel();
+        const summary = makeSummary();
+        const { maplibregl } = makeMaplibreMocks();
+        global.fetch = vi.fn().mockResolvedValue(routeResponse(8000, 3600, { ascent: 900, descent: 900 }));
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
+        panel.profile.value = "cycling-mountain";
+
+        controller.open();
+        selectStartAndDestination(panel, map);
+
+        await vi.waitFor(() => expect(summary.root.hidden).toBe(false));
+        expect(summary.duration.textContent).toBe("1 h 0 min est.");
+        expect(summary.duration.textContent).not.toContain("DIN");
+        expect(summary.elevation.textContent).toBe("↑ 900 m / ↓ 900 m");
+    });
+
+    it("falls back to the ORS time and hides the ascent/descent row when elevation is missing", async () => {
+        const map = makeMap();
+        const panel = makePanel();
+        const summary = makeSummary();
+        const { maplibregl } = makeMaplibreMocks();
+        global.fetch = vi.fn()
+            .mockResolvedValueOnce(routeResponse(8000, 7200, { ascent: 900, descent: 0 }))
+            .mockResolvedValueOnce(routeResponse(8000, 7200, { ascent: 900 }));
+        const controller = createRoutingController({ map, maplibregl, apiKey: "test", panel, summary, onStatus: vi.fn() });
+
+        controller.open();
+        selectStartAndDestination(panel, map);
+        await vi.waitFor(() => expect(summary.elevation.hidden).toBe(false));
+
+        panel.profile.value = "foot-walking";
+        panel.profile.dispatchEvent(new Event("change"));
+        await vi.waitFor(() => expect(summary.duration.textContent).toBe("2 h 0 min est."));
+        expect(summary.elevation.hidden).toBe(true);
     });
 
     it("hides the sheet while a recalculation is in flight, updates it on success and hides it on failure", async () => {

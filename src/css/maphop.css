@@ -1124,6 +1124,13 @@ body::before {
     font-weight: 700;
 }
 
+.route-summary-elevation {
+    margin: 0 0 10px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
 .route-summary-close {
     flex-shrink: 0;
     width: 44px;

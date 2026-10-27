@@ -33,6 +33,7 @@ export function getMapPageDom() {
             profile: document.getElementById("routeSummaryProfile"),
             distance: document.getElementById("routeSummaryDistance"),
             duration: document.getElementById("routeSummaryDuration"),
+            elevation: document.getElementById("routeSummaryElevation"),
             closeButton: document.getElementById("routeSummaryCloseButton"),
             toggle: document.getElementById("routeSummaryToggle"),
             header: document.getElementById("routeSummaryHeader"),

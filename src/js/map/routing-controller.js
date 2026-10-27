@@ -1,3 +1,5 @@
+import { estimateHikingDuration } from "./hiking-time.js";
+
 const routeSourceId = "walking-route";
 const routeOutlineLayerId = "walking-route-outline";
 const routeLineLayerId = "walking-route-line";
@@ -14,6 +16,20 @@ function formatDistance(meters) {
 function formatDuration(seconds) {
     const minutes = Math.round(seconds / 60);
     return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+}
+
+function hasElevation({ ascent, descent }) {
+    return Number.isFinite(ascent) && Number.isFinite(descent);
+}
+
+// Foot profiles use DIN 33466 because ORS ignores slope for walking time; bikes keep the ORS estimate.
+function routeDurationLabel(profile, properties) {
+    const { distance = 0, duration = 0 } = properties.summary ?? {};
+    if (profile.startsWith("foot-") && hasElevation(properties)) {
+        const seconds = estimateHikingDuration({ distanceMeters: distance, ascentMeters: properties.ascent, descentMeters: properties.descent });
+        return `Hiking time (DIN 33466): ${formatDuration(seconds)}`;
+    }
+    return `${formatDuration(duration)} est.`;
 }
 
 function formatLocation([longitude, latitude]) {
@@ -227,10 +243,15 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
     function showSummary() {
         const feature = route.features[0];
         if (!summary || !feature || summaryDismissed) return;
-        const { distance = 0, duration = 0 } = feature.properties?.summary ?? {};
+        const properties = feature.properties ?? {};
+        const showElevation = hasElevation(properties);
         summary.profile.textContent = panel.profile.selectedOptions[0]?.textContent ?? "";
-        summary.distance.textContent = formatDistance(distance);
-        summary.duration.textContent = `${formatDuration(duration)} est.`;
+        summary.distance.textContent = formatDistance(properties.summary?.distance ?? 0);
+        summary.duration.textContent = routeDurationLabel(panel.profile.value, properties);
+        if (summary.elevation) {
+            summary.elevation.textContent = showElevation ? `↑ ${Math.round(properties.ascent)} m / ↓ ${Math.round(properties.descent)} m` : "";
+            summary.elevation.hidden = !showElevation;
+        }
         renderSummaryPoints();
         summary.root.hidden = false;
     }
@@ -321,7 +342,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
             const response = await fetch(`https://api.openrouteservice.org/v2/directions/${panel.profile.value}/geojson`, {
                 method: "POST",
                 headers: { Authorization: apiKey, "Content-Type": "application/json" },
-                body: JSON.stringify({ coordinates: coordinates() }),
+                body: JSON.stringify({ coordinates: coordinates(), elevation: true }),
                 signal: requestController.signal
             });
             if (!response.ok) throw new Error("route request failed");

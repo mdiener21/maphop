@@ -5,7 +5,8 @@
 ### Added
 
 - Route Summary Sheet (#23): after a route is calculated, its type, distance and ORS time ("est.") appear in a dark glass sheet. On phones it is a 64px bar docked at the bottom; on desktop it is a 320px card at the bottom-left. It hides while a route is loading, on failure, on Clear and when the Routing panel closes. The × hides it but keeps the route, and it comes back on the next route or when the Routing panel reopens.
-- Expandable Route Summary Sheet (#25): on phones, tap the handle or the summary row, or swipe it up or down (about 30px), to expand or collapse the sheet. The toggle reports `aria-expanded`. The expanded sheet lists Start / Stop n / Destination with their coordinates, colour-coded green, blue and red like the route pins. Each new route starts collapsed. On desktop the card is always expanded and the toggle is hidden.
+- DIN 33466 hiking time (#24): Hiking and Walking routes now show a slope-aware time calculated on the device ("Hiking time (DIN 33466)"), plus total ascent and descent (↑ m / ↓ m). ORS directions are requested with `elevation: true`. Mountain-bike routes keep the ORS time labelled "est."; if ORS returns no ascent/descent, the sheet falls back to the ORS time and hides the ↑/↓ row.
+- Expandable Route Summary Sheet (#25): on phones, tap the handle or the summary row, or swipe it up or down (about 30px), to expand or collapse the sheet. The toggle reports `aria-expanded`. The expanded sheet lists Start / Stop n / Destination with their coordinates, colour-coded green, blue and red like the route pins, below the ↑/↓ ascent/descent row. Each new route starts collapsed. On desktop the card is always expanded and the toggle is hidden.
 
 ### Changed
 
