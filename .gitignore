@@ -30,3 +30,8 @@ playwright-report/
 .playwright-cli/
 
 .claude/skills/
+
+# Personal activity recordings (GPS tracks, heart rate): never commit
+*.tcx
+*.gpx
+*.fit

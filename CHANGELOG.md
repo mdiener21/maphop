@@ -12,6 +12,7 @@
 ### Changed
 
 - Bottom-docked map controls (re-center, compass, location, attribution, status toast) and the PWA install banner move up while the Route Summary Sheet is visible, following its current height when it expands.
+- `.gitignore` now excludes personal activity recordings (`*.tcx`, `*.gpx`, `*.fit`) so GPS tracks with heart-rate data can't be committed by accident.
 - Route pin colours are now shared CSS custom properties (`--route-pin-start`, `--route-pin-stop`, `--route-pin-destination`), so the summary point list matches the map pins.
 
 ### Fixed
