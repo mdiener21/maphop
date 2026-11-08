@@ -6,6 +6,16 @@
 
 ### Changed
 
+### Fixed
+
+### Removed
+
+## [2.0.19] - 2026-11-08
+
+### Added
+
+### Changed
+
 - Documented the routing request lifetime rules and acceptance checks for stale results, recalculation, and delayed location lookups.
 
 - Condensed `CLAUDE.md` into verified repository conventions, test commands, and map/PWA integration gotchas.
