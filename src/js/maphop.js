@@ -255,8 +255,8 @@ window.addEventListener("pagehide", () => {
     }
 });
 
-document.addEventListener("click", () => {
-    menuController.close();
+document.addEventListener("click", (event) => {
+    if (!dom.menuShell.contains(event.target)) menuController.close();
 });
 
 registerScopedServiceWorker();

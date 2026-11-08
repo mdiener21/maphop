@@ -104,9 +104,10 @@
             </div>
         </div>
 
-        <section class="control-menu" id="menuShell">
+        <section class="control-menu" id="menuShell" aria-label="Map controls">
             <div class="control-menu-header">
-                <span class="menu-title" aria-hidden="true">Maphop</span>
+                <button class="menu-back-button" id="menuBackButton" type="button" hidden><span aria-hidden="true">←</span> All controls</button>
+                <h1 class="menu-title" id="menuTitle">Explore the map</h1>
                 <button
                     class="menu-button"
                     id="layerMenuButton"
@@ -119,12 +120,12 @@
                         <span></span>
                         <span></span>
                         <span></span>
-                    </span>
+                    </span> 
                 </button>
                 <button class="menu-close-button" id="menuCloseButton" type="button" aria-label="Close map controls" hidden>×</button>
             </div>
 
-            <div class="menu-content menu-divider" id="layerMenu">
+            <div class="menu-content menu-divider" id="layerMenu" hidden>
                 <div class="menu-group">
                     <button
                         class="menu-section-toggle"
@@ -133,13 +134,14 @@
                         aria-expanded="false"
                         aria-controls="locationSectionPanel"
                     >
-                        <span class="menu-group-title">Location</span>
+                        <svg class="menu-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>
+                        <span class="menu-category-copy"><span class="menu-group-title">Location & terrain</span><span class="menu-category-description">Find yourself and explore in 3D</span></span>
                         <span class="menu-section-toggle-icon" aria-hidden="true"></span>
                     </button>
                     <div class="menu-section-panel" id="locationSectionPanel">
                         <button class="menu-toggle-row" id="locateButton" type="button" data-state="idle">
                             <span class="menu-toggle-copy">
-                                <strong>Show My Location</strong>
+                                <strong>Show my location</strong>
                                 <span id="locationToggleLabel">Off</span>
                             </span>
                             <span class="menu-toggle-pill" aria-hidden="true"></span>
@@ -166,22 +168,23 @@
                             aria-expanded="false"
                             aria-controls="favoritesSectionPanel"
                         >
-                            <span class="menu-group-title">Favorites</span>
+                            <svg class="menu-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
+                            <span class="menu-category-copy"><span class="menu-group-title">Saved places</span><span class="menu-category-description">Save a spot or revisit a favorite</span></span>
                             <span class="menu-section-toggle-icon" aria-hidden="true"></span>
                         </button>
                         <div class="menu-section-panel" id="favoritesSectionPanel">
                             <button class="menu-action-button" id="saveFavoriteButton" type="button">
-                                Add Favorite
+                                Add favorite
                             </button>
                             <button class="menu-toggle-row" id="showFavoritesOnMapButton" type="button" data-state="idle">
                                 <span class="menu-toggle-copy">
-                                    <strong>Show on Map</strong>
+                                    <strong>Show on map</strong>
                                     <span id="showFavoritesOnMapLabel">Off</span>
                                 </span>
                                 <span class="menu-toggle-pill" aria-hidden="true"></span>
                             </button>
                             <div class="favorites-list" id="favoritesList"></div>
-                            <p class="favorites-empty" id="favoritesEmpty">No saved locations yet.</p>
+                            <p class="favorites-empty" id="favoritesEmpty">Your favorite places will appear here. Use “Add favorite” to save a spot on the map.</p>
                         </div>
                     </div>
 
@@ -193,7 +196,8 @@
                             aria-expanded="false"
                             aria-controls="routingSectionPanel"
                         >
-                            <span class="menu-group-title">Routing</span>
+                            <svg class="menu-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v7a5 5 0 0 0 10 0V9m-3 3 3-3 3 3"/></svg>
+                            <span class="menu-category-copy"><span class="menu-group-title">Plan a route</span><span class="menu-category-description">Walking, hiking and mountain biking</span></span>
                             <span class="menu-section-toggle-icon" aria-hidden="true"></span>
                         </button>
                         <div class="menu-section-panel" id="routingSectionPanel">
@@ -229,7 +233,8 @@
                             aria-expanded="false"
                             aria-controls="mapsSectionPanel"
                         >
-                            <span class="menu-group-title">Maps</span>
+                            <svg class="menu-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15m6-12v15"/></svg>
+                            <span class="menu-category-copy"><span class="menu-group-title">Map style</span><span class="menu-category-description">Street, outdoor, cycling and satellite</span></span>
                             <span class="menu-section-toggle-icon" aria-hidden="true"></span>
                         </button>
                         <div class="menu-section-panel" id="mapsSectionPanel">
@@ -269,11 +274,11 @@
                 <div class="menu-footer">
                     <div class="menu-install">
                         <button class="menu-install-button" id="menuInstallButton" type="button">Install Maphop app</button>
-                        <p class="menu-install-note" id="menuInstallNote">Maphop is a website you can add as a shortcut to your home screen. It opens like an app.</p>
+                        <p class="menu-install-note" id="menuInstallNote">Add Maphop to your home screen for quick access.</p>
                     </div>
                     <a class="menu-footer-button" href="./settings.html">Settings</a>
                     <a class="menu-footer-link" href="./impressum.html">Impressum &amp; Datenschutz</a>
-                    <a class="menu-footer-link" href="https://github.com/mdiener21/maphop" target="_blank" rel="noopener">Source Code Github</a>
+                    <a class="menu-footer-link" href="https://github.com/mdiener21/maphop" target="_blank" rel="noopener">Source code</a>
                     <span class="menu-footer-version" id="appVersion"></span>
                 </div>
             </div>
