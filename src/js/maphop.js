@@ -100,6 +100,7 @@ const routingController = createRoutingController({
     maplibregl,
     apiKey: import.meta.env.VITE_OPENROUTESERVICE_API_KEY ?? "",
     panel: dom.routingPanel,
+    summary: dom.routeSummary,
     onMenuClose: () => menuController.setOpen(false),
     onMenuOpen: () => window.setTimeout(() => {
         menuController.setOpen(true);
