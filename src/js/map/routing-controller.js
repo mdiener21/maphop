@@ -105,6 +105,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
     let markers = [];
     let route = emptyRoute();
     let requestController = null;
+    let locationRequest = null;
     let active = false;
     let selection = null;
     let draggedPointIndex = null;
@@ -317,9 +318,15 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
         });
     }
 
-    function resetRoute() {
+    function invalidatePendingWork() {
         requestController?.abort();
         requestController = null;
+        locationRequest = null;
+    }
+
+    function resetRoute() {
+        invalidatePendingWork();
+        panel.status.textContent = "";
         sheet.hide();
         route = emptyRoute();
         syncRoute();
@@ -327,28 +334,33 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
     }
 
     async function requestRoute() {
-        if (!start || !destination || !apiKey) return;
+        resetRoute();
+        if (!active || !start || !destination || !apiKey) return;
         if (!navigator.onLine) {
             panel.status.textContent = "Routing needs an internet connection.";
             return;
         }
-        requestController?.abort();
-        requestController = new AbortController();
-        sheet.hide();
+        const controller = new AbortController();
+        const points = coordinates().map((point) => [...point]);
+        const profile = panel.profile.value;
+        requestController = controller;
+        const isCurrent = () => active && requestController === controller;
         panel.status.textContent = "Finding route…";
         try {
-            const response = await fetch(`https://api.openrouteservice.org/v2/directions/${panel.profile.value}/geojson`, {
+            const response = await fetch(`https://api.openrouteservice.org/v2/directions/${profile}/geojson`, {
                 method: "POST",
                 headers: { Authorization: apiKey, "Content-Type": "application/json" },
-                body: JSON.stringify({ coordinates: coordinates(), elevation: true }),
-                signal: requestController.signal
+                body: JSON.stringify({ coordinates: points, elevation: true }),
+                signal: controller.signal
             });
+            if (!isCurrent()) return;
             if (!response.ok) throw new Error("route request failed");
             const feature = (await response.json()).features?.[0];
-            if (!feature?.geometry || !active) throw new Error("route unavailable");
+            if (!isCurrent()) return;
+            if (!feature?.geometry) throw new Error("route unavailable");
             route = { type: "FeatureCollection", features: [feature] };
             syncRoute();
-            const { label, value } = routeDuration(panel.profile.value, feature.properties);
+            const { label, value } = routeDuration(profile, feature.properties);
             panel.distance.textContent = `Distance: ${formatDistance(feature.properties.summary.distance)}`;
             panel.duration.textContent = `${label ?? "Time"}: ${value}`;
             panel.status.textContent = "";
@@ -357,15 +369,16 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
             // Only a freshly calculated route fits; style-reload re-renders go through syncRoute().
             fitRoute();
         } catch (error) {
-            if (error.name !== "AbortError") {
+            if (isCurrent() && error.name !== "AbortError") {
                 sheet.hide();
                 panel.status.textContent = "Could not calculate a route. Please try again.";
             }
+        } finally {
+            if (isCurrent()) requestController = null;
         }
     }
 
     function refreshRoute() {
-        resetRoute();
         syncMarkers();
         requestRoute();
     }
@@ -427,18 +440,28 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
     }
 
     function useCurrentLocation() {
+        if (!active) return;
+        locationRequest = null;
         if (!("geolocation" in navigator)) {
             panel.status.textContent = "This browser does not support location access.";
             return;
         }
+        const request = {};
+        locationRequest = request;
+        const isCurrent = () => active && locationRequest === request;
         panel.status.textContent = "Requesting your current location…";
         navigator.geolocation.getCurrentPosition(
             (position) => {
+                if (!isCurrent()) return;
                 start = [position.coords.longitude, position.coords.latitude];
                 refreshRoute();
-                panel.status.textContent = "Now select a destination.";
+                if (!destination) panel.status.textContent = "Now select a destination.";
             },
-            () => { panel.status.textContent = "Location access was denied or unavailable."; },
+            () => {
+                if (!isCurrent()) return;
+                locationRequest = null;
+                panel.status.textContent = "Location access was denied or unavailable.";
+            },
             { enableHighAccuracy: true, maximumAge: 15000, timeout: 15000 }
         );
     }

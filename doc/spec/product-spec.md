@@ -402,6 +402,21 @@ When a route is successfully calculated, the route details appear in a summary s
 - After the first successful route, the map fits to the route bounds automatically, once per new route.
 - Accessibility: `role="region"` with `aria-label="Route summary"`, `aria-live="polite"` on the primary figures, keyboard-operable buttons, and transitions disabled when `prefers-reduced-motion` is set.
 
+### 4.14 Routing Request Lifetime
+
+This change covers request lifetime only. The existing routing controller interface and the summary sheet described in §4.13 remain in place, including slope-aware durations, point details, and Fit/Edit/Clear actions.
+
+- A route calculation belongs to the ordered points and routing profile captured when it starts. Geometry, distance, duration, and summary coordinates must all describe that same calculation.
+- Changing points or profile, clearing the route, or closing routing invalidates earlier route calculations and pending routing location lookups. Starting another location lookup supersedes the previous lookup.
+- Invalidated work cannot change route geometry, markers, summary, or status, whether it completes successfully or fails. Closing and reopening routing does not make earlier work valid again.
+- Abort route requests where possible, and independently check that each completion still belongs to the current calculation after asynchronous work. Browser location lookups that cannot be aborted are ignored when invalidated.
+- Every recalculation immediately removes the previous route geometry, distance/duration display, and summary. On failure, preserve the selected points and markers for retry and show the current calculation's failure status.
+- A base-map style reload restores current accepted route geometry without invalidating the calculation or starting another request.
+
+**Implementation scope:** concentrate calculation ownership inside the existing routing module. Keep its public interface unchanged; avoid a forwarding module or generalized provider abstraction. Capture points/profile before sending a request and keep result presentation tied to those captured values.
+
+**Acceptance checks:** delayed route success/failure cannot overwrite a newer calculation; Clear and Close suppress pending completions even after reopening; delayed location success/failure cannot override newer user choices; profile changes clear stale geometry and summary even if recalculation fails; accepted results still restore after a style reload. Retain existing routing and production rendering coverage.
+
 ---
 
 ## User Flows
