@@ -9,6 +9,242 @@
 
 ### Changed
 
+### Fixed
+
+### Removed
+
+## [2.0.19] - 2026-11-08
+
+### Added
+
+### Changed
+
+- Documented the routing request lifetime rules and acceptance checks for stale results, recalculation, and delayed location lookups.
+
+- Condensed `CLAUDE.md` into verified repository conventions, test commands, and map/PWA integration gotchas.
+
+### Fixed
+
+- Updated deployment dependency installation and version staging for the pnpm lockfile, retaining main’s test dependency security upgrades.
+
+- Reconciled routing request lifetime guards with the route summary sheet and slope-aware travel times when merging main into PR #30.
+
+- Prevent stale routing results and delayed location callbacks from overwriting newer selections or cleared/closed routing; clear previous geometry and summary consistently on profile changes.
+
+### Removed
+
+## [2.0.18] - 2026-11-08
+
+### Added
+
+### Changed
+
+- Documented the routing request lifetime rules and acceptance checks for stale results, recalculation, and delayed location lookups.
+
+- Condensed `CLAUDE.md` into verified repository conventions, test commands, and map/PWA integration gotchas.
+
+### Fixed
+
+- Updated deployment dependency installation and version staging for the pnpm lockfile, retaining main’s test dependency security upgrades.
+
+- Reconciled routing request lifetime guards with the route summary sheet and slope-aware travel times when merging main into PR #30.
+
+- Prevent stale routing results and delayed location callbacks from overwriting newer selections or cleared/closed routing; clear previous geometry and summary consistently on profile changes.
+
+### Removed
+
+## [2.0.17] - 2026-10-27
+
+### Added
+
+### Changed
+
+- Mountain-bike riding time (#28): Mountain-bike routes previously showed the ORS time, which ignores climbing. They now show a slope-aware riding time calculated on the device, labelled "Riding time (est.)": distance ÷ 18 km/h + ascent ÷ 750 m/h, with descent adding no time. It is moving time only, without breaks. The constants were fitted to one recorded mountain-bike ride analysed in 200 m segments (16.5 km, 412 m up, 88 min including slow sections); against that ride's strict moving time (82 min) the estimate is about 10% conservative. The calculator lives in `src/js/map/riding-time.js`. If ORS returns no ascent, the sheet and the Routing panel fall back to the ORS time labelled "est.". Hiking and Walking keep DIN 33466.
+
+### Fixed
+
+### Removed
+
+## [2.0.16] - 2026-10-27
+
+### Added
+
+- Route Summary Sheet (#23): after a route is calculated, its type (with a walker or bike icon), distance and time appear in a dark glass sheet. On phones it is a 64px bar docked at the bottom; on desktop it is a 320px card at the bottom-left, narrowing to `min(320px, 100vw − 448px)` to clear the open menu. The sheet UI lives in its own module, `src/js/map/route-summary-sheet.js`. It hides while a route is loading, on failure, on Clear and when the Routing panel closes. The × hides it but keeps the route, and it comes back on the next route or when the Routing panel reopens.
+- DIN 33466 hiking time (#24): Hiking and Walking routes now show a slope-aware time calculated on the device ("Hiking time (DIN 33466)"), plus total ascent and descent (↑ m / ↓ m). ORS directions are requested with `elevation: true`. Mountain-bike routes keep the ORS time labelled "est."; if ORS returns no ascent/descent, the sheet falls back to the ORS time and hides the ↑/↓ row. The Routing panel's time line shows the same duration and label as the sheet.
+- Expandable Route Summary Sheet (#25): on phones, tap the handle or the summary row, or swipe it up or down (about 30px), to expand or collapse the sheet. The toggle reports `aria-expanded`. The expanded sheet lists Start / Stop n / Destination with their coordinates, colour-coded green, blue and red like the route pins, below the ↑/↓ ascent/descent row. Each new route starts collapsed. On desktop the card is always expanded, the toggle is hidden, and header clicks don't change the expand state.
+- Route Summary Sheet actions (#26): **Fit route** zooms the map to the route bounds. On phones its bottom padding is the sheet's current height plus a 40px margin, so the sheet doesn't cover the route; on desktop it uses the 40px margin only. Route bounds are computed with a loop, so very long routes can't overflow the call stack. **Edit** opens the control menu on the Routing section. **Clear** removes the route, the pins and the sheet, the same as the panel's "Clear route" button. The map fits to each newly calculated route automatically, but not when the route is drawn again after a base-map style change. On phones the actions show when the sheet is expanded; on desktop they always show.
+
+### Changed
+
+- Bottom-docked map controls (re-center, compass, location, attribution, status toast) and the PWA install banner move up while the Route Summary Sheet is visible, following its current height when it expands.
+- `.gitignore` now excludes personal activity recordings (`*.tcx`, `*.gpx`, `*.fit`) so GPS tracks with heart-rate data can't be committed by accident.
+- Route pin colours are now shared CSS custom properties (`--route-pin-start`, `--route-pin-stop`, `--route-pin-destination`), so the summary point list matches the map pins.
+
+### Fixed
+
+- Dev-dependency security advisories: upgraded `vitest` and `@vitest/coverage-v8` from 4.1.11 to 5.0.5 (GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp) and bumped the transitive `undici` past 7.30.0 (GHSA-4qv8-2p9j-2685, GHSA-f72v-6w45-q472, GHSA-xjj6-f33q-929c). `npm audit` now reports 0 vulnerabilities. No runtime dependencies changed.
+
+### Removed
+
+- The white MapLibre route summary popup at the destination, and its popup CSS.
+
+## [2.0.15] - 2026-10-27
+
+### Added
+
+### Changed
+
+- Refreshed `CLAUDE.md`: corrected module locations (`baseMapConfigs`, `setBaseLayer()`), removed references to deleted files, added test commands, issue-tracker workflow, and API-key/privacy notes.
+
+### Fixed
+
+### Removed
+
+## [2.0.14] - 2026-10-26
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.13] - 2026-10-26
+
+### Added
+
+- Routing now shows a dismissible map popup after successful route generation with distance, duration, start/destination coordinates, and stop count.
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.12] - 2026-09-11
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.11] - 2026-09-11
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.10] - 2026-09-11
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.9] - 2026-09-11
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.8] - 2026-09-11
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.7] - 2026-09-11
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.6] - 2026-09-10
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.5] - 2026-09-10
+
+### Added
+
+### Changed
+
+### Fixed
+
+- lftp deploy fixed
+
+### Removed
+
+## [2.0.4] - 2026-09-10
+
+### Added
+
+### Changed
+
+### Fixed
+
+- Routing controls remain reachable for long routes through scrollable menu content.
+
+### Removed
+
+## [2.0.3] - 2026-09-10
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.2] - 2026-09-10
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2.0.1] - 2026-09-10
+
+### Added
+
+- Documented nginx security-header configuration for the production host in `doc/deploy/nginx-security-headers.conf`.
+- Security review report covering application code, dependencies, and deployment (`doc/security/security-review-2026-09-10.md`).
+
+### Changed
+
 - Made the menu's Maphop installation action a compact secondary control.
 - Documented the public tile/routing API keys and the PocketBase token storage as accepted risks in the product spec.
 - Corrected the product spec's privacy section to disclose the cookieless Umami analytics script.
@@ -19,6 +255,10 @@
 - Hardened browser security policies, deployment certificate checks, and dependency security updates.
 - Resolved all remaining dependency advisories; `npm audit` now reports zero vulnerabilities.
 - Added the missing `form-action` restriction to the Impressum page security policy.
+- Resolved all remaining dependency advisories; `npm audit` now reports zero vulnerabilities.
+- Added the missing `form-action` restriction to the Impressum page security policy.
+- Routing made no request on the deployed site: the CI build ran without `VITE_*` keys, so Vite inlined an empty API key. The deploy workflow now passes the Thunderforest and OpenRouteService keys from repository secrets.
+- Restored FTPS certificate verification on deploy by connecting through the hostname on the server's TLS certificate (`FTP_HOST` secret); the earlier failure was a hostname mismatch, not an invalid certificate.
 
 ### Removed
 
@@ -40,6 +280,19 @@
 ### Fixed
 
 - Routing controls remain reachable for long routes through scrollable menu content.
+
+### Removed
+
+- Redundant Route action from the Routing view.
+
+=======
+## [1.6.12] - 2026-09-10
+
+### Added
+
+### Changed
+
+### Fixed
 
 ### Removed
 

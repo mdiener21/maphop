@@ -27,6 +27,7 @@ test.describe('Map page', () => {
     test('shows base map layer buttons', async ({ page }) => {
         await page.goto('/');
         await page.locator('#layerMenuButton').click();
+        await page.locator('#mapsSectionToggle').click();
         await expect(page.locator('[data-layer-key]').first()).toBeVisible();
     });
 
@@ -35,6 +36,64 @@ test.describe('Map page', () => {
         await page.locator('#layerMenuButton').click();
         await page.locator('#routingSectionToggle').click();
         await expect(page.locator('#routingPanel')).toBeVisible();
+    });
+
+    test('keeps a long routing list scrollable in a desktop menu', async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 720 });
+        await page.goto('/');
+        await page.locator('#layerMenuButton').click();
+        await page.locator('#routingSectionToggle').click();
+        await page.locator('#routePointsList').evaluate((list) => {
+            list.hidden = false;
+            list.replaceChildren(...Array.from({ length: 16 }, (_, index) => {
+                const point = document.createElement('div');
+                point.className = 'routing-point-row';
+                point.textContent = `Waypoint ${index + 1}`;
+                return point;
+            }));
+        });
+
+        const layout = await page.locator('#menuShell').evaluate((menu) => {
+            const content = menu.querySelector('#layerMenu');
+            return {
+                width: menu.getBoundingClientRect().width,
+                canScroll: content.scrollHeight > content.clientHeight,
+                overflowY: getComputedStyle(content).overflowY,
+            };
+        });
+
+        expect(layout.width).toBe(400);
+        expect(layout.canScroll).toBe(true);
+        expect(layout.overflowY).toBe('auto');
+    });
+
+    test('returns to the menu with Escape and restores keyboard focus', async ({ page }) => {
+        await page.goto('/');
+        await page.locator('#layerMenuButton').click();
+        await page.locator('#mapsSectionToggle').click();
+        await expect(page.locator('#menuTitle')).toHaveText('Map style');
+        await expect(page.locator('#menuBackButton')).toBeFocused();
+        await page.keyboard.press('Escape');
+        await expect(page.locator('#mapsSectionToggle')).toBeFocused();
+        await page.keyboard.press('Escape');
+        await expect(page.locator('#layerMenu')).toBeHidden();
+        await expect(page.locator('#layerMenuButton')).toBeFocused();
+    });
+
+    test('keeps mobile navigation and long map lists reachable', async ({ page }) => {
+        await page.setViewportSize({ width: 320, height: 568 });
+        await page.goto('/');
+        await page.locator('#layerMenuButton').click();
+        const bounds = await page.locator('#menuShell').boundingBox();
+        expect(bounds.y).toBeGreaterThanOrEqual(72);
+        expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+        await page.locator('#mapsSectionToggle').click();
+        await page.locator('[data-layer-key="basemapGrauWmts"]').scrollIntoViewIfNeeded();
+        await expect(page.locator('[data-layer-key="basemapGrauWmts"]')).toBeInViewport();
+        await expect(page.locator('#menuBackButton')).toBeInViewport();
+        await page.locator('#menuBackButton').click();
+        await page.locator('a[href*="settings"]').first().click();
+        await expect(page).toHaveURL(/settings/);
     });
 
     test('has all expected base map layers', async ({ page }) => {

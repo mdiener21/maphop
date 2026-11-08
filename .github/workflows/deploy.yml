@@ -38,10 +38,14 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.15.0
+
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
+          cache: pnpm
 
       - name: Configure git
         run: |
@@ -71,7 +75,7 @@ jobs:
           text = open(path).read()
           open(path, 'w').write(text.replace('## [Unreleased]', new_block + f'## [{v}] - {d}', 1))
           PYEOF
-          git add package.json package-lock.json CHANGELOG.md
+          git add package.json pnpm-lock.yaml CHANGELOG.md
           git commit -m "chore: bump version to v$NEW_VERSION"
           git push
           echo "SKIP_DEPLOY=true" >> $GITHUB_ENV
@@ -99,26 +103,42 @@ jobs:
           text = open(path).read()
           open(path, 'w').write(text.replace('## [Unreleased]', new_block + f'## [{v}] - {d}', 1))
           PYEOF
-          git add package.json package-lock.json CHANGELOG.md
+          git add package.json pnpm-lock.yaml CHANGELOG.md
           git commit -m "chore: bump version to v$NEW_VERSION [skip ci]"
           git push
 
       # ── Build & deploy ───────────────────────────────────────────────────────
       # Skipped after an auto patch bump (the next triggered run will deploy).
       # Runs on bump commits and manual dispatches.
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
         if: env.SKIP_DEPLOY != 'true'
 
+      # The tile/routing keys must be present at build time: Vite inlines them
+      # into the bundle via `define` in vite.config.js. Without them the build
+      # succeeds but ships an empty key, and routing silently makes no request.
       - run: npm run build
         if: env.SKIP_DEPLOY != 'true'
+        env:
+          VITE_THUNDERFOREST_API_KEY: ${{ secrets.VITE_THUNDERFOREST_API_KEY }}
+          VITE_OPENROUTESERVICE_API_KEY: ${{ secrets.VITE_OPENROUTESERVICE_API_KEY }}
 
       - name: Install lftp
         if: env.SKIP_DEPLOY != 'true'
         run: sudo apt-get update && sudo apt-get install -y lftp ca-certificates
 
+      # Connect using the hostname on the server's TLS certificate, not maphop.eu.
+      # The host presents a valid DigiCert/Thawte-issued cert for *.your-server.de,
+      # so connecting as maphop.eu fails hostname verification — that mismatch, not
+      # a bad certificate, is why verification was previously turned off.
       - name: Deploy via lftp
         if: env.SKIP_DEPLOY != 'true'
         run: |
+          if [ -z "${FTP_HOST}" ]; then
+            echo "::error::FTP_HOST secret is not set. It must be the hostname on the server's"
+            echo "::error::TLS certificate (e.g. wXXXXXXX.your-server.de), taken from the hosting"
+            echo "::error::panel. maphop.eu is not covered by that certificate."
+            exit 1
+          fi
           lftp -c "
             set net:max-retries 3;
             set net:timeout 20;
@@ -127,11 +147,12 @@ jobs:
             set ftp:ssl-allow true;
             set ftp:ssl-force true;
             set ftp:ssl-protect-data yes;
-            open -u ${FTP_USER},${FTP_PASSWORD} -p 21 maphop.eu;
+            open -u ${FTP_USER},${FTP_PASSWORD} -p 21 ${FTP_HOST};
             mirror --reverse --delete --verbose ./dist/ ./public_html/;
             bye;
           "
         env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
           FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
 

@@ -1,54 +1,38 @@
-# CLAUDE.md
+# Maphop rules
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Structure and patterns
 
-## Project Overview
+- Local-first map PWA: vanilla JavaScript ES modules, MapLibre GL JS, PMTiles, optional PocketBase backup; Vite builds `src/` into `dist/`. Use pnpm (lockfile committed); CI uses Node 24.
+- Before changing an area, use `doc/architecture/code-map.md` to find its owner, then read the relevant source and tests. Update the index when ownership moves.
+- `src/js/maphop.js` is the map bootstrap. Put map features in `src/js/map/`; centralize map-page DOM lookups in `map/dom.js`. Settings and legal pages have separate HTML/JS entry points; `page-shell.js` shares title/version wiring.
+- Follow `create*Controller({ map, ...deps })` factories with injected dependencies and small helpers. Example: `src/js/map/base-layer-controller.js`, tested through its public interface in `tests/unit/base-layer-controller.test.js` using a fake map.
+- Use `const` by default, camelCase, explicit `.js` import extensions, and 4-space indentation in application JS. Keep DOM lookups near the top and listener wiring near the bottom.
+- Favorites persistence is in `favorite-store.js`; import/export validation in `favorite-transfer.js`; elevation selection in `favorite-elevation.js`; optional remote backup in `favorite-cloud-store.js`.
 
-Maphop is a local-first, privacy-first PWA map viewer built with Vite. Source files live in `src/`.
+## Commands and verification
 
-## Commands
+- Install: `pnpm install`. Develop: `pnpm dev`. Build: `pnpm build`. Preview: `pnpm preview`.
+- Before calling a change done, run `pnpm test` and `pnpm build`.
+- Unit tests: Vitest + jsdom in `tests/unit/**/*.test.js`; focused run: `pnpm vitest run tests/unit/base-layer-controller.test.js`. Coverage: `pnpm test:coverage`. IndexedDB tests use `fake-indexeddb`.
+- Browser flows: `pnpm test:e2e` uses Firefox and starts Vite automatically.
+- Build/worker/route rendering: `pnpm test:e2e:production` uses Chromium against a **local production build**, blocks service workers, and supplies a fake routing key. Its isolated build goes to `.playwright/production-dist`, not deployable `dist/`. Install the relevant Playwright browser if absent.
+- Test observable controller behavior with fake maps and injected dependencies; use existing tests as patterns. No lint or type-check script is configured.
 
-- `npm run dev` — start Vite dev server
-- `npm run build` — production build to `dist/`
-- `npm run preview` — preview the production build
+## Gotchas and boundaries
 
-## Architecture
+- Style changes discard custom sources/layers. Restore terrain, location, favorites, and routes through the style-ready hooks in `maphop.js`; preserve base-layer timeout and rollback behavior.
+- `baseMapConfigs` in `map/base-map-registry.js` owns provider definitions. Add a matching `data-layer-key` button in `src/index.html` for a new provider. Keep attribution structured and DOM-rendered; use safe text rendering for user data.
+- Preserve MapLibre's explicit bundled worker URL (`?worker&url` in `maphop.js`): the default sibling worker URL is absent from the production build.
+- IndexedDB `personal-map-db` / `favoriteLocations` is the local source of truth. Keep cloud backup opt-in and authenticated, with sign-in on Settings. Geolocation is opt-in; keep location data on-device apart from explicitly requested external features.
+- Routing sends points to OpenRouteService; elevation lookup can contact Open-Meteo; tile providers receive map requests. Preserve provider attribution and privacy disclosures when changing integrations.
+- Service worker registration is production-only in a secure context. `src/public/sw.js` caches same-origin app assets; cross-origin tiles bypass it. Preserve that provider-cache policy.
+- Vite's base is `./`, but manifest scope/start URL and service worker registration use `/`. Coordinate all three for deployment-path changes. Only index, settings, and impressum are build inputs; `src/mapterhorn-index.html` is an experiment.
+- `VITE_THUNDERFOREST_API_KEY` and `VITE_OPENROUTESERVICE_API_KEY` are public client keys inlined at build time. A build can succeed with empty keys and broken provider features. Keep `.env` files and secret credentials out of commits/client code; use referrer restrictions for public keys.
+- Ask before adding runtime dependencies.
 
-The app is now split across page entrypoints and small support modules under `src/`:
+## Workflow and deeper context
 
-- **`index.html`** — live map shell with the control menu, map container, and status toast.
-- **`settings.html`** — settings page for favorites backup and future map-source configuration.
-- **`impressum.html`** — legal/privacy page.
-- **`js/maphop.js`** — main map page logic: map initialization, base map switching, favorites UI, service worker registration.
-- **`js/location-tracker.js`** — geolocation tracking, geo-math helpers, and overlay rendering.
-- **`js/favorite-store.js`** — IndexedDB access for favorites.
-- **`js/favorite-transfer.js`** — import/export validation and transfer helpers.
-- **`js/page-shell.js`** — shared page title and version-label wiring.
-
-Supporting files:
-- `js/tiles.json` — reference catalog of tile providers, **not used at runtime**. The live app uses `baseMapConfigs` in `js/maphop.js`.
-- `js/temp.js` — legacy/imported reference code, not part of the app flow. Avoid editing unless explicitly asked.
-- `manifest.webmanifest` — PWA manifest scoped to `/`.
-
-## Workflow
-
-- **Always plan by writing up the product-spec updates `doc/spec/product-spec.md` first and show to the user to accept before implementing.
-- **Always update `CHANGELOG.md`** after making changes. Add entries under `[Unreleased]` using Keep a Changelog categories (Added, Changed, Fixed, Removed).
-- **Update `doc/spec/product-spec.md` whenever shipped behavior, architecture, user flows, or constraints change.** Keep the product spec and changelog in sync for those changes.
-
-## Key Conventions
-
-- **Code style**: ES modules, `const` by default, camelCase, 4-space indentation, small helper functions.
-- **DOM lookups** go near the top of each module; event listeners are wired near the bottom.
-- **`baseMapConfigs`** in `js/maphop.js` is the source of truth for selectable base maps. When adding a map source, also add a matching `data-layer-key` button in `index.html`.
-- **Location overlay** uses a single GeoJSON source (`user-location`) with three layers: `accuracy` (fill), `heading` (fill), `point` (circle). Preserve this model when modifying geolocation.
-- **Favorites** are stored in IndexedDB (`personal-map-db` / `favoriteLocations`). Keep everything local — no server dependencies.
-- **Deployment path** is currently `/` in Vite config and the manifest. Update those references together if that changes.
-- **`setBaseLayer()` fallback**: on style load failure, it reverts to the previous base layer. Preserve this behavior.
-- **Privacy**: geolocation is opt-in; location data stays on-device. The privacy note in the menu about tile providers inferring location should be preserved.
-
-## External Dependencies
-
-- **MapLibre GL JS** (`maplibre-gl`) — imported as an ES module in `js/maphop.js`, stylesheet imported in `css/maphop.css`.
-- **Tile providers** — third-party endpoints configured in `baseMapConfigs`. Changes affect privacy, reliability, and attribution.
-- **Browser APIs**: Geolocation, IndexedDB, Service Worker, Page Visibility/Lifecycle.
+- Before feature or behavior changes, propose the relevant update to `doc/spec/product-spec.md` and obtain user approval; keep the spec aligned with shipped behavior.
+- After every change, add an entry under `CHANGELOG.md` → `[Unreleased]` using Added / Changed / Fixed / Removed.
+- For issue work, use GitHub Issues on `mdiener21/maphop` via `gh`: specs are parent issues, tickets are native sub-issues with blocked-by links; agent-ready tickets use `ready-for-agent` plus `enhancement` or `bug`.
+- For releases, read `doc/releasing.md`. Pushing to `main` triggers automatic versioning and deployment; follow the release workflow rather than manually bumping versions.

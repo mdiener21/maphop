@@ -1,6 +1,6 @@
 {
   "name": "maphop",
-  "version": "2.0.0",
+  "version": "2.0.19",
   "description": "Simple pwa map viewer local-first, privacy first",
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:production": "playwright test --config playwright.production.config.js",
     "test:coverage": "vitest run --coverage"
   },
   "repository": {
@@ -25,11 +26,11 @@
   "homepage": "https://github.com/mdiener21/maphop#readme",
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.5",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.0.1",
-    "vite": "^8.0.2",
-    "vitest": "^4.1.11"
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
   },
   "dependencies": {
     "maplibre-gl": "^6.4.1",

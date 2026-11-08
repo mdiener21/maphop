@@ -78,6 +78,43 @@ describe("createMenuController", () => {
         expect(menuShell.classList.contains("is-detail-open")).toBe(true);
     });
 
+    it("hides closed controls and restores focus through back and Escape navigation", () => {
+        document.body.innerHTML = `
+            <section id="shell">
+                <button id="opener"></button>
+                <button id="menuBackButton" hidden>All controls</button>
+                <h1 id="menuTitle">Explore the map</h1>
+                <button id="close" hidden>Close</button>
+                <div class="menu-content" hidden>
+                    <div class="menu-group">
+                        <button id="maps" aria-controls="maps-panel"><span class="menu-group-title">Map style</span></button>
+                        <div id="maps-panel"></div>
+                    </div>
+                </div>
+            </section>`;
+        const shell = document.getElementById("shell");
+        const opener = document.getElementById("opener");
+        const maps = document.getElementById("maps");
+        const content = shell.querySelector(".menu-content");
+        const controller = createMenuController({
+            menuShell: shell, layerMenuButton: opener,
+            menuCloseButton: document.getElementById("close"), menuSectionToggleElements: [maps]
+        });
+        controller.initializeSections();
+        opener.focus();
+        controller.setOpen(true);
+        expect(content.hidden).toBe(false);
+        controller.setSectionExpanded(maps, true);
+        expect(document.getElementById("menuTitle").textContent).toBe("Map style");
+        expect(document.activeElement.id).toBe("menuBackButton");
+        shell.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        expect(document.activeElement).toBe(maps);
+        expect(shell.classList.contains("is-open")).toBe(true);
+        shell.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        expect(content.hidden).toBe(true);
+        expect(document.activeElement).toBe(opener);
+    });
+
     it("returns safely when the toggle is missing or the panel cannot be found", () => {
         const { controller } = makeController();
         const orphanToggle = document.createElement("button");
