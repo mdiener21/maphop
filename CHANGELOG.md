@@ -6,7 +6,17 @@
 
 ### Changed
 
+- Documented the routing request lifetime rules and acceptance checks for stale results, recalculation, and delayed location lookups.
+
+- Condensed `CLAUDE.md` into verified repository conventions, test commands, and map/PWA integration gotchas.
+
 ### Fixed
+
+- Updated deployment dependency installation and version staging for the pnpm lockfile, retaining main’s test dependency security upgrades.
+
+- Reconciled routing request lifetime guards with the route summary sheet and slope-aware travel times when merging main into PR #30.
+
+- Prevent stale routing results and delayed location callbacks from overwriting newer selections or cleared/closed routing; clear previous geometry and summary consistently on profile changes.
 
 ### Removed
 
