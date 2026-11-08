@@ -171,7 +171,7 @@ git clone https://github.com/mdiener21/maphop.git
 cd maphop
 
 # Install dependencies
-npm install
+pnpm install
 
 # Optional: enable Thunderforest Outdoors locally
 printf 'VITE_THUNDERFOREST_API_KEY=your-key-here\n' > .env.local
@@ -181,7 +181,7 @@ printf 'VITE_THUNDERFOREST_API_KEY=your-key-here\n' > .env.local
 printf 'VITE_OPENROUTESERVICE_API_KEY=your-key-here\n' >> .env.local
 
 # Start the Vite dev server with hot-module replacement
-npm run dev
+pnpm dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser. Changes to source files in `src/` are reflected immediately without a full reload.
@@ -196,16 +196,16 @@ Routing uses the same browser-rendered configuration. This change does not add a
 
 ```bash
 # Run unit tests once
-npm test
+pnpm test
 
 # Run unit tests in watch mode (re-runs on file save)
-npm run test:watch
+pnpm test:watch
 
 # Run unit tests with a V8 coverage report
-npm run test:coverage
+pnpm test:coverage
 
 # Run end-to-end tests (Playwright, requires Firefox)
-npm run test:e2e
+pnpm test:e2e
 ```
 
 Unit tests live in `tests/unit/` and currently cover attribution rendering, base-layer switching, install prompts, menu state, favorites transfer/store logic, location tracking, terrain lifecycle, and share-link helpers. End-to-end tests live in `tests/e2e/` and exercise the map page, settings page, impressum page, and inter-page navigation.
@@ -213,13 +213,13 @@ Unit tests live in `tests/unit/` and currently cover attribution rendering, base
 ### Building for Production
 
 ```bash
-npm run build
+pnpm build
 ```
 
 The production-ready static site is output to the `dist/` directory. You can preview it locally before deploying:
 
 ```bash
-npm run preview
+pnpm preview
 ```
 
 Open [http://localhost:4173](http://localhost:4173) to verify the built output.
@@ -230,8 +230,8 @@ Maphop is a **fully static site** — `dist/` contains only HTML, CSS, JavaScrip
 
 **Automated deployment** is handled by the GitHub Actions workflow in `.github/workflows/deploy.yml`. On every push to `main` it:
 
-1. Runs `npm ci` to install dependencies.
-2. Runs `npm run build` to produce `dist/`.
+1. Runs `pnpm install` to install dependencies.
+2. Runs `pnpm build` to produce `dist/`.
 3. Uploads `dist/` to the configured FTP host via `lftp`.
 
 To use the workflow you need two repository secrets:

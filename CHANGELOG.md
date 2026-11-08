@@ -8,6 +8,8 @@
 
 - Documented the routing request lifetime rules and acceptance checks for stale results, recalculation, and delayed location lookups.
 
+- Condensed `CLAUDE.md` into verified repository conventions, test commands, and map/PWA integration gotchas.
+
 ### Fixed
 
 - Prevent stale routing results and delayed location callbacks from overwriting newer selections or cleared/closed routing; clear previous geometry and summary consistently on profile changes.
