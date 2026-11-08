@@ -57,8 +57,35 @@ function makeMaplibreMocks() {
     return { marker, popups, maplibregl: { Marker: vi.fn(function Marker() { return marker; }), Popup } };
 }
 
+
+function deferred() {
+    let resolve, reject;
+    const promise = new Promise((done, fail) => { resolve = done; reject = fail; });
+    return { promise, resolve, reject };
+}
+
+function routeResponse(distance = 1200) {
+    return { features: [{ geometry: { type: "LineString", coordinates: [[1, 2], [3, 4]] }, properties: { summary: { distance, duration: 540 } } }] };
+}
+
+function startRouting() {
+    const map = makeStyleResetMap();
+    const panel = makePanel();
+    const { maplibregl, popups } = makeMaplibreMocks();
+    const controller = createRoutingController({ map, maplibregl, panel, apiKey: "test", onStatus: vi.fn() });
+    controller.open();
+    panel.startField.click();
+    map.handlers.click({ lngLat: { lng: 1, lat: 2 } });
+    panel.destinationField.click();
+    map.handlers.click({ lngLat: { lng: 3, lat: 4 } });
+    return { map, panel, controller, popups };
+}
+
+// Let all continuations of controlled request/location completions finish.
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 describe("routing controller", () => {
-    beforeEach(() => { document.body.replaceChildren(); vi.restoreAllMocks(); });
+    beforeEach(() => { document.body.replaceChildren(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
     it("opens for endpoint selection without a configured key", () => {
         const onStatus = vi.fn();
@@ -194,4 +221,115 @@ describe("routing controller", () => {
         panel.clearButton.click();
         expect(popups[1].remove).toHaveBeenCalledTimes(1);
     });
+
+    it.each(["success", "failure"])("ignores stale decoding %s after a newer route succeeds", async (outcome) => {
+        const oldBody = deferred();
+        const json = vi.fn(() => oldBody.promise);
+        vi.stubGlobal("fetch", vi.fn()
+            .mockResolvedValueOnce({ ok: true, json })
+            .mockResolvedValueOnce({ ok: true, json: async () => routeResponse(2400) }));
+        const { map, panel, popups } = startRouting();
+        await vi.waitFor(() => expect(json).toHaveBeenCalledOnce());
+        panel.destinationField.click();
+        map.handlers.click({ lngLat: { lng: 7, lat: 8 } });
+        await vi.waitFor(() => expect(panel.distance.textContent).toBe("Distance: 2.4 km"));
+        expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
+        const accepted = map.source("walking-route").setData.mock.calls.at(-1)[0];
+        const popup = popups.at(-1);
+        if (outcome === "success") oldBody.resolve(routeResponse(9000));
+        else oldBody.reject(new Error("late decoding failure"));
+        await settle();
+        expect(panel.distance.textContent).toBe("Distance: 2.4 km");
+        expect(panel.status.textContent).toBe("");
+        expect(map.source("walking-route").setData.mock.calls.at(-1)[0]).toBe(accepted);
+        expect(popups).toHaveLength(1);
+        expect(popup.remove).not.toHaveBeenCalled();
+        expect(popup.setLngLat).toHaveBeenCalledWith([7, 8]);
+    });
+
+    it.each(["clear", "close"])("suppresses pending success and failure after %s and reopening", async (action) => {
+        for (const outcome of ["success", "failure"]) {
+            const pending = deferred();
+            vi.stubGlobal("fetch", vi.fn(() => pending.promise));
+            const { map, panel, controller, popups } = startRouting();
+            controller[action]();
+            controller.open();
+            if (outcome === "success") pending.resolve({ ok: true, json: async () => routeResponse() });
+            else pending.reject(new Error("late network failure"));
+            await settle();
+            expect(map.source("walking-route")).toBeUndefined();
+            expect(popups).toHaveLength(0);
+            expect(panel.status.textContent).toBe("");
+            expect(panel.distance.hidden).toBe(true);
+        }
+    });
+
+    it("clears the previous route on profile change and retains points when recalculation fails", async () => {
+        const pending = deferred();
+        vi.stubGlobal("fetch", vi.fn()
+            .mockResolvedValueOnce({ ok: true, json: async () => routeResponse() })
+            .mockImplementationOnce(() => pending.promise));
+        const { map, panel, popups } = startRouting();
+        await vi.waitFor(() => expect(popups).toHaveLength(1));
+        panel.profile.value = "foot-walking";
+        panel.profile.dispatchEvent(new Event("change"));
+        expect(map.source("walking-route").setData.mock.calls.at(-1)[0].features).toEqual([]);
+        expect(panel.distance.hidden).toBe(true);
+        expect(panel.duration.hidden).toBe(true);
+        expect(popups[0].remove).toHaveBeenCalledOnce();
+        pending.reject(new Error("offline"));
+        await settle();
+        expect(panel.status.textContent).toContain("Could not calculate");
+        expect(panel.startField.textContent).toContain("2.00000, 1.00000");
+        expect(panel.destinationField.textContent).toContain("4.00000, 3.00000");
+    });
+
+    it.each(["clear", "close", "points", "profile", "lookup"])("ignores location completions superseded by %s", async (action) => {
+        const callbacks = [];
+        vi.stubGlobal("navigator", {
+            onLine: true,
+            geolocation: { getCurrentPosition: (success, failure) => callbacks.push({ success, failure }) }
+        });
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => routeResponse() }));
+        const { map, panel, controller } = startRouting();
+        await settle();
+        panel.currentLocationButton.click();
+        if (action === "clear" || action === "close") {
+            controller[action]();
+            controller.open();
+        } else if (action === "points") {
+            panel.startField.click();
+            map.handlers.click({ lngLat: { lng: 9, lat: 10 } });
+        } else if (action === "profile") {
+            panel.profile.value = "foot-walking";
+            panel.profile.dispatchEvent(new Event("change"));
+        } else {
+            panel.currentLocationButton.click();
+        }
+        await settle();
+        const before = { start: panel.startField.textContent, status: panel.status.textContent, calls: fetch.mock.calls.length };
+        callbacks[0].success({ coords: { longitude: 50, latitude: 60 } });
+        callbacks[0].failure();
+        await settle();
+        expect(panel.startField.textContent).toBe(before.start);
+        expect(panel.status.textContent).toBe(before.status);
+        expect(fetch).toHaveBeenCalledTimes(before.calls);
+        if (action === "lookup") {
+            callbacks[1].success({ coords: { longitude: 11, latitude: 12 } });
+            await settle();
+            expect(panel.startField.textContent).toContain("12.00000, 11.00000");
+        }
+    });
+
+    it("restores accepted geometry after style reload without another calculation", async () => {
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => routeResponse() }));
+        const { map, controller } = startRouting();
+        await vi.waitFor(() => expect(map.source("walking-route")).toBeDefined());
+        const accepted = map.source("walking-route").definition.data;
+        map.resetStyle();
+        controller.ensureAfterStyleLoad();
+        expect(map.source("walking-route").definition.data).toBe(accepted);
+        expect(fetch).toHaveBeenCalledOnce();
+    });
+
 });

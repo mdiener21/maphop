@@ -6,7 +6,11 @@
 
 ### Changed
 
+- Documented the routing request lifetime rules and acceptance checks for stale results, recalculation, and delayed location lookups.
+
 ### Fixed
+
+- Prevent stale routing results and delayed location callbacks from overwriting newer selections or cleared/closed routing; clear previous geometry and summary consistently on profile changes.
 
 ### Removed
 
