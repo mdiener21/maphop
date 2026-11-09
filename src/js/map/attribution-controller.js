@@ -24,10 +24,18 @@ function appendTokens(container, tokens) {
 }
 
 export function createAttributionController({ attributionText, baseMapConfigs }) {
-    function update(activeBaseLayerKey, terrainActive) {
+    function update(activeBaseLayerKey, terrainActive, searchPinVisible = false) {
         const config = baseMapConfigs[activeBaseLayerKey];
         attributionText.replaceChildren();
         appendTokens(attributionText, config.attribution);
+
+        if (searchPinVisible) {
+            attributionText.append(document.createTextNode(" · "));
+            appendTokens(attributionText, [
+                { type: "link", label: "openrouteservice", prefix: "Search by ", href: "https://openrouteservice.org/" },
+                { type: "link", label: "OpenStreetMap contributors", prefix: "© ", href: "https://www.openstreetmap.org/copyright" }
+            ]);
+        }
 
         if (terrainActive) {
             attributionText.append(document.createTextNode(" · "));

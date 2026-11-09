@@ -395,6 +395,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
 
     function onMapClick(event) {
         if (!active || !selection) return;
+        event.preventDefault?.();
         const coordinate = [event.lngLat.lng, event.lngLat.lat];
         const selectedType = selection;
         if (selectedType === "start") start = coordinate;
@@ -474,5 +475,5 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
     panel.currentLocationButton.addEventListener("click", useCurrentLocation);
     panel.clearButton.addEventListener("click", clear);
     panel.closeButton.addEventListener("click", close);
-    return { clear, close, ensureAfterStyleLoad: syncRoute, open };
+    return { clear, close, ensureAfterStyleLoad: syncRoute, open, get isSelecting() { return active && selection !== null; } };
 }

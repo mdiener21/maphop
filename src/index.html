@@ -126,6 +126,20 @@
             </div>
 
             <div class="menu-content menu-divider" id="layerMenu" hidden>
+                <div class="place-search">
+                    <form class="place-search-form" id="placeSearchForm" role="search" aria-label="Search places">
+                        <input id="placeSearchInput" type="search" aria-label="Search places" placeholder="Search places…" enterkeyhint="search" autocomplete="off" maxlength="200">
+                        <button id="placeSearchClearButton" type="button" aria-label="Clear search" hidden>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>
+                        </button>
+                        <button type="submit" aria-label="Search">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
+                        </button>
+                    </form>
+                    <p class="place-search-status" id="placeSearchStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+                    <ul class="place-search-results" id="placeSearchResults" aria-label="Places found"></ul>
+                    <p class="place-search-credit">Search by <a href="https://openrouteservice.org/" target="_blank" rel="noopener">openrouteservice</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a></p>
+                </div>
                 <div class="menu-group">
                     <button
                         class="menu-section-toggle"
@@ -325,6 +339,21 @@
             </svg>
             Re-center
         </button>
+
+        <section class="nearby-places" id="nearbyPlaces" role="region" aria-labelledby="nearbyPlacesTitle" hidden>
+            <span class="route-summary-grip nearby-places-grip" aria-hidden="true"></span>
+            <div class="nearby-places-header">
+                <svg class="nearby-places-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                <div><span class="route-summary-profile">Explore this spot</span><h2 id="nearbyPlacesTitle">Nearby places</h2></div>
+                <button class="route-summary-close" id="nearbyPlacesCloseButton" type="button" aria-label="Close nearby places">×</button>
+            </div>
+            <p class="nearby-places-status" id="nearbyPlacesStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+            <ul class="nearby-places-results" id="nearbyPlacesResults" aria-label="Nearby places found"></ul>
+            <div class="nearby-places-footer">
+                <p class="place-search-credit">Search by <a href="https://openrouteservice.org/" target="_blank" rel="noopener">openrouteservice</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a></p>
+                <button class="route-summary-action" id="nearbyPlacesClearButton" type="button" aria-label="Clear nearby places">Clear</button>
+            </div>
+        </section>
 
         <section class="route-summary" id="routeSummary" role="region" aria-label="Route summary" hidden>
             <button class="route-summary-toggle" id="routeSummaryToggle" type="button" aria-expanded="false" aria-controls="routeSummaryDetails routeSummaryPoints routeSummaryActions" aria-label="Show route details"><span class="route-summary-grip" aria-hidden="true"></span></button>

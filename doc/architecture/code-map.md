@@ -20,6 +20,7 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Terrain and hillshade lifecycle | `src/js/map/terrain-controller.js` |
 | Attribution widget rendering or open/close state | `src/js/map/attribution-controller.js` |
 | Menu open state or expandable sections | `src/js/map/menu-controller.js` |
+| Menu place search, map-click nearby panel, ORS forward/reverse geocoding requests, selection and search pin | `src/js/map/place-search-controller.js` |
 | Favorites rendering, share/save/delete flows, or map navigation from favorites | `src/js/map/favorites-panel.js` |
 | Shared location URL format and deep-link parsing | `src/js/map/share-location.js` |
 | PWA install prompt and iOS install hint behavior | `src/js/map/install-prompt-controller.js` |
@@ -51,6 +52,8 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Base layer controller | `tests/unit/base-layer-controller.test.js` |
 | Install prompt controller | `tests/unit/install-prompt-controller.test.js` |
 | Menu controller | `tests/unit/menu-controller.test.js` |
+| Place search controller | `tests/unit/place-search-controller.test.js` |
+| Nearby-place panel and route/favorite click guards in a real browser | `tests/production/nearby-places.spec.js` |
 | Routing controller and Route Summary Sheet (behaviour through `createRoutingController`) | `tests/unit/routing-controller.test.js` |
 | Route Summary Sheet module (`destroy()`) | `tests/unit/route-summary-sheet.test.js` |
 | Terrain controller | `tests/unit/terrain-controller.test.js` |

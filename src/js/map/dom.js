@@ -10,6 +10,20 @@ export function getMapPageDom() {
         layerMenuButton: document.getElementById("layerMenuButton"),
         menuCloseButton: document.getElementById("menuCloseButton"),
         layerMenu: document.getElementById("layerMenu"),
+        placeSearch: {
+            form: document.getElementById("placeSearchForm"),
+            input: document.getElementById("placeSearchInput"),
+            clearButton: document.getElementById("placeSearchClearButton"),
+            status: document.getElementById("placeSearchStatus"),
+            results: document.getElementById("placeSearchResults")
+        },
+        nearbyPlaces: {
+            root: document.getElementById("nearbyPlaces"),
+            status: document.getElementById("nearbyPlacesStatus"),
+            results: document.getElementById("nearbyPlacesResults"),
+            closeButton: document.getElementById("nearbyPlacesCloseButton"),
+            clearButton: document.getElementById("nearbyPlacesClearButton")
+        },
         locateButton: document.getElementById("locateButton"),
         mapLocationToggleButton: document.getElementById("mapLocationToggleButton"),
         locationToggleLabel: document.getElementById("locationToggleLabel"),

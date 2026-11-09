@@ -74,6 +74,20 @@ beforeEach(() => {
 });
 
 describe("createFavoritesOverlay", () => {
+    it("recognizes visible favorite pins so map inspection can leave their clicks alone", () => {
+        const map = makeMap();
+        map.queryRenderedFeatures = vi.fn(() => [{ id: "favorite" }]);
+        const overlay = createFavoritesOverlay(map);
+        overlay.ensureAfterStyleLoad();
+        const button = document.createElement("button");
+        overlay.initToggleButton(button);
+        expect(overlay.hasPinAt({ x: 100, y: 100 })).toBe(false);
+        button.click();
+        expect(overlay.hasPinAt({ x: 100, y: 100 })).toBe(true);
+        map.queryRenderedFeatures.mockReturnValue([]);
+        expect(overlay.hasPinAt({ x: 100, y: 100 })).toBe(false);
+    });
+
     it("creates the favorite popup with scoped styling, details, and an upward offset", () => {
         const map = makeMap();
         const overlay = createFavoritesOverlay(map);

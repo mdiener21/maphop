@@ -1,6 +1,6 @@
 # Product Spec: Maphop
 
-**v1.15 · 2026-08-16 · Status: Active**
+**v1.16 · 2026-11-09 · Status: Active**
 
 Local-first, privacy-first PWA map viewer. No accounts required; optional PocketBase sign-in can back up favorites to a user-controlled backend.
 
@@ -419,6 +419,23 @@ This change covers request lifetime only. The existing routing controller interf
 
 ---
 
+### 4.15 Menu Place Search
+
+- Clicking/tapping an unclaimed map point sends its coordinates to ORS `/geocode/reverse` with OSM sources, a 0.1 km radius, `venue,address,street` layers, and up to three matches. Display names, addresses, and available distances in a bottom panel; never open a map-anchored popup or change the map view. Matches reporting distances beyond 100 metres are omitted.
+- The nearby panel shares the routing summary's dark/glass styling: full-width at the bottom on phones, a bottom-left card on desktop, and a bounded scrolling result area. Lift map controls above it. Temporarily hide an existing route summary while nearby places are visible; closing restores the route summary without changing route state.
+- Nearby Close, nearby Clear, and menu Clear remove the panel and pin and cancel pending work. A new click replaces the lookup; late results cannot overwrite newer clicks, typed searches, or clearing. Opening route or favorite selection dismisses nearby results. Those selection clicks and existing DOM/GeoJSON marker clicks do not start reverse lookups.
+
+- A “Clear search” button appears when a query or pin exists. It resets the query, results, and status; removes the search pin and its map attribution; invalidates pending requests; and returns focus to the input without moving the map. Deleting the entire query has the same clearing behavior.
+
+- A compact search input and submit button appear below “Explore the map” in the open menu; search is hidden in category detail views. Match existing menu styling with 44px minimum touch targets, visible focus, and no automatic keyboard opening.
+- Enter, the mobile Search key, or the search button submits to ORS `/geocode/search` using the existing `VITE_OPENROUTESERVICE_API_KEY`, OSM sources, and five worldwide results. No autocomplete or device-location lookup.
+- Results show safely rendered place names and addresses as keyboard-accessible buttons. Loading, empty results, unavailable service, and missing key have inline status messages. Changed queries invalidate pending results; requests time out after 15 seconds.
+- Selection closes the menu, dismisses the keyboard, replaces the search marker, and fits valid result bounds (maximum zoom 16) or flies to the coordinates at zoom 16. Honor reduced motion. Pause location-following so GPS updates do not undo the selected view; tracking remains available.
+- Query and results persist only in page memory, including when the menu is reopened. Requests bypass persistent app caching; provider credits appear with results and in map attribution while the search pin is visible, including after style changes.
+- No backend, additional dependencies, persistent history, or routing actions are added.
+
+---
+
 ## User Flows
 
 ### Flow 1: First Visit
@@ -567,6 +584,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 ## Non-Functional Requirements
 
 ### Privacy
+- Place search sends the submitted query or explicitly clicked map coordinates, plus the browser's network address, to openrouteservice/HeiGIT. It does not request the device location. Queries/results stay in page memory only; the legal page discloses the provider.
 - No accounts required; PocketBase auth is opt-in for cloud favorite backup.
 - Geolocation opt-in; selected favorite coordinates are sent to Open-Meteo only during user-initiated favorite save elevation lookup.
 - If PocketBase backup is enabled, saved favorite name, coordinates, optional elevation, device ID, and authenticated user context are sent to `https://pb.kanvana.com`.
@@ -682,7 +700,6 @@ Not committed work items — known gaps and potential directions:
 - **Route/track recording** — leverage existing geolocation infrastructure for GPS tracks.
 - **Favorite categories/tags** — organize beyond a flat chronological list.
 - **Custom tile provider configuration** — user-defined tile URLs beyond the built-in maps and optional Thunderforest layer.
-- **Search/geocoding** — address lookup (e.g., Nominatim).
 - **Distance measurement** — tap-to-measure between two points.
 - **Dark/light theme toggle** — current dark theme is hardcoded.
 - **Altitude/elevation profile** — surface per-point elevation from Mapterhorn DEM.

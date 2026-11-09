@@ -4,7 +4,12 @@
 
 ### Added
 
+- Search for places by name in the menu and jump to a result on the map.
+- Click the map to see nearby places in a bottom panel. Clear search to remove results and pins.
+
 ### Changed
+
+- Added place-search privacy details.
 
 ### Fixed
 
