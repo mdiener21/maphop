@@ -455,6 +455,7 @@ export function createFavoritesPanel({
     }
 
     return {
+        get isSelecting() { return selectionActive; },
         loadFavorites,
         startFavoriteSelection,
         promptFavoriteNameAt

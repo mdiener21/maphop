@@ -200,6 +200,10 @@ export function createFavoritesOverlay(map) {
     }
 
     return {
+        hasPinAt(point) {
+            return visible && Boolean(map.getLayer(layerId))
+                && map.queryRenderedFeatures(point, { layers: [layerId] }).length > 0;
+        },
         ensureAfterStyleLoad,
         update,
         initToggleButton

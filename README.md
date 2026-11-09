@@ -176,7 +176,7 @@ pnpm install
 # Optional: enable Thunderforest Outdoors locally
 printf 'VITE_THUNDERFOREST_API_KEY=your-key-here\n' > .env.local
 
-# Optional: enable walking and hiking routing locally
+# Optional: enable place search and walking/hiking routing locally
 # Add your own OpenRouteService key locally; never commit it.
 printf 'VITE_OPENROUTESERVICE_API_KEY=your-key-here\n' >> .env.local
 
@@ -190,7 +190,15 @@ Open [http://localhost:5173](http://localhost:5173) in your browser. Changes to 
 
 If you enable Thunderforest Outdoors, keep in mind that this is a browser-rendered tile layer: the key stays out of the repository, but it is still visible to users of a deployed build. Restrict the key in your Thunderforest account to the intended domains and usage limits.
 
-Routing uses the same browser-rendered configuration. This change does not add an OpenRouteService key to any `.env` file. A `VITE_` value is included in a client build, so use a domain-restricted, quota-limited key; use a server-side proxy if the credential must remain secret.
+Routing and place search use the same browser-rendered configuration. A `VITE_` value is included in a client build, so use a domain-restricted, quota-limited key; use a server-side proxy if the credential must remain secret.
+
+Open the map menu and enter a place name, such as “WU Wien”. Press Enter or the search button, then select a match to close the menu and zoom to its pin. Search uses openrouteservice's hosted Pelias geocoder with OpenStreetMap data; it requires a configured key and a network connection. Queries are sent only on submission, with no autocomplete or persistent search history. Query and results remain available while the page stays open.
+
+Matches depend on ORS's indexed data and ranking. Live verification on 2026-11-09 returned campus-related places for “WU Wien”, but not the university itself; the full German name also did not return the university. The app displays provider results without adding local name aliases.
+
+Use the × button in the search field to clear the query, results, and map pin. Deleting the entire query also removes the pin. Clearing cancels any pending search and leaves the current map view in place.
+
+Click or tap the map to inspect up to three nearby OSM places within about 100 metres. A bottom panel styled like the routing summary shows their names, addresses, and available distances, without moving the map. Close or Clear removes the panel and pin. Each new click replaces the previous lookup; route/favorite selection and existing markers retain their own click actions. Clicked coordinates are sent to openrouteservice only for these explicit lookups and are not saved as search history.
 
 ### Running Tests
 

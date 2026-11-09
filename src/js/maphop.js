@@ -12,6 +12,7 @@ import { createFavoritesOverlay, createPinImageData } from "./map/favorites-over
 import { createFavoritesPanel } from "./map/favorites-panel.js";
 import { createInstallPromptController } from "./map/install-prompt-controller.js";
 import { createMenuController } from "./map/menu-controller.js";
+import { createPlaceSearchController } from "./map/place-search-controller.js";
 import { createRoutingController } from "./map/routing-controller.js";
 import { registerScopedServiceWorker } from "./map/service-worker.js";
 import { parseSharedLocationFromUrl } from "./map/share-location.js";
@@ -81,8 +82,10 @@ const attributionController = createAttributionController({
     baseMapConfigs
 });
 
+let searchPinVisible = false;
+
 function refreshAttribution() {
-    attributionController.update(baseLayerController.activeKey, terrainController.isActive);
+    attributionController.update(baseLayerController.activeKey, terrainController.isActive, searchPinVisible);
 }
 
 const terrainController = createTerrainController({
@@ -94,6 +97,26 @@ const terrainController = createTerrainController({
 });
 
 const favoritesOverlay = createFavoritesOverlay(map);
+const placeSearchController = createPlaceSearchController({
+    map,
+    maplibregl,
+    apiKey: import.meta.env.VITE_OPENROUTESERVICE_API_KEY ?? "",
+    ...dom.placeSearch,
+    nearby: dom.nearbyPlaces,
+    canInspectMap: (event) => !routingController.isSelecting && !favoritesPanel.isSelecting
+        && !favoritesOverlay.hasPinAt(event.point),
+    onMenuClose: () => menuController.close(),
+    onSelect: () => {
+        tracker.following = false;
+        if (tracker.isActive) dom.reCenterButton.hidden = false;
+        searchPinVisible = true;
+        refreshAttribution();
+    },
+    onClear: () => {
+        searchPinVisible = false;
+        refreshAttribution();
+    }
+});
 const favoriteCloudStore = createFavoriteCloudStore();
 const routingController = createRoutingController({
     map,
@@ -195,6 +218,7 @@ dom.menuSectionToggleElements.forEach((toggleElement) => {
         const isExpanded = toggleElement.getAttribute("aria-expanded") !== "true";
         menuController.setSectionExpanded(toggleElement, isExpanded);
         if (toggleElement === dom.routingSectionToggle && isExpanded) {
+            placeSearchController.dismissNearby();
             routingController.open();
         }
     });
@@ -207,6 +231,7 @@ dom.layerOptionElements.forEach((element) => {
 });
 
 dom.saveFavoriteButton.addEventListener("click", () => {
+    placeSearchController.dismissNearby();
     favoritesPanel.startFavoriteSelection();
 });
 

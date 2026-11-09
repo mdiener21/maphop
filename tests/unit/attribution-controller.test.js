@@ -27,6 +27,15 @@ beforeEach(() => {
 });
 
 describe("createAttributionController", () => {
+    it("keeps search attribution with the selected pin across style and terrain changes", () => {
+        const { attributionText, controller } = makeController(baseMapConfigs);
+        controller.update("bergfex", false, true);
+        expect(attributionText.textContent).toContain("Search by openrouteservice");
+        controller.update("bergfex", true, true);
+        expect(attributionText.textContent).toContain("Search by openrouteservice");
+        expect(attributionText.textContent).toContain("Terrain © Mapterhorn");
+    });
+
     it("renders structured links and text tokens", () => {
         const { attributionText, controller } = makeController(baseMapConfigs);
 

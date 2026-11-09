@@ -4,7 +4,15 @@
 
 ### Added
 
+- Added map-click nearby-place lookup using ORS reverse geocoding, with up to three OSM matches within about 100 metres in a bottom panel styled like the routing summary. The panel shows names, addresses, and distances; Close or Clear removes the clicked pin and cancels pending work. Routing, favorite selection, and existing marker clicks keep their own actions.
+
+- Added a search clear button that removes the query, results, search pin and its map attribution, and cancels pending requests. Deleting the entire query also clears the pin.
+
+- Added compact menu-only OpenRouteService place search with selectable OpenStreetMap results, map zoom and a location pin, keyboard support, and inline loading/error feedback.
+
 ### Changed
+
+- Documented place-search setup, session-only query retention, attribution, and the search data sent to openrouteservice.
 
 ### Fixed
 

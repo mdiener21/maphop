@@ -428,6 +428,78 @@ body::before {
     padding-top: 10px;
 }
 
+.place-search {
+    flex-shrink: 0;
+    padding: 4px 0 12px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--panel-border);
+}
+
+.control-menu.is-detail-open .place-search { display: none; }
+
+.place-search-form {
+    display: flex;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    background: rgba(237, 244, 239, 0.04);
+}
+
+.place-search-form:focus-within { border-color: var(--accent); }
+
+.place-search-form input {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 16px;
+}
+
+.place-search-form input::placeholder { color: var(--text-muted); }
+.place-search-form input::-webkit-search-cancel-button { display: none; }
+
+.place-search-form button {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--accent);
+}
+
+.place-search-form svg { width: 20px; height: 20px; }
+.place-search-status { margin: 10px 0 0; color: var(--text-muted); font-size: 0.85rem; }
+.place-search-status:empty { display: none; }
+.place-search-results { margin: 4px 0 0; padding: 0; list-style: none; }
+.place-search-results:empty { display: none; }
+
+.place-search-result {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    min-height: 44px;
+    padding: 12px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.place-search-result strong { font-size: 0.95rem; font-weight: 600; }
+.place-search-result span { color: var(--text-muted); font-size: 0.85rem; }
+.place-search-credit { margin: 8px 0 0; color: var(--text-muted); font-size: 0.7rem; }
+.place-search-credit a { color: inherit; }
+
 .menu-group {
     flex-shrink: 0;
     padding: 4px 0 8px;
@@ -1133,7 +1205,8 @@ body::before {
 }
 
 /* ── Route summary sheet ────────────────────────────────────── */
-.route-summary {
+.route-summary,
+.nearby-places {
     position: absolute;
     right: 0;
     bottom: 0;
@@ -1370,7 +1443,8 @@ body::before {
 }
 
 @media (min-width: 700px) {
-    .route-summary {
+    .route-summary,
+    .nearby-places {
         right: auto;
         bottom: calc(var(--safe-bottom) + 16px);
         left: 16px;
@@ -1404,8 +1478,40 @@ body::before {
 
 @media (prefers-reduced-motion: reduce) {
     .route-summary,
+    .nearby-places,
     .route-summary-header::after {
         animation: none;
         transition: none;
     }
+}
+
+.nearby-places {
+    max-height: min(440px, 52dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 16px 16px 0 0;
+    padding-right: 16px;
+}
+.nearby-places-header { display: flex; align-items: center; gap: 12px; min-height: 76px; }
+.nearby-places-header h2 { margin: 4px 0 0; font-size: 1.1rem; font-weight: 600; letter-spacing: -0.02em; }
+.nearby-places-icon { flex-shrink: 0; color: var(--accent); }
+.nearby-places-header .route-summary-close { margin-left: auto; }
+.nearby-places-status { margin: 0 0 12px; color: var(--text-muted); font-size: 0.8rem; }
+.nearby-places-results { margin: 0; padding: 0; list-style: none; }
+.nearby-places-results li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 12px 0; border-top: 1px solid var(--panel-border); overflow-wrap: anywhere; }
+.nearby-places-results strong { grid-column: 1; font-size: 0.95rem; font-weight: 600; }
+.nearby-place-address { grid-column: 1; color: var(--text-muted); font-size: 0.8rem; }
+.nearby-place-distance { grid-column: 2; grid-row: 1; color: var(--accent); font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nearby-places-footer { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid var(--panel-border); }
+.nearby-places-footer .place-search-credit { flex: 1; margin: 0; line-height: 1.6; }
+.nearby-places-footer button { flex: 0 0 80px; }
+#app:has(.nearby-places:not([hidden])) #routeSummary { display: none; }
+#app:has(.nearby-places:not([hidden])) :is(.recenter-button, .compass-button, .status-toast, .attribution-widget, .location-control-button, .install-banner) {
+    margin-bottom: var(--nearby-places-height, 180px);
+}
+@media (min-width: 700px) {
+    .nearby-places { max-height: 60dvh; border-radius: 10px; padding-right: 16px; }
+    .nearby-places-grip { display: none; }
+    #app:has(.nearby-places:not([hidden])) :is(.status-toast, .attribution-widget, .location-control-button, .install-banner) { margin-bottom: 0; }
+    #app:has(.nearby-places:not([hidden])) :is(.recenter-button, .compass-button) { margin-bottom: calc(var(--nearby-places-height, 180px) + 18px); }
 }
