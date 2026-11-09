@@ -1,6 +1,6 @@
 {
   "name": "maphop",
-  "version": "2.0.19",
+  "version": "2.0.20",
   "description": "Simple pwa map viewer local-first, privacy first",
   "type": "module",
   "scripts": {
