@@ -54,7 +54,7 @@ Maphop is a lightweight map viewer you open in any modern browser. It gives you:
 
 | Feature | Description |
 |---------|-------------|
-| 🗺️ **Base Maps** | 7 built-in maps: Bergfex OSM, OpenStreetMap, OpenFreeMap Liberty, OpenTopoMap, CyclOSM, Esri Satellite, basemap.at Grau, plus optional Thunderforest Outdoors when configured |
+| 🗺️ **Base Maps** | 7 built-in maps: OpenStreetMap, OpenFreeMap Liberty, OpenTopoMap, CyclOSM, Esri Satellite, basemap.at Grau, plus optional Thunderforest Outdoors when configured |
 | 📍 **Live Location** | Opt-in GPS tracking with an accuracy circle, heading cone, and follow mode |
 | ⭐ **Favorites** | Crosshair-based save flow, local-only storage in IndexedDB, and one-tap return to saved places |
 | 🔗 **Favorite Sharing** | Share any saved favorite as a deep link; recipients see a pin marker and a banner to add the spot to their own favorites or dismiss |
@@ -85,7 +85,6 @@ Visit **[https://maphop.eu](https://maphop.eu)** in any modern browser. The map 
 
 Available styles:
 
-- **Bergfex OSM** — detailed street and trail map (default)
 - **OpenStreetMap** — classic community-maintained street map
 - **OpenFreeMap Liberty** — clean, lightweight vector map
 - **OpenTopoMap** — topographic contour map, great for hiking
