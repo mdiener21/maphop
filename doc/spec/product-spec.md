@@ -421,8 +421,8 @@ This change covers request lifetime only. The existing routing controller interf
 
 ### 4.15 Menu Place Search
 
-- Clicking/tapping an unclaimed map point sends its coordinates to ORS `/geocode/reverse` with OSM sources, a 0.1 km radius, `venue,address,street` layers, and up to three matches. Display names, addresses, and available distances in a bottom panel; never open a map-anchored popup or change the map view. Matches reporting distances beyond 100 metres are omitted.
-- The nearby panel shares the routing summary's dark/glass styling: full-width at the bottom on phones, a bottom-left card on desktop, and a bounded scrolling result area. Lift map controls above it. Temporarily hide an existing route summary while nearby places are visible; closing restores the route summary without changing route state.
+- Clicking/tapping an unclaimed map point sends its coordinates to ORS `/geocode/reverse` with OSM sources, a 0.1 km radius, `venue,address,street` layers, and up to three matches. Display names, addresses, and available distances in a responsive details panel; never open a map-anchored popup or change the map view. Matches reporting distances beyond 100 metres are omitted.
+- The nearby panel uses the app’s dark styling: full-width at the bottom on phones (<700px), and a full-height sidebar docked flush left on desktop (≥700px), up to 360px wide (40vw in smaller windows). Desktop results scroll independently between the header and footer. Move desktop re-center and compass controls beside the sidebar; on phones lift map controls above the sheet. Temporarily hide an existing route summary while nearby places are visible; closing restores the route summary without changing route state.
 - Nearby Close, nearby Clear, and menu Clear remove the panel and pin and cancel pending work. A new click replaces the lookup; late results cannot overwrite newer clicks, typed searches, or clearing. Opening route or favorite selection dismisses nearby results. Those selection clicks and existing DOM/GeoJSON marker clicks do not start reverse lookups.
 
 - A “Clear search” button appears when a query or pin exists. It resets the query, results, and status; removes the search pin and its map attribution; invalidates pending requests; and returns focus to the input without moving the map. Deleting the entire query has the same clearing behavior.
@@ -557,7 +557,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Component | Size / Position | Key Behavior |
 |-----------|----------------|-------------|
 | Menu button | 48×48px circle, top-right | Hamburger, toggles control panel |
-| Control panel | 260px mobile / 280px desktop, top-right | Glass panel, max-height transition 180ms |
+| Control panel | Bottom sheet on mobile; full-height, flush-right sidebar on desktop (≥700px), up to 400px wide (44vw in smaller windows) | Fixed header, scrollable content, back navigation in category views, close button; location and attribution controls move beside the desktop sidebar |
 | Location toggle | Full-width row | Animated pill, gradient active state |
 | Terrain toggle | Full-width row, Location section (below privacy note) | Animated pill; top border separator |
 | Favorite selection overlay | Full-map overlay | Centered crosshair + bottom action card; map remains interactive |
@@ -577,7 +577,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Install hint (iOS) | max 440px, bottom-center | Glass panel; Share instruction + Dismiss; 7-day snooze |
 | PocketBase auth controls | Settings card | Email/password inputs, authenticate button, logout button, auth/device status |
 
-**Breakpoints:** Default mobile-first (260px menu); 700px+ → 280px menu.
+**Breakpoints:** Mobile bottom sheets below 700px; desktop docked sidebars from 700px. Opposite sidebars can be open together without overlapping.
 
 ---
 

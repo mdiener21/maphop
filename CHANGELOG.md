@@ -6,6 +6,8 @@
 
 ### Changed
 
+- Dock desktop map-click details to a full-height left sidebar and map controls to a full-height right sidebar, with scrollable content and unobstructed map tools. Keep mobile bottom sheets.
+
 ### Fixed
 
 ### Removed
