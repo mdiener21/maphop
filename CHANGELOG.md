@@ -4,12 +4,23 @@
 
 ### Added
 
+### Changed
+
+- Dock desktop map-click details to a full-height left sidebar and map controls to a full-height right sidebar, with scrollable content and unobstructed map tools. Keep mobile bottom sheets.
+
+### Fixed
+
+### Removed
+
+## [2.0.20] - 2026-11-09
+
+### Added
+
 - Search for places by name in the menu and jump to a result on the map.
 - Click the map to see nearby places in a bottom panel. Clear search to remove results and pins.
 
 ### Changed
 
-- Dock desktop map-click details to a full-height left sidebar and map controls to a full-height right sidebar, with scrollable content and unobstructed map tools. Keep mobile bottom sheets.
 - Added place-search privacy details.
 
 ### Fixed
