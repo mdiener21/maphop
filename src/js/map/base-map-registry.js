@@ -62,10 +62,10 @@ export function createBaseMapConfigs(thunderforestApiKey = readThunderforestApiK
             })
         },
         bergfex: {
-            label: "Bergfex OSM",
+            label: "OSM-bx",
             attribution: [
-                { type: "link", label: "Bergfex", href: "https://www.bergfex.at", prefix: "© " },
-                { type: "link", label: "OpenStreetMap contributors", href: "https://www.openstreetmap.org/copyright", prefix: "© " }
+                { type: "link", label: "osm-bx", href: "https://www.bergfex.at", prefix: "© " },
+                { type: "link", label: "OSM contributors", href: "https://www.openstreetmap.org/copyright", prefix: "© " }
             ],
             style: createRasterStyle([bergfexTilesUrl], { tileSize: 512, maxzoom: 20 })
         },
