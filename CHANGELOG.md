@@ -6,6 +6,9 @@
 
 ### Changed
 
+- Upgraded runtime dependencies: `maplibre-gl` 6.4.1 → 6.19.0, `pmtiles` 4.4.0 → 4.5.0, `pocketbase` 0.27.3 → 0.28.2.
+- Upgraded dev dependencies: `@playwright/test` 1.58.2 → 1.65.1, `vitest` and `@vitest/coverage-v8` 5.0.5 → 5.1.1, `vite` 8.3.4 → 8.3.8, `jsdom` 29.0.1 → 29.1.1, `fake-indexeddb` 6.2.5 → 6.2.8.
+
 ### Fixed
 
 ### Removed

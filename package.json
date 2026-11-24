@@ -25,16 +25,16 @@
   },
   "homepage": "https://github.com/mdiener21/maphop#readme",
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
-    "@vitest/coverage-v8": "^5.0.5",
-    "fake-indexeddb": "^6.2.5",
-    "jsdom": "^29.0.1",
-    "vite": "^8.3.4",
-    "vitest": "^5.0.5"
+    "@playwright/test": "^1.65.1",
+    "@vitest/coverage-v8": "^5.1.1",
+    "fake-indexeddb": "^6.2.8",
+    "jsdom": "^29.1.1",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
   },
   "dependencies": {
-    "maplibre-gl": "^6.4.1",
-    "pmtiles": "^4.4.0",
-    "pocketbase": "^0.27.3"
+    "maplibre-gl": "^6.19.0",
+    "pmtiles": "^4.5.0",
+    "pocketbase": "^0.28.2"
   }
 }
