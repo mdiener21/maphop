@@ -13,7 +13,7 @@ test('production build paints the route red with a white outline', async ({ page
     // Isolate rendering from tile providers, analytics, and the routing service.
     await page.route(url => url.protocol === 'https:', async route => {
         const url = new URL(route.request().url());
-        if (url.hostname === 'api.openrouteservice.org') {
+        if (url.hostname === 'api.heigit.org') {
             const { coordinates } = route.request().postDataJSON();
             await route.fulfill({ json: {
                 type: 'FeatureCollection',

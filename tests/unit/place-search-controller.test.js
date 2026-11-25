@@ -122,7 +122,7 @@ describe("menu place search", () => {
         expect(nearby.root.hidden).toBe(false);
         await vi.waitFor(() => expect(document.body.textContent).toContain("Campus café"));
         const url = new URL(fetchMock.mock.calls[0][0]);
-        expect(url.pathname).toBe("/geocode/reverse");
+        expect(url.pathname).toBe("/pelias/v1/reverse");
         expect(url.searchParams.get("point.lon")).toBe("16.408");
         expect(url.searchParams.get("point.lat")).toBe("48.213");
         expect(url.searchParams.get("boundary.circle.radius")).toBe("0.1");

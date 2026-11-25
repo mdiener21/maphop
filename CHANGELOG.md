@@ -13,6 +13,8 @@
 
 ### Fixed
 
+- Routing, place search and nearby-place lookup work again. openrouteservice shut down `api.openrouteservice.org` on 2026-11-24 (it now returns 410 without CORS headers, which browsers reported as a CORS error). Requests now go to `api.heigit.org`, and the Content Security Policy allows the new host.
+
 ### Removed
 
 ## [2.0.23] - 2026-11-15

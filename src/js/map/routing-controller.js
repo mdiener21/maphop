@@ -347,7 +347,7 @@ export function createRoutingController({ map, maplibregl, apiKey, panel, summar
         const isCurrent = () => active && requestController === controller;
         panel.status.textContent = "Finding route…";
         try {
-            const response = await fetch(`https://api.openrouteservice.org/v2/directions/${profile}/geojson`, {
+            const response = await fetch(`https://api.heigit.org/openrouteservice/v2/directions/${profile}/geojson`, {
                 method: "POST",
                 headers: { Authorization: apiKey, "Content-Type": "application/json" },
                 body: JSON.stringify({ coordinates: points, elevation: true }),

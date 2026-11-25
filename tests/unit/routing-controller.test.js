@@ -149,7 +149,7 @@ describe("routing controller", () => {
         panel.destinationField.click();
         map.handlers.click({ lngLat: { lng: 3, lat: 4 } });
         await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
-        expect(fetch.mock.calls[0][0]).toBe("https://api.openrouteservice.org/v2/directions/foot-hiking/geojson");
+        expect(fetch.mock.calls[0][0]).toBe("https://api.heigit.org/openrouteservice/v2/directions/foot-hiking/geojson");
         await vi.waitFor(() => expect(map.addSource).toHaveBeenCalledWith("walking-route", expect.objectContaining({
             data: expect.objectContaining({ features: [expect.any(Object)] })
         })));
@@ -158,7 +158,7 @@ describe("routing controller", () => {
         panel.profile.value = "cycling-mountain";
         panel.profile.dispatchEvent(new Event("change"));
         await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-        expect(fetch.mock.calls[1][0]).toBe("https://api.openrouteservice.org/v2/directions/cycling-mountain/geojson");
+        expect(fetch.mock.calls[1][0]).toBe("https://api.heigit.org/openrouteservice/v2/directions/cycling-mountain/geojson");
     });
 
     it("restores the route overlay when the map style resets while a route request is pending", async () => {
