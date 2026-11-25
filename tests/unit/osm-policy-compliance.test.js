@@ -14,10 +14,10 @@ describe("OpenStreetMap policy compliance", () => {
         ]);
     });
 
-    it("falls back to OpenStreetMap as the default base layer", () => {
+    it("defaults to OpenFreeMap so OSM tile servers are not the default load", () => {
         const maphopSource = readProjectFile("src/js/maphop.js");
 
-        expect(maphopSource).toContain('const fallbackBaseLayerKey = "osm";');
+        expect(maphopSource).toContain('const fallbackBaseLayerKey = "openfreemap";');
     });
 
     it("keeps attribution visible in the page markup", () => {

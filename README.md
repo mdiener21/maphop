@@ -211,11 +211,14 @@ pnpm test:watch
 # Run unit tests with a V8 coverage report
 pnpm test:coverage
 
-# Run end-to-end tests (Playwright, requires Firefox)
+# Run end-to-end tests in Firefox and Chromium (first: pnpm exec playwright install firefox chromium)
 pnpm test:e2e
+
+# ...or in one browser
+pnpm test:e2e --project=firefox
 ```
 
-Unit tests live in `tests/unit/` and currently cover attribution rendering, base-layer switching, install prompts, menu state, favorites transfer/store logic, location tracking, terrain lifecycle, and share-link helpers. End-to-end tests live in `tests/e2e/` and exercise the map page, settings page, impressum page, and inter-page navigation.
+Unit tests live in `tests/unit/` and currently cover attribution rendering, base-layer switching, install prompts, menu state, favorites transfer/store logic, location tracking, terrain lifecycle, and share-link helpers. End-to-end tests live in `tests/e2e/` and cover page structure and navigation plus the main user flows: adding, reloading and deleting a favorite, opening a shared location link, base map default/persistence/failure revert, and the Settings export/import round trip. They stub all third-party network requests, so they run offline.
 
 ### Building for Production
 

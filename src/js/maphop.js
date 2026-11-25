@@ -19,7 +19,7 @@ import { parseSharedLocationFromUrl } from "./map/share-location.js";
 import { createStatusToast } from "./map/status-toast.js";
 import { createTerrainController } from "./map/terrain-controller.js";
 
-const fallbackBaseLayerKey = "osm";
+const fallbackBaseLayerKey = "openfreemap";
 const defaultCenter = [14.268, 46.59026];
 const defaultZoom = 15;
 const sharedLocation = parseSharedLocationFromUrl();

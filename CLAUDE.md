@@ -14,8 +14,13 @@
 - Install: `pnpm install`. Develop: `pnpm dev`. Build: `pnpm build`. Preview: `pnpm preview`.
 - Before calling a change done, run `pnpm test` and `pnpm build`.
 - Unit tests: Vitest + jsdom in `tests/unit/**/*.test.js`; focused run: `pnpm vitest run tests/unit/base-layer-controller.test.js`. Coverage: `pnpm test:coverage`. IndexedDB tests use `fake-indexeddb`.
-- Browser flows: `pnpm test:e2e` uses Firefox and starts Vite automatically.
-- Build/worker/route rendering: `pnpm test:e2e:production` uses Chromium against a **local production build**, blocks service workers, and supplies a fake routing key. Its isolated build goes to `.playwright/production-dist`, not deployable `dist/`. Install the relevant Playwright browser if absent.
+- Browser flows (`tests/e2e/`, `playwright.config.js`): `pnpm test:e2e` runs every spec in **both Firefox and Chromium** against the Vite dev server on port 5173, which it starts automatically (or reuses if one is running).
+  - One browser: `pnpm test:e2e --project=firefox` or `pnpm test:e2e --project=chromium`.
+  - One file: `pnpm exec playwright test tests/e2e/favorites.spec.js --project=firefox`. Debug with `--headed` or `--ui`.
+  - Browsers: after installing or upgrading `@playwright/test`, run `pnpm exec playwright install firefox chromium`. A "browserType.launch: Executable doesn't exist" error means this step was skipped. On WSL2/Linux, Chromium also needs `pnpm exec playwright install-deps chromium` (otherwise `libnspr4.so` is missing); use `--project=firefox` if you cannot install system packages.
+  - Workers are capped at 2 because MapLibre renders with software WebGL in headless browsers; more parallel pages time out. Don't raise it to speed things up.
+  - Specs stub all third-party HTTPS (tiles, OpenFreeMap style, Open-Meteo) via `tests/e2e/support/network.js`; keep new specs offline the same way. The map instance isn't exposed, so assert through the DOM, `localStorage` and IndexedDB.
+- Build/worker/route rendering: `pnpm test:e2e:production` (`tests/production/`, `playwright.production.config.js`) uses **Chromium only** against a **local production build** on port 4174, blocks service workers, and supplies a fake routing key. Its isolated build goes to `.playwright/production-dist`, not deployable `dist/`.
 - Test observable controller behavior with fake maps and injected dependencies; use existing tests as patterns. No lint or type-check script is configured.
 
 ## Gotchas and boundaries

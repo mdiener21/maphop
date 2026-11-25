@@ -64,6 +64,11 @@ This file is the low-context index for the codebase. Use it to find the right mo
 | Favorite PocketBase backup | `tests/unit/favorite-cloud-store.test.js` |
 | Location tracker | `tests/unit/location-tracker.test.js` |
 | Basic browser flows | `tests/e2e/app.spec.js` |
+| Favorite add / reload / delete flow | `tests/e2e/favorites.spec.js` |
+| Shared location link receiver | `tests/e2e/shared-location.spec.js` |
+| Base map default, persistence and style-failure revert | `tests/e2e/base-map.spec.js` |
+| Settings export / import round trip and import errors | `tests/e2e/settings-transfer.spec.js` |
+| E2E third-party network stubs and IndexedDB helpers | `tests/e2e/support/network.js` |
 
 ## Rules
 
