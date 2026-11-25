@@ -77,7 +77,17 @@ jobs:
           PYEOF
           git add package.json pnpm-lock.yaml CHANGELOG.md
           git commit -m "chore: bump version to v$NEW_VERSION"
-          git push
+          for attempt in 1 2 3; do
+            if git push; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::git push failed after 3 attempts."
+              exit 1
+            fi
+            echo "git push failed (attempt ${attempt}/3). Retrying in 10s..."
+            sleep 10
+          done
           echo "SKIP_DEPLOY=true" >> $GITHUB_ENV
 
       # ── Manual bump (workflow_dispatch) ─────────────────────────────────────
@@ -105,7 +115,17 @@ jobs:
           PYEOF
           git add package.json pnpm-lock.yaml CHANGELOG.md
           git commit -m "chore: bump version to v$NEW_VERSION [skip ci]"
-          git push
+          for attempt in 1 2 3; do
+            if git push; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::git push failed after 3 attempts."
+              exit 1
+            fi
+            echo "git push failed (attempt ${attempt}/3). Retrying in 10s..."
+            sleep 10
+          done
 
       # ── Build & deploy ───────────────────────────────────────────────────────
       # Skipped after an auto patch bump (the next triggered run will deploy).
