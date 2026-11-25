@@ -28,7 +28,7 @@ Local-first, privacy-first PWA map viewer. No accounts required; optional Pocket
 | Elevation lookup | Open-Meteo Elevation API | Optional online fallback/comparison for favorite elevation |
 | Optional cloud backup | PocketBase JS SDK ^0.27.3 + `https://pb.kanvana.com` | Authenticated favorite backup to `maphop_favourites` |
 | Unit tests | Vitest ^4.1.2 + jsdom ^29.0.1 + fake-indexeddb ^6.2.5 | 111 tests |
-| E2E tests | Playwright ^1.58.2 (Firefox) | 12 tests |
+| E2E tests | Playwright ^1.65.1 (Firefox + Chromium) | 32 tests per browser |
 
 ---
 
@@ -75,7 +75,7 @@ src/
 
 tests/
 ├── unit/                   Vitest + jsdom (115 tests across 16 files)
-└── e2e/app.spec.js         Playwright Firefox (12 tests)
+└── e2e/*.spec.js          Playwright Firefox + Chromium (32 tests each)
 
 doc/
 ├── architecture/code-map.md  Module ownership quick-navigation guide
@@ -126,7 +126,7 @@ doc/
 | Rotation / pitch | Right-click drag (desktop); two-finger gestures (touch) |
 | Attribution | Custom widget; built-in MapLibre control hidden |
 
-- Map renders immediately on load with the default base layer (Bergfex OSM).
+- Map renders immediately on load with the default base layer (OpenFreeMap Liberty).
 - Fills 100% of viewport; pan and pinch-zoom work on touch and desktop.
 
 ### 4.2 Base Map Selection
@@ -135,7 +135,7 @@ Seven built-in providers selectable from the radio-button Maps menu, plus an opt
 
 | Key | Name | Tile Size | Max Zoom |
 |-----|------|-----------|----------|
-| `bergfex` | Bergfex OSM | 512px | 20 |
+| `bergfex` | bOSM | 512px | 20 |
 | `osm` | OpenStreetMap | 256px | 19 |
 | `openfreemap` | OpenFreeMap Liberty | Style JSON | — |
 | `opentopo` | OpenTopoMap | 256px | 17 |
@@ -144,14 +144,14 @@ Seven built-in providers selectable from the radio-button Maps menu, plus an opt
 | `esriSatellite` | Esri Satellite | 256px | 19 |
 | `basemapGrauWmts` | basemap.at Grau WMTS | 256px | 20 |
 
-**Persistence:** `localStorage` key `maphop-base-layer`; saved on successful style load; restored on page load (no second load needed); fallback `bergfex`.
+**Persistence:** `localStorage` key `maphop-base-layer`; saved on successful style load; restored on page load (no second load needed); fallback `openfreemap`.
 
 - Switching triggers a 12-second style-load timeout; failure reverts to the previous layer and shows an error toast.
 - Menu button disabled during style loading.
 - The `outdoors` option is included only when `VITE_THUNDERFOREST_API_KEY` is present at build time; otherwise its menu button stays hidden and disabled.
 - After every style load: terrain source re-added → hillshade re-applied (if active) → geolocation overlay re-applied (this order keeps location dot above hillshade).
 - Attribution panel updates on every switch.
-- If `localStorage` is unavailable, falls back to Bergfex OSM silently.
+- If `localStorage` is unavailable, falls back to openfreemap silently.
 
 ### 4.3 Geolocation Tracking
 
@@ -440,7 +440,7 @@ This change covers request lifetime only. The existing routing controller interf
 
 ### Flow 1: First Visit
 ```
-Open URL → map loads (Bergfex OSM, default location)
+Open URL → map loads (openfreemap default location)
   → (optional) switch base map → (optional) enable location → (optional) add favorite
 ```
 
@@ -622,7 +622,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 
 ### Testing
 - **Unit (Vitest + jsdom):** 115 tests across 16 files covering all pure-logic modules. Key decisions: `vi.resetModules()` + `new IDBFactory()` isolates IndexedDB per test; `vi.useFakeTimers()` drives the 15-minute idle timeout; `vi.mock('maplibre-gl')` stubs LngLatBounds for jsdom.
-- **E2E (Playwright + Firefox):** 12 tests covering page titles, DOM structure, menu interaction, and navigation. Chromium excluded (missing `libnspr4.so` on this WSL2 host).
+- **E2E (Playwright, Firefox + Chromium):** 32 tests per browser covering page titles, DOM structure, menu interaction and navigation, plus the add/reload/delete favorite flow, shared location links, base map default/persistence/style-failure revert, and the Settings export/import round trip. All third-party requests are stubbed. On WSL2/Linux, Chromium needs `playwright install-deps chromium` (for `libnspr4.so`); otherwise run `--project=firefox`.
 
 ### Offline Support
 - Service worker caches app shell for offline launch.
@@ -667,7 +667,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 |-----------|-------------|
 | Map loads | Default base layer renders within 3s on broadband |
 | Base map switching | All built-in providers, plus optional `outdoors` when configured, load or gracefully fall back |
-| Base map preference persists | Last-used restored on reload; falls back to Bergfex OSM when storage unavailable |
+| Base map preference persists | Last-used restored on reload; falls back to openfreemap when storage unavailable |
 | Location tracking | Accuracy circle, heading cone, and point render on activation |
 | Idle timeout | Tracking stops after 15 minutes of inactivity |
 | Favorites CRUD | Save, list, navigate-to, and delete all work with toast feedback |
@@ -689,7 +689,7 @@ Glass effect: `backdrop-filter: blur(18px) saturate(140%)`. Shadow: `0 18px 45px
 | Compass | Appears on rotation or tilt; needle tracks north; tap resets bearing + pitch to 0° |
 | Architecture navigable | `doc/architecture/code-map.md` sufficient to locate owning module without reading `maphop.js` |
 | Unit tests pass | `npm test` exits 0, all 115 tests green |
-| E2E tests pass | `npm run test:e2e` exits 0, all 12 tests green |
+| E2E tests pass | `pnpm test:e2e` exits 0 in Firefox and Chromium |
 
 ---
 

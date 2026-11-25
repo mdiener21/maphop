@@ -4,7 +4,12 @@
 
 ### Added
 
+- End-to-end tests for the main user flows: adding, reloading and deleting a favorite; shared location links; the default base map, its persistence and the revert when a style fails to load; and the Settings export/import round trip with import errors. They stub all third-party requests and run offline.
+- The e2e suite now runs in Chromium as well as Firefox (`--project=firefox` / `--project=chromium` to pick one).
+
 ### Changed
+
+- The default base map is now OpenFreeMap Liberty (previously OpenStreetMap). A base map you have already picked is still restored on load.
 
 ### Fixed
 
