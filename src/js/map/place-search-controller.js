@@ -125,7 +125,7 @@ export function createPlaceSearchController({ map, maplibregl, apiKey, form, inp
             clearSearch();
             return;
         }
-        const url = new URL("https://api.openrouteservice.org/geocode/search");
+        const url = new URL("https://api.heigit.org/pelias/v1/search");
         url.search = new URLSearchParams({ text: query, sources: "openstreetmap", size: "5" });
         requestPlaces(url, renderResults);
     }
@@ -148,7 +148,7 @@ export function createPlaceSearchController({ map, maplibregl, apiKey, form, inp
         const list = nearby.results;
         publishNearbyHeight();
 
-        const url = new URL("https://api.openrouteservice.org/geocode/reverse");
+        const url = new URL("https://api.heigit.org/pelias/v1/reverse");
         url.search = new URLSearchParams({
             "point.lon": String(coordinates[0]), "point.lat": String(coordinates[1]),
             "boundary.circle.radius": "0.1", sources: "openstreetmap", layers: "venue,address,street", size: "3"
